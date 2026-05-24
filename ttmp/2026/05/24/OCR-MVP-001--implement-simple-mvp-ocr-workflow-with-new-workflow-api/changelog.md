@@ -82,3 +82,14 @@ Finalized OCR-MVP-001 implementation pass: all tasks complete, docs validated, a
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/OCR-MVP-001--implement-simple-mvp-ocr-workflow-with-new-workflow-api/design-doc/01-mvp-ocr-workflow-implementation-guide.md — Updated implementation guide and runbook uploaded to reMarkable
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/OCR-MVP-001--implement-simple-mvp-ocr-workflow-with-new-workflow-api/reference/01-diary.md — Final diary entry with validation and upload evidence
 
+
+## 2026-05-24
+
+Added first-class OCR MVP operator subcommands for status, page listing, retry, and cancel (commit 5d0934a429bf699afb9dd88ad4ce1e90bb6648a4).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/OCR-MVP-001--implement-simple-mvp-ocr-workflow-with-new-workflow-api/design-doc/01-mvp-ocr-workflow-implementation-guide.md — Updated with concrete operator CLI runbook
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/OCR-MVP-001--implement-simple-mvp-ocr-workflow-with-new-workflow-api/reference/01-diary.md — Diary updated with operator CLI phase
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/cmd/ocr-mvp/main.go — Operator subcommands
+

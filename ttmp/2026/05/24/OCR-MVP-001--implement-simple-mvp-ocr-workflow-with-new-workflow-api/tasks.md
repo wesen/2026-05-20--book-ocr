@@ -15,3 +15,4 @@
 - [x] Phase 3a: Add a small CLI/example command to run ocr-mvp with --book-id, --image-dir, --work-dir, --profile, --profile-registries, --dry-run, and --max-workers
 - [x] Phase 3b: Document operator smoke flows for retrying failed page steps and canceling runs
 - [x] Finalize: run full tests, update guide/diary/changelog, validate docmgr, optionally re-upload to reMarkable
+- [x] Follow-up: Add first-class OCR MVP operator CLI subcommands for status, page projection listing, retry, and cancel

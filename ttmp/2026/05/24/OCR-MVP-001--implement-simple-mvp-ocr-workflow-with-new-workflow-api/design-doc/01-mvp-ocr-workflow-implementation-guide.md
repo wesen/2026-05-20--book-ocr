@@ -20,7 +20,9 @@ RelatedFiles:
     - Path: pinocchio/pkg/cmds/profilebootstrap/profile_selection.go
       Note: Pinocchio default profile and registry selection behavior
     - Path: scraper/cmd/ocr-mvp/main.go
-      Note: Runnable OCR MVP CLI and dry-run/live wiring
+      Note: |-
+        Runnable OCR MVP CLI and dry-run/live wiring
+        Updated CLI now includes run/status/pages/retry/cancel subcommands
     - Path: scraper/go.mod
       Note: Dependency updates for Geppetto and Pinocchio imports
     - Path: scraper/go.sum
@@ -63,6 +65,7 @@ LastUpdated: 2026-05-24T20:58:00-04:00
 WhatFor: Use this before implementing the OCR MVP workflow so the intern understands scraper workflow concepts, Geppetto OCR integration, profile registry resolution, artifacts, projections, and validation.
 WhenToUse: Read when implementing, reviewing, or extending OCR-MVP-001.
 ---
+
 
 
 
@@ -1009,37 +1012,57 @@ go run ./cmd/ocr-mvp \
   --profile-registries ~/.config/pinocchio/profiles.yaml
 ```
 
-### Operator retry and cancel smoke flows
+### Operator retry, cancel, status, and page-inspection smoke flows
 
-The current CLI starts a new run and waits for terminal status. Retry/cancel are available through the workflow runtime API and should be wrapped in a future operator command.
+The CLI now has small operator subcommands in addition to the `run` command. These commands all reuse the same `--work-dir` layout as the runner: `engine.db`, `artifacts/`, and `projections/`.
+
+Check a run's durable workflow status:
+
+```bash
+go run ./cmd/ocr-mvp status \
+  --work-dir /tmp/ocr-mvp-aitr \
+  --run-id ocr-mvp-run-id
+```
+
+List projected page state for a book:
+
+```bash
+go run ./cmd/ocr-mvp pages \
+  --work-dir /tmp/ocr-mvp-aitr \
+  --book-id aitr-794
+```
+
+Filter to failed pages only:
+
+```bash
+go run ./cmd/ocr-mvp pages \
+  --work-dir /tmp/ocr-mvp-aitr \
+  --book-id aitr-794 \
+  --status error
+```
 
 Retry one failed page step:
 
-```go
-rt, err := workflow.NewRuntime(ctx, workflow.Config{
-    Store: workflow.SQLiteStore("/tmp/ocr-mvp-aitr/engine.db"),
-})
-if err != nil { return err }
-defer rt.Close()
-
-err = rt.RetryStep(ctx, model.WorkflowID("ocr-mvp-run-id"), model.OpID("ocr-page-047"))
+```bash
+go run ./cmd/ocr-mvp retry \
+  --work-dir /tmp/ocr-mvp-aitr \
+  --run-id ocr-mvp-run-id \
+  --step-id ocr-page-047
 ```
 
 Cancel a run:
 
-```go
-err = rt.CancelRun(ctx, model.WorkflowID("ocr-mvp-run-id"))
+```bash
+go run ./cmd/ocr-mvp cancel \
+  --work-dir /tmp/ocr-mvp-aitr \
+  --run-id ocr-mvp-run-id
 ```
 
-Projection inspection:
+The shorthand form still runs a workflow, so both of these are valid:
 
-```go
-rt, _ := workflow.NewRuntime(ctx, workflow.Config{
-    Store:           workflow.SQLiteStore("/tmp/ocr-mvp-aitr/engine.db"),
-    ProjectionStore: workflow.NewSQLiteProjectionStore("/tmp/ocr-mvp-aitr/projections"),
-})
-projection, _ := rt.Projection(ctx, "ocr-mvp")
-rows, _ := projection.Query(ctx, `SELECT page_num, status, error_code FROM pages WHERE book_id = ? ORDER BY page_num`, "aitr-794")
+```bash
+go run ./cmd/ocr-mvp --book-id smoke --image-dir /path/to/pages --dry-run
+go run ./cmd/ocr-mvp run --book-id smoke --image-dir /path/to/pages --dry-run
 ```
 
 ## References

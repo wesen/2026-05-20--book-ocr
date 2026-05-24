@@ -16,7 +16,9 @@ RelatedFiles:
     - Path: pinocchio/pkg/cmds/profilebootstrap/engine_settings.go
       Note: Evidence inspected for profile-backed Geppetto engine construction
     - Path: scraper/cmd/ocr-mvp/main.go
-      Note: Phase 3 CLI implementation evidence
+      Note: |-
+        Phase 3 CLI implementation evidence
+        Operator subcommand implementation evidence (commit 5d0934a)
     - Path: scraper/go.mod
       Note: Dependency churn noted in diary
     - Path: scraper/pkg/workflow/projection_store.go
@@ -37,6 +39,7 @@ LastUpdated: 2026-05-24T20:58:00-04:00
 WhatFor: Record what was investigated, written, constrained, and delivered for OCR-MVP-001.
 WhenToUse: Read before implementing or extending the MVP OCR workflow.
 ---
+
 
 
 
@@ -809,4 +812,95 @@ remarquee upload bundle \
   --remote-dir "/ai/2026/05/24/OCR-MVP-001" \
   --toc-depth 2 \
   --non-interactive
+```
+
+## Step 9: Add first-class OCR MVP operator subcommands
+
+After the MVP CLI worked for dry-run/live execution, I continued by turning the documented operator smoke snippets into actual CLI subcommands. The command now supports `run`, `status`, `pages`, `retry`, and `cancel`, while preserving the previous shorthand where `ocr-mvp --book-id ...` still starts a run.
+
+This closes an important usability gap for OCR campaigns: after a run exists on disk, an operator can inspect the workflow status, list page projection rows, retry a failed page step, or cancel the run without writing a small Go helper.
+
+### Prompt Context
+
+**User prompt (verbatim):** "continue now"
+
+**Assistant interpretation:** Continue beyond the finalized MVP slice by implementing the next previously identified hardening item: first-class operator CLI commands.
+
+**Inferred user intent:** The user wants the implementation work to keep moving rather than stopping at the previous summary, while maintaining the same commit/diary discipline.
+
+**Commit (code):** `5d0934a429bf699afb9dd88ad4ce1e90bb6648a4` — "Add OCR MVP operator subcommands"
+
+### What I did
+
+- Reworked `scraper/cmd/ocr-mvp/main.go` into a small subcommand dispatcher.
+- Added `run` as an explicit subcommand while preserving the old shorthand flag style.
+- Added `status --work-dir DIR --run-id RUN_ID` to print durable workflow status.
+- Added `pages --work-dir DIR --book-id BOOK_ID [--status STATUS] [--limit N]` to print OCR page projection rows.
+- Added `retry --work-dir DIR --run-id RUN_ID --step-id STEP_ID` to call `Runtime.RetryStep`.
+- Added `cancel --work-dir DIR --run-id RUN_ID` to call `Runtime.CancelRun`.
+- Updated the design guide's operator smoke section to show the new CLI commands.
+
+### Why
+
+- The previous runbook documented retry/cancel through Go snippets only.
+- OCR campaigns need practical operator commands because page-level retry and status inspection are routine when a long book run has partial failures.
+
+### What worked
+
+- Focused tests passed:
+  - `go test ./cmd/ocr-mvp ./pkg/workflows/ocrmvp -count=1`
+- Dry-run smoke passed with the new explicit `run` subcommand.
+- `status` printed the run's workflow status from `engine.db`.
+- `pages` printed projected page rows from `projections/ocr-mvp.db`.
+- Pre-commit validation passed during the code commit, including full Go tests, web unit tests, lint, gosec, and govulncheck.
+
+### What didn't work
+
+- N/A. The command refactor and smoke checks worked on the first validation attempt.
+
+### What I learned
+
+- The projection store API is sufficient for a simple operator-facing `pages` command without adding new runtime APIs.
+- It is useful for operator commands to check for an existing `engine.db` so typos in `--work-dir` do not silently create an empty runtime database.
+
+### What was tricky to build
+
+- The CLI needed to preserve backwards compatibility with the previous one-command shape while adding subcommands. I handled that by treating no subcommand or a first argument beginning with `-` as the `run` command.
+- The operator commands need only the persisted runtime stores, not the OCR executors. Opening a runtime without registering the package is enough for status/retry/cancel; `pages` can use the projection store directly.
+
+### What warrants a second pair of eyes
+
+- Whether the ad-hoc `flag`-based dispatcher is enough for the MVP, or whether this should move into Cobra alongside the main scraper CLI.
+- Whether `pages` output should become JSON/CSV/table formatted for scripts and dashboards.
+- Whether `retry` should optionally start workers after marking a step ready.
+
+### What should be done in the future
+
+- Add a `resume` or `work` subcommand that runs scheduler cycles for an existing run after retries.
+- Add JSON output flags for `status` and `pages`.
+- Add a `failed-pages` shorthand or dashboard export if live book runs show repeated operator usage.
+
+### Code review instructions
+
+- Start with `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/cmd/ocr-mvp/main.go`.
+- Validate with:
+  - `cd /home/manuel/workspaces/2026-05-20/book-ocr/scraper && go test ./cmd/ocr-mvp ./pkg/workflows/ocrmvp -count=1`
+- Smoke the subcommands with a temp page directory:
+  - `go run ./cmd/ocr-mvp run --book-id smoke --image-dir "$tmp/pages" --work-dir "$tmp/work" --dry-run --max-workers 2`
+  - `go run ./cmd/ocr-mvp status --work-dir "$tmp/work" --run-id "$run_id"`
+  - `go run ./cmd/ocr-mvp pages --work-dir "$tmp/work" --book-id smoke`
+
+### Technical details
+
+Smoke commands executed in this step:
+
+```bash
+tmp=$(mktemp -d)
+mkdir -p "$tmp/pages"
+printf 'fake1' > "$tmp/pages/page_001.png"
+printf 'fake2' > "$tmp/pages/page_002.png"
+go run ./cmd/ocr-mvp run --book-id smoke --image-dir "$tmp/pages" --work-dir "$tmp/work" --dry-run --max-workers 2 > "$tmp/run.out"
+run_id=$(grep -o 'ocr-mvp-[^ ]*' "$tmp/run.out" | head -1)
+go run ./cmd/ocr-mvp status --work-dir "$tmp/work" --run-id "$run_id"
+go run ./cmd/ocr-mvp pages --work-dir "$tmp/work" --book-id smoke
 ```
