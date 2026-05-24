@@ -47,3 +47,14 @@ Assessed baseline OCR quality, validated list-page failures with the vision tool
 - /home/manuel/workspaces/2026-05-20/book-ocr/scraper/cmd/ocr-mvp/main.go — Logging and prompt CLI controls
 - /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrmvp/prompt.go — Quality prompt
 
+
+## 2026-05-24
+
+Iterated OCR prompts through v3/v4, compared nano versus mini on hard list pages, ran the best-current v4 mini OCR for pages 1-30, and recorded QA notes with vision spot-checks.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/experiments/007-quality-v4-mini-pages-001-030/notes.md — QA notes
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/experiments/007-quality-v4-mini-pages-001-030/outputs/01-final-quality-v4-mini-pages-001-030.md — Best output
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrmvp/prompt.go — Prompt iterations
+

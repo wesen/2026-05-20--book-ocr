@@ -1,0 +1,10 @@
+page_num	status	char_count	prompt_version	profile	markdown_artifact_uri	error_code
+1	done	121	ocr-quality-v3-list-diplomatic	gpt-5-nano-low	file:///tmp/book-ocr-hq-001/003-quality-v3-list-diplomatic/artifacts/ocr-page-001/artifact/001	
+2	done	52	ocr-quality-v3-list-diplomatic	gpt-5-nano-low	file:///tmp/book-ocr-hq-001/003-quality-v3-list-diplomatic/artifacts/ocr-page-002/artifact/001	
+3	done	900	ocr-quality-v3-list-diplomatic	gpt-5-nano-low	file:///tmp/book-ocr-hq-001/003-quality-v3-list-diplomatic/artifacts/ocr-page-003/artifact/001	
+4	done	2067	ocr-quality-v3-list-diplomatic	gpt-5-nano-low	file:///tmp/book-ocr-hq-001/003-quality-v3-list-diplomatic/artifacts/ocr-page-004/artifact/001	
+5	done	854	ocr-quality-v3-list-diplomatic	gpt-5-nano-low	file:///tmp/book-ocr-hq-001/003-quality-v3-list-diplomatic/artifacts/ocr-page-005/artifact/001	
+6	done	1193	ocr-quality-v3-list-diplomatic	gpt-5-nano-low	file:///tmp/book-ocr-hq-001/003-quality-v3-list-diplomatic/artifacts/ocr-page-006/artifact/001	
+7	done	444	ocr-quality-v3-list-diplomatic	gpt-5-nano-low	file:///tmp/book-ocr-hq-001/003-quality-v3-list-diplomatic/artifacts/ocr-page-007/artifact/001	
+8	done	1658	ocr-quality-v3-list-diplomatic	gpt-5-nano-low	file:///tmp/book-ocr-hq-001/003-quality-v3-list-diplomatic/artifacts/ocr-page-008/artifact/001	
+9	done	1102	ocr-quality-v3-list-diplomatic	gpt-5-nano-low	file:///tmp/book-ocr-hq-001/003-quality-v3-list-diplomatic/artifacts/ocr-page-009/artifact/001	

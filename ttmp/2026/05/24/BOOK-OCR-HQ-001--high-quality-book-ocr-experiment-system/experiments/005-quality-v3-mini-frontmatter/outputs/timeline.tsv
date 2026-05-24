@@ -1,0 +1,15 @@
+line_no	captured_at	level	event	op_id	attempt	workflow_status	message
+1	1779664790.6228						/home/manuel/.hishtory/config.sh: line 72: bind: warning: line editing not enabled
+2	1779664790.76832						started run ocr-mvp-d2a047a0-19fa-4686-84d0-a44b71776a16 in /tmp/book-ocr-hq-001/005-quality-v3-mini-frontmatter
+3	1779664790.78195						status=running processed=1 succeeded=0 failed=0 retried=0
+4	1779664797.64291						status=running processed=2 succeeded=0 failed=0 retried=0
+5	1779664810.30981						status=running processed=2 succeeded=0 failed=0 retried=0
+6	1779664823.3375						status=running processed=2 succeeded=0 failed=0 retried=0
+7	1779664840.85575						status=running processed=2 succeeded=0 failed=0 retried=0
+8	1779664841.26849						status=running processed=1 succeeded=0 failed=0 retried=0
+9	1779664841.51918						status=running processed=0 succeeded=0 failed=0 retried=0
+10	1779664841.76971						status=running processed=0 succeeded=0 failed=0 retried=0
+11	1779664842.02048						status=running processed=0 succeeded=0 failed=0 retried=0
+12	1779664852.60072						status=running processed=1 succeeded=0 failed=0 retried=0
+13	1779664852.85783						status=succeeded processed=1 succeeded=0 failed=0 retried=0
+14	1779664852.8579						assemble result: {"book_id":"presentation-based-uis-hq-005-v3-mini-frontmatter","page_count":9,"markdown_ref_id":"assemble-markdown:artifact:001","markdown_uri":"file:///tmp/book-ocr-hq-001/005-quality-v3-mini-frontmatter/artifacts/assemble-markdown/artifact/001","char_count":9191}

@@ -1,0 +1,20 @@
+experiment_id: 004-quality-v3-mini-list-pages
+book_id: presentation-based-uis-hq-004-v3-mini-list-pages
+source_pages: /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages
+page_range: 6-9
+profile: gpt-5-mini-low
+profile_registries:
+  - /tmp/book-ocr-hq-001/profiles-clean.yaml
+strategy:
+  kind: targeted_model_comparison
+  prompt_version: ocr-quality-v3-list-diplomatic
+  target_failures:
+    - figure_list_page_number_accuracy
+    - steamer_vs_streamer_spelling
+    - psbase_vs_ppsbase_spelling
+    - table_of_contents_continuation_consistency
+hypothesis: |
+  Keeping the v3 list-diplomatic prompt but using gpt-5-mini-low on the list-heavy
+  pages may improve visual accuracy over gpt-5-nano-low without changing the prompt.
+outputs:
+  work_dir: /tmp/book-ocr-hq-001/004-quality-v3-mini-list-pages

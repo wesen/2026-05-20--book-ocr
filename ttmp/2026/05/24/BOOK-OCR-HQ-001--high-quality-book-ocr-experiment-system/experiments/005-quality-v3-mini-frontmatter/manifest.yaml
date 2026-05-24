@@ -1,0 +1,21 @@
+experiment_id: 005-quality-v3-mini-frontmatter
+book_id: presentation-based-uis-hq-005-v3-mini-frontmatter
+source_pages: /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages
+page_range: 1-9
+profile: gpt-5-mini-low
+profile_registries:
+  - /tmp/book-ocr-hq-001/profiles-clean.yaml
+strategy:
+  kind: targeted_model_comparison_full_frontmatter
+  prompt_version: ocr-quality-v3-list-diplomatic
+  target_failures:
+    - title_page_normalization
+    - visible_intentionally_blank_sentence
+    - table_of_contents_consistency
+    - table_of_figures_accuracy
+hypothesis: |
+  Running the full first-nine-page front matter with gpt-5-mini-low and the v3
+  diplomatic prompt should combine the title-page/list-page improvements and
+  reduce the page-number/spelling mistakes seen with gpt-5-nano-low.
+outputs:
+  work_dir: /tmp/book-ocr-hq-001/005-quality-v3-mini-frontmatter

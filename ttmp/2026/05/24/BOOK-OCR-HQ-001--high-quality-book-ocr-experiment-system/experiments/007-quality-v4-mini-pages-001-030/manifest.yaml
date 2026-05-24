@@ -1,0 +1,21 @@
+experiment_id: 007-quality-v4-mini-pages-001-030
+book_id: presentation-based-uis-hq-007-v4-mini-30
+source_pages: /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages
+page_range: 1-30
+profile: gpt-5-mini-low
+profile_registries:
+  - /tmp/book-ocr-hq-001/profiles-clean.yaml
+strategy:
+  kind: full_target_range_after_prompt_and_model_selection
+  prompt_version: ocr-quality-v4-report794-lexicon
+  selected_from:
+    - 003-quality-v3-list-diplomatic
+    - 004-quality-v3-mini-list-pages
+    - 005-quality-v3-mini-frontmatter
+    - 006-quality-v4-lexicon-list-pages
+hypothesis: |
+  gpt-5-mini-low with the Report 794 lexicon prompt should be the best current
+  setting for the first 30 pages: it preserves front-matter/list structure and
+  reduces book-specific spelling regressions.
+outputs:
+  work_dir: /tmp/book-ocr-hq-001/007-quality-v4-mini-pages-001-030

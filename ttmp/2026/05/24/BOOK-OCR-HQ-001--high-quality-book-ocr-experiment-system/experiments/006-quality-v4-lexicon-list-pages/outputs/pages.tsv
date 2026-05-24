@@ -1,0 +1,5 @@
+page_num	status	char_count	prompt_version	profile	markdown_artifact_uri	error_code
+6	done	2477	ocr-quality-v4-report794-lexicon	gpt-5-mini-low	file:///tmp/book-ocr-hq-001/006-quality-v4-lexicon-list-pages/artifacts/ocr-page-006/artifact/001	
+7	done	845	ocr-quality-v4-report794-lexicon	gpt-5-mini-low	file:///tmp/book-ocr-hq-001/006-quality-v4-lexicon-list-pages/artifacts/ocr-page-007/artifact/001	
+8	done	1655	ocr-quality-v4-report794-lexicon	gpt-5-mini-low	file:///tmp/book-ocr-hq-001/006-quality-v4-lexicon-list-pages/artifacts/ocr-page-008/artifact/001	
+9	done	2155	ocr-quality-v4-report794-lexicon	gpt-5-mini-low	file:///tmp/book-ocr-hq-001/006-quality-v4-lexicon-list-pages/artifacts/ocr-page-009/artifact/001	

@@ -17,6 +17,10 @@ RelatedFiles:
       Note: Successful baseline 30-page markdown artifact
     - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/experiments/002-quality-v2-targeted/notes.md
       Note: Experiment 002 quality assessment and comparison notes
+    - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/experiments/007-quality-v4-mini-pages-001-030/notes.md
+      Note: QA notes and experiment decision for current best run
+    - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/experiments/007-quality-v4-mini-pages-001-030/outputs/01-final-quality-v4-mini-pages-001-030.md
+      Note: Best-current first 30 page OCR output
     - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/scripts/01-filter-ndjson-log-to-sqlite.py
       Note: SQLite log filtering script for noisy provider/SSE logs
     - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/scripts/02-run-ocr-capture-log.py
@@ -24,13 +28,16 @@ RelatedFiles:
     - Path: scraper/cmd/ocr-mvp/main.go
       Note: Added prompt-version and log-level CLI controls
     - Path: scraper/pkg/workflows/ocrmvp/prompt.go
-      Note: Added ocr-quality-v2 prompt version
+      Note: |-
+        Added ocr-quality-v2 prompt version
+        Added v3 list-diplomatic and v4 Report 794 lexicon prompts
 ExternalSources: []
 Summary: ""
 LastUpdated: 0001-01-01T00:00:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -434,4 +441,131 @@ Future capture pattern:
 ```bash
 python3 scripts/02-run-ocr-capture-log.py logs/run.sqlite -- \
   go run ./cmd/ocr-mvp run ... --log-level warn
+```
+
+## Step 5: Iterate to v4, compare nano versus mini, and produce the current best 30-page OCR
+
+After v2 improved the front matter but still left Table of Contents and Table of Figures problems, I narrowed the next iteration around list pages. The v3 prompt made list pages diplomatic plain text, stopped markdown heading drift, and normalized title-page line wrapping. I then compared `gpt-5-nano-low` with `gpt-5-mini-low` on the hard pages 6-9, because the remaining failures were no longer mostly formatting policy errors; they were visual accuracy errors in page numbers and book-specific terms.
+
+The mini model was visibly better on the list-heavy pages, but still occasionally produced a `DiRed` case regression in a full front-matter run. I added a v4 Report 794 lexicon prompt with the known acronyms and names (`Dired`, `Steamer`, `PSBase`, `PPS`, `Zmacs`, `Xerox Star`, and the title/author forms), then ran the full first 30 pages with `gpt-5-mini-low`. That run is the current best candidate.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 4)
+
+**Assistant interpretation:** Continue the quality loop autonomously: identify remaining OCR defects, modify prompts/model selection, run targeted and then full-range experiments, preserve evidence, and keep commits at useful intervals.
+
+**Inferred user intent:** Produce a high-quality, inspectable first-30-pages OCR output rather than stopping after a merely successful OCR run.
+
+**Commit (code):** `6e05ee1230411711d1b280f4ac8c1b77ec86e699` — "Add OCR quality v3 list prompt"
+
+**Commit (code):** `8e76419856fc87c865aa0088a4f67db00b673924` — "Add Report 794 OCR lexicon prompt"
+
+### What I did
+
+- Added `ocr-quality-v3-list-diplomatic` to make contents/figures pages plain-text diplomatic lists.
+- Ran Experiment 003 on pages 1-9 with `gpt-5-nano-low` and v3.
+- Used the vision tool to verify page 002 is not blank and contains the visible pagination sentence.
+- Used the vision tool to verify page 006 Table of Contents numbers and page 008 figure entries:
+  - `Chapter One: Introduction and Overview` is page 8.
+  - `1.1 The Primitive Presentation System Model` is page 9.
+  - `Figure 4-1: Dired Model` is page 72.
+  - `Figure 4-9: Sample Steamer Schematic` is page 91.
+  - `Figure 5-1: PSBase Support of PPS Components` is page 101.
+- Ran Experiment 004 on pages 6-9 with `gpt-5-mini-low` and v3.
+- Ran Experiment 005 on pages 1-9 with `gpt-5-mini-low` and v3.
+- Added `ocr-quality-v4-report794-lexicon` with a small book-specific vocabulary and visible-intentionally-blank-page rule.
+- Ran Experiment 006 on pages 6-9 with `gpt-5-mini-low` and v4.
+- Ran Experiment 007 on pages 1-30 with `gpt-5-mini-low` and v4.
+- Captured Experiment 007 output, projections, timeline, and SQLite process log.
+- Used the vision tool on pages 13, 15, and 30 to spot-check figure captions/diagram labels and the Chapter Two opening.
+
+### Why
+
+- v2's remaining failures suggested the prompt needed a stricter list-page policy.
+- v3 showed that prompt policy could fix structure, but model size mattered for visual accuracy.
+- v4's lexicon was justified because the target is a specific book/report and repeated terms are known from the first pages.
+- The full 30-page run was delayed until the hard front-matter pages had a better setting.
+
+### What worked
+
+- `scripts/02-run-ocr-capture-log.py` prevented provider logs from flooding the terminal during all later runs.
+- `gpt-5-mini-low` improved page-number and spelling fidelity on list pages compared with `gpt-5-nano-low`.
+- v4 fixed the known list-page regressions observed in earlier outputs:
+  - no `DiRed`;
+  - no `Streamer`;
+  - no `PPSBase`;
+  - no title-page `[IMAGE: ...]` marker;
+  - no incorrect `[BLANK PAGE]` replacement for page 002.
+- Experiment 007 completed all 30 pages successfully:
+  - run id: `ocr-mvp-4c5c9406-926a-4ecd-a6b2-e8fedba847d8`
+  - output: `experiments/007-quality-v4-mini-pages-001-030/outputs/01-final-quality-v4-mini-pages-001-030.md`
+  - page markers: 30
+  - projection status: 30 `done`
+  - known regression grep hits: 0
+- Vision spot-check on pages 13, 15, and 30 found the major headings, captions, and diagram labels broadly consistent with the OCR output.
+
+### What didn't work
+
+- v3 with `gpt-5-nano-low` still made visible list-page mistakes:
+  - `Dired Model` page number drifted in one run;
+  - `Steamer` became `Streamer`;
+  - `PSBase` became `PPSBase`.
+- v3 with `gpt-5-mini-low` improved targeted pages, but a full front-matter run still produced `DiRed` once.
+- v4 still approximates dot-leader lengths; it does not exactly reproduce alignment.
+- Single-page OCR still lacks a true continuity pass, so prose line wrapping and figure/list style can vary by page.
+
+### What I learned
+
+- The blank-page rule has to distinguish truly blank pages from intentionally blank pages with visible explanatory text. Page 002 visibly contains `This blank page was inserted to preserve pagination.`
+- A targeted prompt can fix structural consistency, but visual fidelity of small list entries benefits from a stronger model.
+- For historical technical reports, a small book-specific lexicon is a practical quality lever and should be captured as provenance.
+
+### What was tricky to build
+
+- The main difficulty was separating prompt-policy errors from OCR visual-recognition errors. v2 and v3 fixed policy drift but exposed visual errors in small list entries; switching from nano to mini addressed part of that.
+- The lexicon prompt had to avoid overcorrecting `PPS` into `PSBase`: v4 explicitly says `PPS` remains correct for the Primitive Presentation System and `PPSCalc`.
+- The intentionally blank page was counterintuitive: an earlier rule treated it as blank, but the page actually has visible text, so v4 now transcribes visible blank-page notices.
+
+### What warrants a second pair of eyes
+
+- Check whether dot leaders should be preserved approximately, normalized away, or reconstructed in a post-processing pass.
+- Review pages 10-30 for subtle OCR substitutions that simple grep checks cannot catch.
+- Decide whether figure diagrams need structured transcription beyond `[FIGURE: ...]` markers.
+
+### What should be done in the future
+
+- Add a second-pass continuity/style cleanup workflow over pages 1-30.
+- Add automated QA checks for known vocabulary, page markers, duplicated headings, and figure/list consistency.
+- Consider a targeted re-OCR loop for pages that fail QA rather than rerunning all pages.
+
+### Code review instructions
+
+- Review v3/v4 prompt changes in:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrmvp/prompt.go`
+- Review full 30-page output and QA notes in:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/experiments/007-quality-v4-mini-pages-001-030/outputs/01-final-quality-v4-mini-pages-001-030.md`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/experiments/007-quality-v4-mini-pages-001-030/notes.md`
+- Validate with:
+  - `go test ./cmd/ocr-mvp ./pkg/workflows/ocrmvp -count=1`
+  - `grep -c '^<!-- page:' experiments/007-quality-v4-mini-pages-001-030/outputs/01-final-quality-v4-mini-pages-001-030.md`
+  - `grep -nE 'DiRed|Streamer|PPSBase|Ciccarrelli|\[BLANK PAGE\]|\[IMAGE:' experiments/007-quality-v4-mini-pages-001-030/outputs/01-final-quality-v4-mini-pages-001-030.md || true`
+
+### Technical details
+
+Experiment 007 command pattern:
+
+```bash
+python3 scripts/02-run-ocr-capture-log.py experiments/007-quality-v4-mini-pages-001-030/logs/run-capture.sqlite -- \
+  go run ./cmd/ocr-mvp run \
+    --book-id presentation-based-uis-hq-007-v4-mini-30 \
+    --image-dir /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages \
+    --work-dir /tmp/book-ocr-hq-001/007-quality-v4-mini-pages-001-030 \
+    --start-page 1 \
+    --end-page 30 \
+    --profile gpt-5-mini-low \
+    --profile-registries /tmp/book-ocr-hq-001/profiles-clean.yaml \
+    --prompt-version ocr-quality-v4-report794-lexicon \
+    --max-workers 3 \
+    --log-level warn
 ```

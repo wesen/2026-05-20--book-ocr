@@ -1,0 +1,17 @@
+line_no	captured_at	level	event	op_id	attempt	workflow_status	message
+1	1779665021.45325						/home/manuel/.hishtory/config.sh: line 72: bind: warning: line editing not enabled
+2	1779665021.59114						started run ocr-mvp-4c5c9406-926a-4ecd-a6b2-e8fedba847d8 in /tmp/book-ocr-hq-001/007-quality-v4-mini-pages-001-030
+3	1779665021.62336						status=running processed=1 succeeded=0 failed=0 retried=0
+4	1779665033.50252						status=running processed=3 succeeded=0 failed=0 retried=0
+5	1779665067.54724						status=running processed=3 succeeded=0 failed=0 retried=0
+6	1779665095.18666						status=running processed=3 succeeded=0 failed=0 retried=0
+7	1779665125.52178						status=running processed=3 succeeded=0 failed=0 retried=0
+8	1779665159.22092						status=running processed=3 succeeded=0 failed=0 retried=0
+9	1779665194.63427						status=running processed=3 succeeded=0 failed=0 retried=0
+10	1779665213.51403						status=running processed=3 succeeded=0 failed=0 retried=0
+11	1779665229.06886						status=running processed=3 succeeded=0 failed=0 retried=0
+12	1779665253.24633						status=running processed=3 succeeded=0 failed=0 retried=0
+13	1779665274.12858						status=running processed=3 succeeded=0 failed=0 retried=0
+14	1779665281.80163						status=running processed=1 succeeded=0 failed=0 retried=0
+15	1779665282.06096						status=succeeded processed=1 succeeded=0 failed=0 retried=0
+16	1779665282.06101						assemble result: {"book_id":"presentation-based-uis-hq-007-v4-mini-30","page_count":30,"markdown_ref_id":"assemble-markdown:artifact:001","markdown_uri":"file:///tmp/book-ocr-hq-001/007-quality-v4-mini-pages-001-030/artifacts/assemble-markdown/artifact/001","char_count":51063}

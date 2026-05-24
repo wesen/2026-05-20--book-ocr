@@ -1,0 +1,20 @@
+experiment_id: 006-quality-v4-lexicon-list-pages
+book_id: presentation-based-uis-hq-006-v4-lexicon-list-pages
+source_pages: /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages
+page_range: 6-9
+profile: gpt-5-mini-low
+profile_registries:
+  - /tmp/book-ocr-hq-001/profiles-clean.yaml
+strategy:
+  kind: targeted_prompt_repair_with_book_lexicon
+  prompt_version: ocr-quality-v4-report794-lexicon
+  target_failures:
+    - dired_case_accuracy
+    - steamer_vs_streamer_spelling
+    - psbase_vs_ppsbase_spelling
+    - list_page_dot_leader_consistency
+hypothesis: |
+  Adding a small Report 794 lexicon to the v3 list prompt should prevent
+  case/spelling regressions on list pages while preserving v3's good structure.
+outputs:
+  work_dir: /tmp/book-ocr-hq-001/006-quality-v4-lexicon-list-pages

@@ -1,0 +1,22 @@
+experiment_id: 003-quality-v3-list-diplomatic
+book_id: presentation-based-uis-hq-003-quality-v3
+source_pages: /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages
+page_range: 1-9
+profile: gpt-5-nano-low
+profile_registries:
+  - /tmp/book-ocr-hq-001/profiles-clean.yaml
+strategy:
+  kind: targeted_prompt_repair
+  prompt_version: ocr-quality-v3-list-diplomatic
+  target_failures:
+    - title_page_over_literal_line_breaks
+    - table_of_contents_duplicate_chapter_line
+    - table_of_contents_markdown_heading_drift
+    - table_of_figures_continuation_style
+    - blank_page_policy
+hypothesis: |
+  A list-page diplomatic prompt will keep contents/figures pages as plain-text
+  lists, avoid duplicate chapter lines, and normalize single-phrase title pages
+  better than ocr-quality-v2.
+outputs:
+  work_dir: /tmp/book-ocr-hq-001/003-quality-v3-list-diplomatic

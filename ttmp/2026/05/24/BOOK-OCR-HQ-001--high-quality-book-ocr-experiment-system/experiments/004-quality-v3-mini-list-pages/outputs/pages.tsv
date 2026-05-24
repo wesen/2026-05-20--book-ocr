@@ -1,0 +1,5 @@
+page_num	status	char_count	prompt_version	profile	markdown_artifact_uri	error_code
+6	done	1192	ocr-quality-v3-list-diplomatic	gpt-5-mini-low	file:///tmp/book-ocr-hq-001/004-quality-v3-mini-list-pages/artifacts/ocr-page-006/artifact/001	
+7	done	882	ocr-quality-v3-list-diplomatic	gpt-5-mini-low	file:///tmp/book-ocr-hq-001/004-quality-v3-mini-list-pages/artifacts/ocr-page-007/artifact/001	
+8	done	3428	ocr-quality-v3-list-diplomatic	gpt-5-mini-low	file:///tmp/book-ocr-hq-001/004-quality-v3-mini-list-pages/artifacts/ocr-page-008/artifact/001	
+9	done	1102	ocr-quality-v3-list-diplomatic	gpt-5-mini-low	file:///tmp/book-ocr-hq-001/004-quality-v3-mini-list-pages/artifacts/ocr-page-009/artifact/001	
