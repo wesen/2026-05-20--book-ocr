@@ -11,6 +11,10 @@ topics:
       description: Task, workflow, job scheduling, and worker runtime design
     - slug: ocr
       description: Book OCR and document extraction workflows
+    - slug: workflow
+      description: Workflow runtime and durable step orchestration
+    - slug: implementation-guide
+      description: Implementation guides and onboarding-oriented technical plans
 docTypes:
     - slug: design-doc
       description: Structured rationale and architecture notes
