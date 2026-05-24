@@ -1,0 +1,10 @@
+page_num	status	char_count	prompt_version	profile	markdown_artifact_uri	error_code
+1	done	118	ocr-quality-v2	gpt-5-nano-low	file:///tmp/book-ocr-hq-001/002-quality-v2-targeted/artifacts/ocr-page-001/artifact/001	
+2	done	12	ocr-quality-v2	gpt-5-nano-low	file:///tmp/book-ocr-hq-001/002-quality-v2-targeted/artifacts/ocr-page-002/artifact/001	
+3	done	903	ocr-quality-v2	gpt-5-nano-low	file:///tmp/book-ocr-hq-001/002-quality-v2-targeted/artifacts/ocr-page-003/artifact/001	
+4	done	2072	ocr-quality-v2	gpt-5-nano-low	file:///tmp/book-ocr-hq-001/002-quality-v2-targeted/artifacts/ocr-page-004/artifact/001	
+5	done	856	ocr-quality-v2	gpt-5-nano-low	file:///tmp/book-ocr-hq-001/002-quality-v2-targeted/artifacts/ocr-page-005/artifact/001	
+6	done	1132	ocr-quality-v2	gpt-5-nano-low	file:///tmp/book-ocr-hq-001/002-quality-v2-targeted/artifacts/ocr-page-006/artifact/001	
+7	done	489	ocr-quality-v2	gpt-5-nano-low	file:///tmp/book-ocr-hq-001/002-quality-v2-targeted/artifacts/ocr-page-007/artifact/001	
+8	done	2680	ocr-quality-v2	gpt-5-nano-low	file:///tmp/book-ocr-hq-001/002-quality-v2-targeted/artifacts/ocr-page-008/artifact/001	
+9	done	1102	ocr-quality-v2	gpt-5-nano-low	file:///tmp/book-ocr-hq-001/002-quality-v2-targeted/artifacts/ocr-page-009/artifact/001	

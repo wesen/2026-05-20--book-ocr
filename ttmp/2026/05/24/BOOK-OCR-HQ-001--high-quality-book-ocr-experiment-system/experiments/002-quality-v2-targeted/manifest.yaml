@@ -1,0 +1,21 @@
+experiment_id: 002-quality-v2-targeted
+book_id: presentation-based-uis-hq-002-quality-v2
+source_pages: /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages
+page_range: 1-9
+profile: gpt-5-nano-low
+profile_registries:
+  - /tmp/book-ocr-hq-001/profiles-clean.yaml
+strategy:
+  kind: targeted_prompt_repair
+  prompt_version: ocr-quality-v2
+  target_failures:
+    - table_of_contents_bullet_drift
+    - table_of_figures_format_drift
+    - title_page_as_figure_marker
+    - blank_page_policy
+    - footer_page_number_leakage
+hypothesis: |
+  A more explicit page-type-aware prompt will improve title pages, blank pages,
+  table of contents pages, and table of figures pages without needing chunking yet.
+outputs:
+  work_dir: /tmp/book-ocr-hq-001/002-quality-v2-targeted

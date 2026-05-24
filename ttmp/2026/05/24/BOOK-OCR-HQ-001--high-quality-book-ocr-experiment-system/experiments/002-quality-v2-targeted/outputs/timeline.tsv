@@ -1,0 +1,28 @@
+line_no	time	level	event	op_id	attempt	message
+1	2026-05-24T19:07:10-04:00	info	workflow_created		0	workflow created
+2	2026-05-24T19:07:10-04:00	info	workflow_updated		0	workflow status updated
+4	2026-05-24T19:07:10-04:00	info	op_leased	discover-pages	1	leased op
+5	2026-05-24T19:07:10-04:00	info	op_succeeded	discover-pages	1	op succeeded
+7	2026-05-24T19:07:10-04:00	info	op_leased	ocr-page-001	1	leased op
+41	2026-05-24T19:07:18-04:00	info	op_succeeded	ocr-page-001	1	op succeeded
+42	2026-05-24T19:07:18-04:00	info	op_leased	ocr-page-002	1	leased op
+55	2026-05-24T19:07:20-04:00	info	op_succeeded	ocr-page-002	1	op succeeded
+57	2026-05-24T19:07:21-04:00	info	op_leased	ocr-page-003	1	leased op
+242	2026-05-24T19:07:26-04:00	info	op_succeeded	ocr-page-003	1	op succeeded
+243	2026-05-24T19:07:26-04:00	info	op_leased	ocr-page-004	1	leased op
+599	2026-05-24T19:07:35-04:00	info	op_succeeded	ocr-page-004	1	op succeeded
+601	2026-05-24T19:07:35-04:00	info	op_leased	ocr-page-005	1	leased op
+608	2026-05-24T19:07:35-04:00	info	op_retried	ocr-page-005	1	op scheduled for retry at 2026-05-24T23:07:36.569332926Z
+609	2026-05-24T19:07:35-04:00	info	op_leased	ocr-page-006	1	leased op
+938	2026-05-24T19:07:45-04:00	info	op_succeeded	ocr-page-006	1	op succeeded
+940	2026-05-24T19:07:45-04:00	info	op_leased	ocr-page-005	2	leased op
+1126	2026-05-24T19:07:54-04:00	info	op_succeeded	ocr-page-005	2	op succeeded
+1127	2026-05-24T19:07:54-04:00	info	op_leased	ocr-page-007	1	leased op
+1259	2026-05-24T19:08:01-04:00	info	op_succeeded	ocr-page-007	1	op succeeded
+1261	2026-05-24T19:08:01-04:00	info	op_leased	ocr-page-008	1	leased op
+1852	2026-05-24T19:08:13-04:00	info	op_succeeded	ocr-page-008	1	op succeeded
+1853	2026-05-24T19:08:13-04:00	info	op_leased	ocr-page-009	1	leased op
+2210	2026-05-24T19:08:20-04:00	info	op_succeeded	ocr-page-009	1	op succeeded
+2212	2026-05-24T19:08:21-04:00	info	op_leased	assemble-markdown	1	leased op
+2213	2026-05-24T19:08:21-04:00	info	op_succeeded	assemble-markdown	1	op succeeded
+2214	2026-05-24T19:08:21-04:00	info	workflow_updated		0	workflow status updated

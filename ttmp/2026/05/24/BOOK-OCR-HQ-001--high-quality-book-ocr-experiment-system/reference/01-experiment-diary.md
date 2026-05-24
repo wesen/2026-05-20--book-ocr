@@ -15,14 +15,23 @@ RelatedFiles:
       Note: Baseline experiment configuration
     - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/experiments/001-baseline-single-page/outputs/01-final-baseline-clean.md
       Note: Successful baseline 30-page markdown artifact
+    - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/experiments/002-quality-v2-targeted/notes.md
+      Note: Experiment 002 quality assessment and comparison notes
     - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/scripts/01-filter-ndjson-log-to-sqlite.py
       Note: SQLite log filtering script for noisy provider/SSE logs
+    - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/scripts/02-run-ocr-capture-log.py
+      Note: Direct process-output-to-SQLite capture for noisy provider runs
+    - Path: scraper/cmd/ocr-mvp/main.go
+      Note: Added prompt-version and log-level CLI controls
+    - Path: scraper/pkg/workflows/ocrmvp/prompt.go
+      Note: Added ocr-quality-v2 prompt version
 ExternalSources: []
 Summary: ""
 LastUpdated: 0001-01-01T00:00:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -307,4 +316,122 @@ select line_no, time, level, event, op_id, attempt, message
 from log_events
 where coalesce(event, '') != '' and level != 'trace'
 order by line_no;
+```
+
+## Step 4: Assess baseline quality, add quality-v2 prompt, and stop log blast at source
+
+I reviewed the baseline output myself and used the vision tool to validate the front-matter/list-page failures on pages 6-9. The baseline was technically successful, but it had consistency problems: table-of-contents continuation pages changed style, table-of-figures continuation pages changed style, blank pages emitted prose, and list pages drifted between markdown bullets, headings, and plain lines.
+
+I implemented a new `ocr-quality-v2` prompt version and exposed `--prompt-version` through the CLI. After the next run still produced too much provider trace output, I also added `--log-level` to the OCR CLI and a direct stdout-to-SQLite capture script so future long-running runs do not blast SSE deltas into the terminal.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, you do the quality assessment yourself, you can read the results, you can look at the pages too. 
+
+Iterate, keep a detailed diary, make this stellar"
+
+**Assistant interpretation:** Take ownership of reviewing OCR quality, use both text output and page images, iterate prompts, preserve evidence, and keep committing progress.
+
+**Inferred user intent:** The user wants an autonomous quality loop with readable diary entries and commit boundaries, not just infrastructure setup.
+
+**Commit (code):** `65b56d50bbb95778efd436dab08615686731f6b9fdbf99b40` — "Add OCR quality prompt version"
+
+**Commit (code):** `c53cd92176dabeb366afdd0de56d1b9fdbf99b40` — "Add OCR quality prompt version" (CLI `--log-level` follow-up)
+
+### What I did
+
+- Reviewed baseline pages 1-30 summaries and inspected the baseline markdown.
+- Used the vision tool on page images 6-9 to validate Table of Contents and Table of Figures formatting failures.
+- Added `ocr-quality-v2` in `scraper/pkg/workflows/ocrmvp/prompt.go`.
+- Added CLI support for `--prompt-version`.
+- Added CLI support for `--log-level` using zerolog global level configuration.
+- Added `scripts/02-run-ocr-capture-log.py`, which runs commands and stores stdout/stderr lines directly in SQLite while printing only compact non-trace progress.
+- Ran Experiment 002 on pages 1-9 with `ocr-quality-v2`.
+- Captured Experiment 002 outputs, page projections, timeline, filtered log summary, and notes.
+
+### Why
+
+- The first baseline established the current quality floor; the next step had to target observed failures.
+- The user explicitly asked for consistency and prompt iteration.
+- The provider emits huge SSE trace logs; logging had to be controlled at source and capturable in SQLite before longer experiments continue.
+
+### What worked
+
+- `ocr-quality-v2` improved several baseline failures:
+  - Page 2 now emits `[BLANK PAGE]` instead of prose.
+  - Page 8 no longer uses markdown bullets for the Table of Figures.
+  - Page 9 keeps the same non-bullet figure-entry style as page 8.
+  - Page 4 fixed `Ciccarrelli` to `Ciccarelli`.
+  - Title pages no longer become `[IMAGE: ...]` markers.
+- `--log-level warn` suppresses noisy zerolog trace/debug/info rows in a smoke run.
+- `02-run-ocr-capture-log.py` stores process output in SQLite and prints only compact progress.
+
+### What didn't work
+
+- `ocr-quality-v2` is not good enough yet:
+  - Page 1 became too visually literal with title lines split as `Presentation / Based User / Interfaces`.
+  - Page 7 duplicated `Chapter Six: Constructing Presentation Systems`.
+  - Page 7 still has continuation/list-style inconsistencies.
+  - Page 6 may have an incorrect page number for section 1.1 (`9` vs baseline `8`), requiring visual verification.
+- The first Experiment 002 run was captured with the older noisy method and produced a large terminal trace before I added `--log-level` and the direct SQLite capture script.
+
+### What I learned
+
+- The first prompt improvement should focus on page-type-specific list policy, not generic OCR accuracy.
+- For front matter, a single prompt has to distinguish diplomatic visual transcription from readable markdown normalization.
+- The log problem needs two controls:
+  - suppress unwanted logs at source with `--log-level`;
+  - capture full process output into SQLite when preservation matters.
+
+### What was tricky to build
+
+- The prompt had to be stricter without overfitting to one page. Stronger rules improved blank/list pages but introduced a title-page line-break issue.
+- The CLI logging change needed to affect Geppetto/provider logs too, so it uses zerolog's global level.
+- Direct capture to SQLite has to preserve unparsed status lines as well as JSON logs, because the OCR CLI emits both.
+
+### What warrants a second pair of eyes
+
+- Decide whether title pages should preserve visual line breaks or normalize to reading text.
+- Decide whether continuation pages should include an explicit `[CONTINUED: ...]` marker.
+- Verify page 6's section 1.1 page number against the scan.
+
+### What should be done in the future
+
+- Implement `ocr-quality-v3-list-diplomatic` focused on list pages and title-page normalization.
+- Use `scripts/02-run-ocr-capture-log.py` plus `--log-level warn` for all future provider runs.
+- Run targeted pages 1-9 again, compare against baseline and v2, then expand only if it improves.
+
+### Code review instructions
+
+- Review prompt code:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrmvp/prompt.go`
+- Review CLI logging:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/cmd/ocr-mvp/main.go`
+- Review capture script:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/scripts/02-run-ocr-capture-log.py`
+- Review experiment notes:
+  - `experiments/002-quality-v2-targeted/notes.md`
+
+### Technical details
+
+Experiment 002 command:
+
+```bash
+go run ./cmd/ocr-mvp run \
+  --book-id presentation-based-uis-hq-002-quality-v2 \
+  --image-dir /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages \
+  --work-dir /tmp/book-ocr-hq-001/002-quality-v2-targeted \
+  --start-page 1 \
+  --end-page 9 \
+  --profile gpt-5-nano-low \
+  --profile-registries /tmp/book-ocr-hq-001/profiles-clean.yaml \
+  --prompt-version ocr-quality-v2 \
+  --max-workers 2
+```
+
+Future capture pattern:
+
+```bash
+python3 scripts/02-run-ocr-capture-log.py logs/run.sqlite -- \
+  go run ./cmd/ocr-mvp run ... --log-level warn
 ```
