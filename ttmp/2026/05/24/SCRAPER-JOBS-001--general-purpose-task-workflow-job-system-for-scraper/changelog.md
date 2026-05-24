@@ -102,3 +102,14 @@ Implemented Phase 2 workflow runtime skeleton in scraper (commit 4dd78466d8d1faa
 - /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/runtime.go — Runtime skeleton and SQLite-backed scheduler/store wiring
 - /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/runtime_test.go — Embedded runtime integration tests
 
+
+## 2026-05-24
+
+Implemented Phase 3a workflow worker lifecycle, dependency helpers, and operator controls in scraper (commit 18cda60b2d700ae7d57329962099f8524ffe95ce). Phase 3b artifact store and Phase 3c projection store remain open.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/context.go — Dependency result/data helpers
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/operators.go — Operator controls and worker lifecycle options
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/runtime.go — Runtime StartWorkers and SQLite operator service wiring
+
