@@ -113,3 +113,14 @@ Implemented Phase 3a workflow worker lifecycle, dependency helpers, and operator
 - /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/operators.go — Operator controls and worker lifecycle options
 - /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/runtime.go — Runtime StartWorkers and SQLite operator service wiring
 
+
+## 2026-05-24
+
+Implemented Phase 3b external workflow artifact store foundation in scraper (commit 35165decb53b69c7c4c6508d3d92f30fff79fb45) with FileArtifactStore and StepContext.StoreArtifact.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/artifact_store.go — ArtifactStore and FileArtifactStore implementation
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/context.go — StoreArtifact bridge from executor context to external artifact refs
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/runtime.go — Runtime artifact store wiring
+

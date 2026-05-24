@@ -984,3 +984,114 @@ New dependency helper:
 var dep OCRPageOutput
 err := step.DependencyData("ocr-page-047", &dep)
 ```
+
+## Step 9: Implement Phase 3b external artifact store foundation
+
+I implemented the first external artifact store foundation in `pkg/workflow`. The runtime can now be configured with an `ArtifactStore`, and executors can call `StepContext.StoreArtifact` to write large bytes outside the engine DB while still appending a small JSON reference artifact to the existing result/artifact path.
+
+This is intentionally a bridge design: it does not yet change the engine artifact schema or HTTP artifact download path. Instead, it allows large OCR-style artifacts to live in a file store while preserving operator visibility through a persisted `external-artifact-ref` artifact. This gives us a useful local-first artifact backend without a large migration.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 8)
+
+**Assistant interpretation:** Continue implementing Phase 3 after operator controls by adding the next concrete runtime extension point: artifact storage.
+
+**Inferred user intent:** The user wants continued incremental implementation with practical workflow/OCR capabilities, committed and documented.
+
+**Commit (code):** `35165decb53b69c7c4c6508d3d92f30fff79fb45` — "Add workflow artifact store"
+
+### What I did
+
+- Added `scraper/pkg/workflow/artifact_store.go`:
+  - `ArtifactObject`;
+  - `ArtifactRef`;
+  - `ArtifactStore` interface;
+  - `FileArtifactStore` implementation;
+  - safe artifact path mapping;
+  - sidecar JSON metadata for file artifacts.
+- Extended `scraper/pkg/workflow/context.go`:
+  - `StepContext` now carries an executor context and optional artifact store;
+  - `StoreArtifact(name, contentType, body, opts...)` writes to the external store and appends a JSON reference artifact to the step result.
+- Extended `scraper/pkg/workflow/runtime.go`:
+  - `Config.ArtifactStore`;
+  - runtime executor registration passes the artifact store into executor adapters.
+- Extended `scraper/pkg/workflow/executor.go`:
+  - artifact-store-aware runner adapter used by `Runtime.RegisterExecutor` when configured.
+- Added a runtime test that:
+  - configures `NewFileArtifactStore`;
+  - stores a markdown artifact through `StepContext.StoreArtifact`;
+  - verifies the result contains an `external-artifact-ref` artifact;
+  - opens the stored file artifact and checks its contents.
+- Ran:
+  - `go test ./pkg/workflow -count=1`
+  - `go test ./... -count=1`
+- Committed the scraper code as `35165decb53b69c7c4c6508d3d92f30fff79fb45`.
+
+### Why
+
+- OCR workflows produce large artifacts: page PNGs, raw VLM outputs, final markdown/PDF, figures, and debug bundles.
+- Storing all artifact bytes as SQLite BLOBs is not a good long-term fit for these workloads.
+- A file-backed artifact store is the simplest local-first backend and matches the AITR workflow's filesystem artifact pattern.
+
+### What worked
+
+- External artifact bytes can now be written outside the engine DB from a workflow executor.
+- Existing result/artifact inspection still sees a reference artifact, so the current data model remains usable.
+- Full test suite passed:
+  - `go test ./... -count=1`
+
+### What didn't work
+
+- This does not yet make the existing HTTP artifact download endpoint transparently dereference external artifact refs.
+- The engine DB still stores a small reference artifact body. A future schema-level artifact reference model would be cleaner.
+
+### What I learned
+
+- We can introduce external artifact storage without immediately changing the store schema by treating references as artifacts.
+- The `StepContext` constructor needed to carry the executor context, which also improved dependency resolution context usage.
+
+### What was tricky to build
+
+- The bridge needed to avoid breaking existing APIs. Persisting an `external-artifact-ref` JSON artifact gives operators something visible now while leaving room for a richer artifact API later.
+- Artifact IDs must map safely to file paths. I added conservative path sanitization that splits on `:` and backslash and removes suspicious path traversal.
+
+### What warrants a second pair of eyes
+
+- Whether `StoreArtifact` should replace `Artifact` eventually, or whether both should remain: inline/small artifact vs external/large artifact.
+- Whether `external-artifact-ref` should be a formal artifact kind documented in API docs.
+- Whether the current file URI format is acceptable for local-only workflows.
+
+### What should be done in the future
+
+- Update artifact download/read APIs to dereference external artifact refs.
+- Add artifact retention/cleanup policy.
+- Add object-store artifact backend later.
+- Phase 3c: projection store API remains open.
+
+### Code review instructions
+
+- Start with:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/artifact_store.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/context.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/runtime.go`
+- Review test:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/runtime_test.go`
+- Validate with:
+  - `cd /home/manuel/workspaces/2026-05-20/book-ocr/scraper && go test ./... -count=1`
+
+### Technical details
+
+External artifact use:
+
+```go
+ref, err := step.StoreArtifact("page_047.md", "text/markdown", markdownBytes, workflow.ArtifactKind("ocr-markdown"))
+```
+
+The engine result contains an artifact with:
+
+```text
+Kind: external-artifact-ref
+ContentType: application/json
+Body: {"id":"...","uri":"file://...","name":"page_047.md",...}
+```
