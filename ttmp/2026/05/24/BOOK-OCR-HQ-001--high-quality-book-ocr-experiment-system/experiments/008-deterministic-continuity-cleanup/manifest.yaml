@@ -1,0 +1,18 @@
+experiment_id: 008-deterministic-continuity-cleanup
+source_experiment: 007-quality-v4-mini-pages-001-030
+source_output: ../007-quality-v4-mini-pages-001-030/outputs/01-final-quality-v4-mini-pages-001-030.md
+strategy:
+  kind: deterministic_second_pass
+  scripts:
+    - scripts/03-qa-ocr-markdown.py
+    - scripts/04-normalize-ocr-markdown.py
+  cleanup_scope:
+    - page_marker_continuity_checks
+    - known_bad_term_checks
+    - expected_string_checks
+    - adjacent_duplicate_line_checks
+    - list_page_dot_leader_normalization
+hypothesis: |
+  A narrow deterministic second pass can make the best OCR output easier to
+  review without introducing hidden model edits. It should preserve page content
+  while normalizing noisy list-page dot leaders and producing an automated QA report.

@@ -21,10 +21,18 @@ RelatedFiles:
       Note: QA notes and experiment decision for current best run
     - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/experiments/007-quality-v4-mini-pages-001-030/outputs/01-final-quality-v4-mini-pages-001-030.md
       Note: Best-current first 30 page OCR output
+    - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/experiments/008-deterministic-continuity-cleanup/notes.md
+      Note: Experiment 008 QA and cleanup notes
+    - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/experiments/008-deterministic-continuity-cleanup/outputs/02-final-quality-v4-mini-pages-001-030-normalized.md
+      Note: Normalized review artifact
     - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/scripts/01-filter-ndjson-log-to-sqlite.py
       Note: SQLite log filtering script for noisy provider/SSE logs
     - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/scripts/02-run-ocr-capture-log.py
       Note: Direct process-output-to-SQLite capture for noisy provider runs
+    - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/scripts/03-qa-ocr-markdown.py
+      Note: Automated QA checks for OCR markdown
+    - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/scripts/04-normalize-ocr-markdown.py
+      Note: Deterministic list-page continuity cleanup
     - Path: scraper/cmd/ocr-mvp/main.go
       Note: Added prompt-version and log-level CLI controls
     - Path: scraper/pkg/workflows/ocrmvp/prompt.go
@@ -37,6 +45,7 @@ LastUpdated: 0001-01-01T00:00:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -568,4 +577,117 @@ python3 scripts/02-run-ocr-capture-log.py experiments/007-quality-v4-mini-pages-
     --prompt-version ocr-quality-v4-report794-lexicon \
     --max-workers 3 \
     --log-level warn
+```
+
+## Step 6: Add deterministic QA and a narrow continuity cleanup pass
+
+After Experiment 007 produced the best current first-30-page OCR, I added an auditable second pass that does not call a model. The goal was to turn the quality observations into repeatable checks and make the list pages easier to review without hiding any model output or inventing content.
+
+The result is Experiment 008: a deterministic QA report plus a narrow normalization pass for Table of Contents and Table of Figures dot leaders. The raw v4 mini OCR remains preserved as Experiment 007; Experiment 008 produces a review-oriented normalized copy and a patch showing every change.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 4)
+
+**Assistant interpretation:** Continue iterating on quality, but shift from single-page OCR prompting to auditable second-pass QA and cleanup.
+
+**Inferred user intent:** Make the output easier to trust and review, with repeatable checks and preserved provenance.
+
+### What I did
+
+- Added `scripts/03-qa-ocr-markdown.py`.
+- Added `scripts/04-normalize-ocr-markdown.py`.
+- Created Experiment 008 under `experiments/008-deterministic-continuity-cleanup`.
+- Ran QA on Experiment 007's raw output.
+- Ran deterministic list-page normalization on Experiment 007's raw output.
+- Wrote a diff showing the cleanup changes.
+- Ran QA again on the normalized output.
+- Wrote Experiment 008 notes.
+
+### Why
+
+- Experiment 007 is good enough that broad prompt changes would risk regressions.
+- The remaining obvious issue is review ergonomics: irregular dot leaders and the lack of automated repeatable checks.
+- A deterministic pass is safer than an LLM rewrite at this stage because every change is diffable.
+
+### What worked
+
+- QA passes before and after cleanup:
+  - 30 page markers found.
+  - 30 expected page markers.
+  - 2 figure markers.
+  - no known bad term hits.
+  - expected front-matter/list/chapter strings found.
+  - no adjacent duplicate non-empty lines found.
+  - list pages 006-009 have zero markdown bullet lines and zero markdown heading lines.
+- The cleanup produces a normalized review artifact:
+  - `experiments/008-deterministic-continuity-cleanup/outputs/02-final-quality-v4-mini-pages-001-030-normalized.md`
+- The cleanup diff is preserved:
+  - `experiments/008-deterministic-continuity-cleanup/outputs/03-cleanup-diff.patch`
+
+### What didn't work
+
+- The first QA script run failed because I over-escaped the `^[FIGURE:` regex in Python and produced:
+
+```text
+re.PatternError: unterminated character set at position 3
+```
+
+- I fixed the regex by using `r"^\[FIGURE:"` in a separate assignment before formatting the summary line.
+- The first cleanup script version also introduced extra page-boundary whitespace. I tightened the page-body stripping and page-marker assembly, then reran the cleanup and QA.
+
+### What I learned
+
+- Even a small QA script is useful for catching regressions that are easy to miss during manual review.
+- The normalized output should not replace raw OCR provenance; it should sit beside it with a diff.
+- Deterministic cleanup is appropriate for punctuation/leader/spacing normalization, but not for semantic OCR repair.
+
+### What was tricky to build
+
+- The tricky part was making the cleanup narrow enough. It should improve list-page reviewability without rewriting prose or silently altering content.
+- Page-marker whitespace needed care because markdown page boundaries are part of the review contract.
+- The QA report had to distinguish automated pass/fail from actual OCR correctness: passing the script does not prove the transcription is perfect.
+
+### What warrants a second pair of eyes
+
+- Review `03-cleanup-diff.patch` to confirm that every normalized dot-leader line is acceptable.
+- Decide whether normalized dot leaders (`...`) are preferred over approximate visual alignment in the final deliverable.
+- Review whether page-boundary spacing in the normalized artifact is acceptable for downstream publication.
+
+### What should be done in the future
+
+- Add an LLM or rule-based semantic continuity pass only after the deterministic QA baseline is stable.
+- Add more expected-string checks for pages 10-30.
+- Add figure-specific QA for expected captions and marker counts.
+
+### Code review instructions
+
+- Review scripts:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/scripts/03-qa-ocr-markdown.py`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/scripts/04-normalize-ocr-markdown.py`
+- Review outputs:
+  - `experiments/008-deterministic-continuity-cleanup/outputs/01-qa-before-cleanup.md`
+  - `experiments/008-deterministic-continuity-cleanup/outputs/02-final-quality-v4-mini-pages-001-030-normalized.md`
+  - `experiments/008-deterministic-continuity-cleanup/outputs/03-cleanup-diff.patch`
+  - `experiments/008-deterministic-continuity-cleanup/outputs/04-qa-after-cleanup.md`
+
+### Technical details
+
+Commands:
+
+```bash
+python3 scripts/03-qa-ocr-markdown.py \
+  experiments/007-quality-v4-mini-pages-001-030/outputs/01-final-quality-v4-mini-pages-001-030.md \
+  --out experiments/008-deterministic-continuity-cleanup/outputs/01-qa-before-cleanup.md \
+  --expected-pages 30
+
+python3 scripts/04-normalize-ocr-markdown.py \
+  experiments/007-quality-v4-mini-pages-001-030/outputs/01-final-quality-v4-mini-pages-001-030.md \
+  experiments/008-deterministic-continuity-cleanup/outputs/02-final-quality-v4-mini-pages-001-030-normalized.md \
+  --diff experiments/008-deterministic-continuity-cleanup/outputs/03-cleanup-diff.patch
+
+python3 scripts/03-qa-ocr-markdown.py \
+  experiments/008-deterministic-continuity-cleanup/outputs/02-final-quality-v4-mini-pages-001-030-normalized.md \
+  --out experiments/008-deterministic-continuity-cleanup/outputs/04-qa-after-cleanup.md \
+  --expected-pages 30
 ```
