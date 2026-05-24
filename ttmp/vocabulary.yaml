@@ -5,6 +5,12 @@ topics:
       description: Backend services
     - slug: websocket
       description: WebSocket lifecycle & events
+    - slug: scraper
+      description: Scraper service architecture and workflows
+    - slug: jobs
+      description: Task, workflow, job scheduling, and worker runtime design
+    - slug: ocr
+      description: Book OCR and document extraction workflows
 docTypes:
     - slug: design-doc
       description: Structured rationale and architecture notes
