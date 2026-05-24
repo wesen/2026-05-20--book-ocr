@@ -615,3 +615,141 @@ Runtime
   emits Events
   exposes Operator controls
 ```
+
+## Step 6: Implement Phase 1 workflow executor facade
+
+I implemented the first code phase in `scraper`: a small `pkg/workflow` facade that introduces workflow-native executor names without changing the scheduler/store internals. This is intentionally narrow. It proves that the new public model can wrap the existing `runner.Runner` interface while giving future executors a friendlier `StepContext` with typed input decoding, result data, records, artifacts, emitted child steps, and stable error classification.
+
+This step also fixed a local validation issue: the checked-in `go.work` referenced `../go-go-goja`, which does not exist in this workspace. I removed that workspace entry and upgraded `github.com/go-go-golems/go-go-goja` to `v0.4.16`, the released version that contains the `database.QueryExecer` API used by current scraper packages. After that, the full scraper test suite passed with normal `go test ./...`.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Add detailed phases + tasks (if necessary) and implement them step by step, commit at appropriate intervals, keep a detailed diary as you work"
+
+**Assistant interpretation:** Turn the workflow-runtime API design into phased implementation tasks, start with the first safe implementation phase, test it, commit at appropriate boundaries, and keep the ticket diary current.
+
+**Inferred user intent:** The user wants incremental implementation rather than just more design, with reviewable commits and a continuation-friendly diary.
+
+**Commit (code):** `bc6baa26d8fb7eb3a78b8d9e32ab544ee6deaf43` — "Add workflow executor facade"
+
+### What I did
+
+- Added ticket implementation tasks for:
+  - Phase 1 executor facade;
+  - Phase 1 tests;
+  - Phase 2 runtime skeleton;
+  - Phase 3 artifact/projection/operator APIs.
+- Added `scraper/pkg/workflow/errors.go`:
+  - `Error` type implementing the scheduler's `OpError()` carrier pattern;
+  - `Retryable(code, err)`;
+  - `Permanent(code, err)`.
+- Added `scraper/pkg/workflow/context.go`:
+  - `StepContext` wrapping `runner.RunContext`;
+  - input decoding;
+  - result data;
+  - record writes;
+  - artifact writes;
+  - dynamic child-step emission.
+- Added `scraper/pkg/workflow/executor.go`:
+  - `Executor`;
+  - `ExecutorFunc`;
+  - `TypedExecutor[I]`;
+  - `TypedExecutorFunc[I]`;
+  - `NewExecutor`;
+  - `NewTypedExecutor`;
+  - `ToRunner` adapter;
+  - workflow-native executor `Registry` backed by `runner.Registry`.
+- Added `scraper/pkg/workflow/executor_test.go` covering:
+  - typed input decoding;
+  - result assembly;
+  - record writes;
+  - artifact writes;
+  - dynamic child emission;
+  - duplicate executor kind rejection;
+  - retryable error classification;
+  - input decode errors.
+- Updated `scraper/go.work` to remove the missing `../go-go-goja` workspace entry.
+- Updated `scraper/go.mod` / `go.sum` via `go get github.com/go-go-golems/go-go-goja@v0.4.16` and `go mod tidy`.
+- Committed the scraper code as `bc6baa26d8fb7eb3a78b8d9e32ab544ee6deaf43`.
+
+### Why
+
+- The design recommends the first implementation be a small facade over the existing runner interface. This proves the naming and context API without destabilizing scheduler or store code.
+- `StepContext` is the bridge from low-level `OpResult` assembly to a future public executor API.
+- The dependency/workspace update was necessary because the repository could not compile in this workspace while `go.work` referenced a missing local module.
+
+### What worked
+
+- `pkg/workflow` can adapt typed executors into existing `runner.Runner` implementations.
+- Tests confirm that an executor can decode input, write results/records/artifacts, and emit child steps that the existing store completion path can persist.
+- Full test suite passed:
+  - `go test ./... -count=1`
+
+### What didn't work
+
+- Initial validation failed with:
+  - `go: cannot load module ../go-go-goja listed in go.work file: open ../go-go-goja/go.mod: no such file or directory`
+- Running with `GOWORK=off` then revealed that `go-go-goja v0.4.5` did not expose the `database.QueryExecer` API expected by current scraper code:
+  - `undefined: databasemod.QueryExecer`
+  - `undefined: databasemod.New`
+  - `undefined: databasemod.WithName`
+  - `undefined: databasemod.WithPreconfiguredDB`
+- Updating to `go-go-goja v0.4.16` fixed those compile errors.
+
+### What I learned
+
+- The existing `runner.Runner` interface is already a good internal seam for the future `Executor` API.
+- `StepContext` can remain lightweight in Phase 1 while still demonstrating the important public capabilities: typed input, artifacts, records, dynamic emission, and error classification.
+- The current workspace assumed a sibling local `go-go-goja` checkout that is not present; relying on the released module makes normal validation more reproducible.
+
+### What was tricky to build
+
+- The API needed to be future-facing without prematurely renaming all internals. I kept `pkg/workflow` as the new public facade and converted to/from `model.OpSpec` and `model.OpResult` internally.
+- Dynamic child emission needed careful defaults: same workflow ID, same site/package, parent set to current step, JSON input marshaling, and emitted IDs collected in the final result.
+- Error classification needed to match the existing scheduler behavior. The scheduler detects errors with an `OpError() model.OpError` method, so `workflow.Error` implements that shape.
+
+### What warrants a second pair of eyes
+
+- Whether `StepContext.Artifact` should return a richer `ArtifactRef` instead of `model.ArtifactID` before the API becomes public.
+- Whether `StepOpts.Kind` should be a positional argument to `Emit` rather than an option field.
+- Whether `Workflow()`, `Step()`, and `Lease()` should return public wrapper types instead of current model types before external consumers use the package.
+- Whether upgrading `go-go-goja` and removing `../go-go-goja` from `go.work` is acceptable for everyone using this workspace.
+
+### What should be done in the future
+
+- Phase 2: add `Runtime` skeleton, package registration, SQLite store construction, `StartRun`, and `RunOnce` over the existing scheduler.
+- Add `StepContext.Dependency` and richer artifact/projection APIs.
+- Decide public names before broad adoption: `workflow`, `Runtime`, `Step`, `Executor`, `WorkflowPackage`.
+
+### Code review instructions
+
+- Start with:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/executor.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/context.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/errors.go`
+- Then read tests:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/executor_test.go`
+- Validate with:
+  - `cd /home/manuel/workspaces/2026-05-20/book-ocr/scraper && go test ./... -count=1`
+
+### Technical details
+
+Core adapter shape:
+
+```go
+type Executor interface {
+    Kind() string
+    Execute(ctx context.Context, step *StepContext) error
+}
+
+func ToRunner(executor Executor) runner.Runner
+```
+
+Typed executor shape:
+
+```go
+workflow.NewTypedExecutor("ocr/vlm-page", func(ctx context.Context, step *workflow.StepContext, input OCRPageInput) error {
+    // write result, artifacts, records, emitted child steps
+    return nil
+})
+```

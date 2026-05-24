@@ -79,3 +79,15 @@ Uploaded rewritten workflow-native API design bundle to reMarkable at /ai/2026/0
 
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/SCRAPER-JOBS-001--general-purpose-task-workflow-job-system-for-scraper/design-doc/02-embeddable-workflow-runtime-api-design.md — Uploaded rewritten workflow-native API design
 
+
+## 2026-05-24
+
+Implemented Phase 1 workflow executor facade in scraper (commit bc6baa26d8fb7eb3a78b8d9e32ab544ee6deaf43) with StepContext helpers, typed executor adapter, tests, and full go test validation.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/context.go — StepContext input/result/artifact/record/emit helpers
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/errors.go — Retryable/permanent workflow errors
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/executor.go — Workflow-native Executor facade and runner adapter
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/executor_test.go — Phase 1 facade tests
+
