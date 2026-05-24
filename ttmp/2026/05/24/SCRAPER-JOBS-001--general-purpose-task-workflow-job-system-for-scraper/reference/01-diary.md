@@ -753,3 +753,121 @@ workflow.NewTypedExecutor("ocr/vlm-page", func(ctx context.Context, step *workfl
     return nil
 })
 ```
+
+## Step 7: Implement Phase 2 runtime skeleton with package StartRun and RunOnce
+
+I implemented the second phase in `scraper`: a minimal embeddable `Runtime` skeleton over the existing SQLite store and scheduler. The new API can register workflow packages, register executors, start a run from a typed entrypoint, build initial steps through `RunBuilder`, execute the run with `RunOnce`, and read workflow/result state back from the store.
+
+This phase intentionally stays small. It does not yet implement artifact-store abstraction, projection stores, HTTP mounting, selectors, or operator APIs. It proves the central shape of the new public model: `Runtime -> Package -> Entrypoint -> RunBuilder -> Step -> Executor -> StepContext`, while still using the existing scheduler and store internally.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 6)
+
+**Assistant interpretation:** Continue implementing the planned workflow-runtime API phases incrementally, commit after each coherent step, and keep diary/task state current.
+
+**Inferred user intent:** The user wants a concrete, reviewable implementation path from design to working embedded runtime APIs.
+
+**Commit (code):** `4dd78466d8d1faa70df96df5aa59805ad831441d` — "Add workflow runtime skeleton"
+
+### What I did
+
+- Added `scraper/pkg/workflow/runtime.go`:
+  - `Runtime`;
+  - `Config`;
+  - `SQLiteStore(path)`;
+  - `RegisterExecutor`;
+  - `RegisterPackage`;
+  - `StartRun`;
+  - `RunOnce`;
+  - `Workflow`;
+  - `Result`;
+  - queue policy mapping.
+- Added `scraper/pkg/workflow/package.go`:
+  - `Package`;
+  - `PackageBuilder`;
+  - typed `EntrypointFunc[I]`;
+  - `RunBuilder`;
+  - `StepHandle`;
+  - `RunBuilder.Step`;
+  - `Require` dependencies helper.
+- Added `scraper/pkg/workflow/runtime_test.go`:
+  - creates an embedded runtime over a temp SQLite DB;
+  - registers two typed executors;
+  - registers a typed package entrypoint;
+  - starts a run;
+  - executes scheduler cycles;
+  - verifies root and emitted child step results;
+  - verifies final workflow success;
+  - verifies unknown package rejection.
+- Ran:
+  - `go test ./pkg/workflow -count=1`
+  - `go test ./... -count=1`
+- Committed the scraper code as `4dd78466d8d1faa70df96df5aa59805ad831441d`.
+
+### Why
+
+- The rewritten design centers `Runtime.StartRun`, package registration, and executor registration. This phase proves that those concepts can wrap the existing scheduler/store without broad internal renames.
+- A small SQLite-backed runtime gives future implementation steps a concrete test harness.
+
+### What worked
+
+- The runtime successfully starts a typed package run and persists it through the existing `CreateWorkflow` path.
+- `RunBuilder.Step` converts future-facing step definitions into current `model.OpSpec` values.
+- `Runtime.RunOnce` executes the root step and the dynamically emitted child step through the existing scheduler.
+- Full test suite passed:
+  - `go test ./... -count=1`
+
+### What didn't work
+
+- My first runtime test expected the emitted child to run in the second `RunOnce` call. The current scheduler refreshes runnable ops after completing a step and may process newly emitted children in the same `RunOnce` cycle, so the actual processed count was `2`, not `1`.
+- I updated the test to document this current scheduler behavior explicitly.
+
+### What I learned
+
+- The current scheduler can process dynamically emitted child ops in the same cycle when capacity remains. That is useful for throughput but should be documented before exposing strict public scheduling semantics.
+- A package/entrypoint facade can be implemented without touching the current manifest/submit-verb system.
+
+### What was tricky to build
+
+- `PackageBuilder.Entrypoint` needed a typed entrypoint that decodes raw run input but still lets `StartRun` persist the same raw input as workflow input.
+- `Runtime` must hold both the current scheduler and the current store; this is convenient for `RunOnce` and result lookups but should be kept behind the facade so public callers don't depend on internal store types.
+
+### What warrants a second pair of eyes
+
+- Whether `StartRun(ctx, packageName, input)` should require an entrypoint name now, instead of assuming one default entrypoint per package.
+- Whether `RunBuilder.Step` should accept the step kind as a positional argument rather than in `StepOpts.Kind`.
+- Whether processing emitted child steps in the same `RunOnce` cycle is desirable public behavior or should be configurable.
+
+### What should be done in the future
+
+- Add `Runtime.StartWorkers` / `Stop` for long-running embedded workers.
+- Add richer public `RunInfo`/`StepInfo` wrappers instead of returning current model types from `Workflow` and `Result`.
+- Add artifact store abstraction and projection APIs.
+- Add operator APIs and selectors.
+
+### Code review instructions
+
+- Start with:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/runtime.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/package.go`
+- Then inspect:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/runtime_test.go`
+- Validate with:
+  - `cd /home/manuel/workspaces/2026-05-20/book-ocr/scraper && go test ./... -count=1`
+
+### Technical details
+
+Minimal runtime example now supported by tests:
+
+```go
+rt, _ := workflow.NewRuntime(ctx, workflow.Config{
+    Store: workflow.SQLiteStore("state/engine.db"),
+})
+rt.RegisterExecutor(workflow.NewTypedExecutor("test/echo", echoFunc))
+rt.RegisterPackage(workflow.NewPackage("testpkg").
+    Entrypoint(workflow.EntrypointFunc[Input](startFunc)).
+    Build())
+run, _ := rt.StartRun(ctx, "testpkg", Input{Message: "hello"})
+_, _ = rt.RunOnce(ctx)
+```

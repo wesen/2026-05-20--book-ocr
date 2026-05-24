@@ -91,3 +91,14 @@ Implemented Phase 1 workflow executor facade in scraper (commit bc6baa26d8fb7eb3
 - /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/executor.go — Workflow-native Executor facade and runner adapter
 - /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/executor_test.go — Phase 1 facade tests
 
+
+## 2026-05-24
+
+Implemented Phase 2 workflow runtime skeleton in scraper (commit 4dd78466d8d1faa70df96df5aa59805ad831441d) with Runtime, SQLiteStore, package entrypoints, RunBuilder, StartRun, RunOnce, and tests.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/package.go — Workflow package
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/runtime.go — Runtime skeleton and SQLite-backed scheduler/store wiring
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/runtime_test.go — Embedded runtime integration tests
+
