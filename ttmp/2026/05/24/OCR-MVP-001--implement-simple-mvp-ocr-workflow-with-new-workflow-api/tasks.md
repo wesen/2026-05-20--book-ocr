@@ -16,3 +16,4 @@
 - [x] Phase 3b: Document operator smoke flows for retrying failed page steps and canceling runs
 - [x] Finalize: run full tests, update guide/diary/changelog, validate docmgr, optionally re-upload to reMarkable
 - [x] Follow-up: Add first-class OCR MVP operator CLI subcommands for status, page projection listing, retry, and cancel
+- [x] Follow-up: Run a live two-page provider OCR smoke test on presentation-based-uis pages

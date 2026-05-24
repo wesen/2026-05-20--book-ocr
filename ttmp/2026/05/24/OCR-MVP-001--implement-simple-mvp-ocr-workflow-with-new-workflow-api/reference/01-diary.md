@@ -968,3 +968,105 @@ remarquee upload bundle \
   --toc-depth 2 \
   --non-interactive
 ```
+
+## Step 11: Run a live two-page provider OCR smoke test
+
+I ran the OCR MVP CLI against the first two rendered pages from the `presentation-based-uis` page image directory using the real configured provider path, not dry-run mode. The workflow discovered pages 1–2, called the Geppetto/OpenAI Responses-backed OCR client for both pages, assembled the final markdown artifact, and finished successfully.
+
+The output was intentionally small: page 1 was recognized as a title page image description, and page 2 was recognized as the inserted blank pagination page. This validates the live provider wiring, Pinocchio default profile resolution, image upload path, artifact storage, projections, and final assembly for a minimal real run.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Ok, test real provider OCR of two pages, like from here: /home/manuel/code/wesen/claw-stuff/./output/books/presentation-based-uis/pages/ ."
+
+**Assistant interpretation:** Run a live, non-dry-run OCR smoke test on two page images from the provided page directory.
+
+**Inferred user intent:** The user wants confirmation that the implemented Geppetto/provider integration works on actual page image inputs, not only fake tests.
+
+### What I did
+
+- Confirmed the source directory contains `page_001.png`, `page_002.png`, and 202 total files.
+- Ran the OCR MVP CLI with:
+  - `--book-id presentation-based-uis-live-smoke`
+  - `--image-dir /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages`
+  - `--work-dir /tmp/ocr-mvp-live-presentation-two-pages`
+  - `--start-page 1`
+  - `--end-page 2`
+  - `--max-workers 1`
+- Queried status and page projections after completion.
+- Read the final assembled markdown artifact.
+
+### Why
+
+- Earlier tests used fake OCR or profile wiring only. This verifies the actual model-provider call path and multimodal page upload path.
+
+### What worked
+
+- Workflow completed successfully:
+  - `run_id=ocr-mvp-7d6bf036-8803-4329-9a6a-644fecd38eb2`
+  - `status=succeeded`
+- Both page projections are `done`:
+  - page 1 char count: 179
+  - page 2 char count: 52
+- Final assembled artifact exists at:
+  - `/tmp/ocr-mvp-live-presentation-two-pages/artifacts/assemble-markdown/artifact/001`
+- Final markdown content:
+  - page 1: title page description for “Presentation Based User Interfaces”, Eugene C. Ciccarelli IV, MIT Artificial Intelligence Laboratory
+  - page 2: `This blank page was inserted to preserve pagination.`
+
+### What didn't work
+
+- N/A. The live provider smoke test completed successfully.
+
+### What I learned
+
+- The default configured profile resolved to an OpenAI Responses-backed `gpt-5-nano` model in this environment.
+- The two-page run took roughly 23 seconds wall-clock with `--max-workers 1`.
+
+### What was tricky to build
+
+- N/A for this test step. The notable operational detail is that provider logs are verbose and include debug/trace streaming events.
+
+### What warrants a second pair of eyes
+
+- OCR quality should be reviewed visually against the page images before trusting full-book output, especially because page 1 was summarized as an image/title-page description rather than a strict text-only transcription.
+- The prompt may need tuning if title pages should emit only exact visible text rather than bracketed image descriptions.
+
+### What should be done in the future
+
+- Run a live smoke on one dense text page, not just the title/blank-page pair.
+- Consider adding a CLI `--quiet` or logging-level flag to reduce provider streaming noise.
+
+### Code review instructions
+
+- No code changed in this step.
+- Reproduce with:
+  - `cd /home/manuel/workspaces/2026-05-20/book-ocr/scraper`
+  - `go run ./cmd/ocr-mvp run --book-id presentation-based-uis-live-smoke --image-dir /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages --work-dir /tmp/ocr-mvp-live-presentation-two-pages --start-page 1 --end-page 2 --max-workers 1`
+
+### Technical details
+
+Commands executed:
+
+```bash
+find /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages -maxdepth 1 -type f | sort | head -10
+find /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages -maxdepth 1 -type f | wc -l
+
+cd /home/manuel/workspaces/2026-05-20/book-ocr/scraper
+rm -rf /tmp/ocr-mvp-live-presentation-two-pages
+go run ./cmd/ocr-mvp run \
+  --book-id presentation-based-uis-live-smoke \
+  --image-dir /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages \
+  --work-dir /tmp/ocr-mvp-live-presentation-two-pages \
+  --start-page 1 \
+  --end-page 2 \
+  --max-workers 1
+
+go run ./cmd/ocr-mvp status \
+  --work-dir /tmp/ocr-mvp-live-presentation-two-pages \
+  --run-id ocr-mvp-7d6bf036-8803-4329-9a6a-644fecd38eb2
+
+go run ./cmd/ocr-mvp pages \
+  --work-dir /tmp/ocr-mvp-live-presentation-two-pages \
+  --book-id presentation-based-uis-live-smoke
+```

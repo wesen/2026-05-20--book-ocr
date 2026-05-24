@@ -103,3 +103,14 @@ Uploaded refreshed OCR MVP guide with operator CLI documentation to reMarkable a
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/OCR-MVP-001--implement-simple-mvp-ocr-workflow-with-new-workflow-api/design-doc/01-mvp-ocr-workflow-implementation-guide.md — Uploaded as part of refreshed operator CLI bundle
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/OCR-MVP-001--implement-simple-mvp-ocr-workflow-with-new-workflow-api/reference/01-diary.md — Recorded operator CLI upload evidence
 
+
+## 2026-05-24
+
+Ran live two-page provider OCR smoke test against presentation-based-uis pages; workflow succeeded and produced final markdown artifact in /tmp/ocr-mvp-live-presentation-two-pages.
+
+### Related Files
+
+- /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages/page_001.png — Live OCR smoke input page 1
+- /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages/page_002.png — Live OCR smoke input page 2
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/OCR-MVP-001--implement-simple-mvp-ocr-workflow-with-new-workflow-api/reference/01-diary.md — Recorded live provider OCR smoke-test evidence
+
