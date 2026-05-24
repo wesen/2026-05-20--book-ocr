@@ -9,14 +9,21 @@ Owners: []
 RelatedFiles:
     - Path: ../../../../../../../../../../code/wesen/go-go-golems/go-go-parc/Projects/2026/05/24/ARTICLE - Building Book OCR on Scraper Job System - Workflow Runtime Deep Dive.md
       Note: Obsidian project report created before experiment ticket
+    - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/experiments/001-baseline-single-page/logs/01-run-clean-registry-summary.md
+      Note: Compact summary of successful 30-page provider run
     - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/experiments/001-baseline-single-page/manifest.yaml
       Note: Baseline experiment configuration
+    - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/experiments/001-baseline-single-page/outputs/01-final-baseline-clean.md
+      Note: Successful baseline 30-page markdown artifact
+    - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/scripts/01-filter-ndjson-log-to-sqlite.py
+      Note: SQLite log filtering script for noisy provider/SSE logs
 ExternalSources: []
 Summary: ""
 LastUpdated: 0001-01-01T00:00:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # Diary
@@ -208,4 +215,96 @@ remarquee upload bundle \
   --remote-dir "/ai/2026/05/24/BOOK-OCR-HQ-001" \
   --toc-depth 2 \
   --non-interactive
+```
+
+## Step 3: Add SQLite log filtering for noisy provider traces
+
+The first 30-page provider run produced very noisy logs because Geppetto/OpenAI Responses emits trace-level SSE delta rows for streaming tokens. I added a small log-filtering script that loads NDJSON log lines into SQLite and writes compact markdown summaries. This keeps the full log for forensic debugging while making normal review use SQL queries and small summary files.
+
+### Prompt Context
+
+**User prompt (verbatim):** "use some sqlite filtering of log outputbecause things are pretty big, especially with SSE traces"
+
+**Assistant interpretation:** Stop dumping huge provider trace logs into the conversation; preserve them on disk but create SQLite-backed filtered summaries for inspection.
+
+**Inferred user intent:** The user wants long-running OCR experiments to remain inspectable without flooding the terminal or conversation with SSE token deltas.
+
+### What I did
+
+- Added `scripts/01-filter-ndjson-log-to-sqlite.py`.
+- Loaded the failed duplicate-profile log into:
+  - `experiments/001-baseline-single-page/logs/run-failed-duplicate-profile.sqlite`
+- Loaded the successful clean-registry log into:
+  - `experiments/001-baseline-single-page/logs/run-clean-registry.sqlite`
+- Wrote compact markdown summaries:
+  - `logs/02-run-failed-duplicate-profile-summary.md`
+  - `logs/01-run-clean-registry-summary.md`
+- Copied the successful final 30-page baseline artifact into:
+  - `outputs/01-final-baseline-clean.md`
+- Exported page projection rows and a compact non-trace timeline:
+  - `outputs/pages-clean.tsv`
+  - `outputs/timeline-clean.tsv`
+- Added `experiments/001-baseline-single-page/notes.md`.
+
+### Why
+
+- The successful run log had 8687 lines, including 8443 trace-level SSE delta rows. The useful workflow timeline is only 69 non-trace workflow events.
+- SQLite keeps the full raw logs queryable while allowing compact summaries and filtered timelines.
+
+### What worked
+
+- The clean-registry baseline run succeeded on pages 1-30:
+  - run ID: `ocr-mvp-593bf5b6-19c6-4c8c-b631-b48a2d1aba78`
+  - final markdown char count: 43857
+- The log-filter summary reports:
+  - total lines: 8687
+  - trace lines: 8443
+  - non-trace workflow events: 69
+  - warning/error/failure rows: 0
+
+### What didn't work
+
+- The first baseline attempt failed before provider calls because the default Pinocchio profile registry has duplicate `gpt-5-nano-low` keys:
+  - `yaml: unmarshal errors: line 278: mapping key "gpt-5-nano-low" already defined at line 181`
+- I worked around it by creating `/tmp/book-ocr-hq-001/profiles-clean.yaml` with only `openai-responses-base`, `gpt-5-mini-low`, and one `gpt-5-nano-low` profile, then passing it via `--profile-registries`.
+
+### What I learned
+
+- The runtime and provider path can complete 30 pages with `gpt-5-nano-low`, but log handling must be filtered from the start.
+- The local Pinocchio registry needs cleanup or all repeatable experiments should pass a clean registry file explicitly.
+
+### What was tricky to build
+
+- The raw logs mix JSON logs, status lines, and huge numbers of trace deltas. The script stores both parseable JSON rows and raw unparsed lines so no evidence is lost.
+
+### What warrants a second pair of eyes
+
+- The clean temporary profile registry was generated from the local profile file and includes API settings; it should stay under `/tmp`, not be committed.
+- The duplicate profile entry in `~/.config/pinocchio/profiles.yaml` should be cleaned up separately, with care around secrets.
+
+### What should be done in the future
+
+- Add a CLI logging-level flag or environment configuration so trace logs can be suppressed at source.
+- Use the SQLite summaries as the default inspection path for future experiments.
+- Start manual quality review of `outputs/01-final-baseline-clean.md`.
+
+### Code review instructions
+
+- Review script:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/scripts/01-filter-ndjson-log-to-sqlite.py`
+- Review compact outputs:
+  - `experiments/001-baseline-single-page/logs/01-run-clean-registry-summary.md`
+  - `experiments/001-baseline-single-page/outputs/timeline-clean.tsv`
+  - `experiments/001-baseline-single-page/outputs/pages-clean.tsv`
+  - `experiments/001-baseline-single-page/outputs/01-final-baseline-clean.md`
+
+### Technical details
+
+Useful query:
+
+```sql
+select line_no, time, level, event, op_id, attempt, message
+from log_events
+where coalesce(event, '') != '' and level != 'trace'
+order by line_no;
 ```
