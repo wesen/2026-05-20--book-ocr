@@ -1095,3 +1095,107 @@ Kind: external-artifact-ref
 ContentType: application/json
 Body: {"id":"...","uri":"file://...","name":"page_047.md",...}
 ```
+
+## Step 10: Implement Phase 3c projection store foundation
+
+I implemented the initial projection store foundation for workflow packages. This generalizes the current site-DB idea into a workflow-native API: executors can resolve a named projection with `StepContext.Projection(name)`, write query-oriented rows, and the embedded runtime can resolve the same projection after the run for inspection.
+
+The first backend is `SQLiteProjectionStore`, which stores one SQLite database per projection name under a local directory. This is enough to support OCR-style projections such as `books`, `pages`, `prompts`, and `exports` without mixing domain read models into the engine scheduling database.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 8)
+
+**Assistant interpretation:** Continue Phase 3 by implementing the projection-store API after operator controls and artifact storage.
+
+**Inferred user intent:** The user wants the workflow runtime API to expose scraper's unique projection capability as first-class embedded functionality.
+
+**Commit (code):** `0292d2c32b3ffc2abb2faef0b0b529000caac93b` — "Add workflow projection store"
+
+### What I did
+
+- Added `scraper/pkg/workflow/projection_store.go`:
+  - `ProjectionStore`;
+  - `Projection`;
+  - `SQLiteProjectionStore`;
+  - `Projection.Exec`;
+  - `Projection.Query` returning `[]map[string]any`;
+  - projection DB caching and close support;
+  - safe projection filename mapping.
+- Extended `scraper/pkg/workflow/context.go`:
+  - `StepContext.Projection(name)`.
+- Extended `scraper/pkg/workflow/runtime.go`:
+  - `Config.ProjectionStore`;
+  - `Runtime.Projection(name)`;
+  - runtime close now closes projection stores that implement `Close()`;
+  - executor adapters now pass both artifact and projection stores into `StepContext`.
+- Extended tests with a projection workflow that:
+  - creates a projection table;
+  - inserts a page row from an executor;
+  - reads the row back through `Runtime.Projection`;
+  - verifies result data and projection contents.
+- Ran:
+  - `go test ./pkg/workflow -count=1`
+  - `go test ./... -count=1`
+- Committed the scraper code as `0292d2c32b3ffc2abb2faef0b0b529000caac93b`.
+
+### Why
+
+- Projection stores are one of the main reasons the scraper model is richer than a queue: domain outputs can be queryable without polluting engine state.
+- The OCR workflow needs projection tables for page status, prompt versions, attempts, exports, and QA summaries.
+
+### What worked
+
+- Executors can now update package/domain projections through a stable API.
+- Projection state is separate from engine state.
+- Full test suite passed:
+  - `go test ./... -count=1`
+
+### What didn't work
+
+- This first projection API is intentionally small and SQL-shaped. It does not yet include migration management, typed repositories, or schema registration through `WorkflowPackage`.
+- `Projection.Query` returns generic maps, which is convenient but not the final most type-safe API.
+
+### What I learned
+
+- The existing site-DB concept maps cleanly to a public `ProjectionStore` API.
+- Keeping projections separate from engine state remains the right boundary for OCR and other workflow domains.
+
+### What was tricky to build
+
+- Runtime executor adapters now need to pass multiple optional stores into `StepContext`. I consolidated the artifact-aware adapter into a store-aware adapter to avoid special cases.
+- SQLite row scanning into maps needs to normalize `[]byte` values into strings for ergonomic assertions and likely JSON responses.
+
+### What warrants a second pair of eyes
+
+- Whether `Projection.Query` should stay map-based or move quickly to typed scan helpers.
+- Whether projection migrations belong in `WorkflowPackage` v1 or a later phase.
+- Whether projection names should be package-scoped automatically to avoid collisions.
+
+### What should be done in the future
+
+- Add projection migrations to package registration.
+- Add typed projection helpers or repositories.
+- Add operator selectors that query projections, e.g. reprocess pages where `page_type = 'table'`.
+- Mark the broad Phase 3 task complete only after deciding whether current artifact/projection/operator foundations are sufficient for this iteration.
+
+### Code review instructions
+
+- Start with:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/projection_store.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/context.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/runtime.go`
+- Review test:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/runtime_test.go`
+- Validate with:
+  - `cd /home/manuel/workspaces/2026-05-20/book-ocr/scraper && go test ./... -count=1`
+
+### Technical details
+
+Projection usage:
+
+```go
+projection, err := step.Projection("book-ocr")
+_, err = projection.Exec(ctx, `CREATE TABLE IF NOT EXISTS pages(page INTEGER PRIMARY KEY, status TEXT)`)
+_, err = projection.Exec(ctx, `INSERT OR REPLACE INTO pages(page, status) VALUES(?, ?)`, 47, "done")
+```

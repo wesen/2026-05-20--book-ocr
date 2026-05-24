@@ -124,3 +124,25 @@ Implemented Phase 3b external workflow artifact store foundation in scraper (com
 - /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/context.go — StoreArtifact bridge from executor context to external artifact refs
 - /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/runtime.go — Runtime artifact store wiring
 
+
+## 2026-05-24
+
+Implemented Phase 3c workflow projection store foundation in scraper (commit 0292d2c32b3ffc2abb2faef0b0b529000caac93b) with SQLiteProjectionStore and StepContext.Projection.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/context.go — Projection access from StepContext
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/projection_store.go — ProjectionStore and SQLiteProjectionStore implementation
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/runtime.go — Runtime projection store wiring
+
+
+## 2026-05-24
+
+Completed Phase 3 foundations: operator controls, external file artifact store, and SQLite projection store are implemented and tested.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/artifact_store.go — Artifact store
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/operators.go — Operator controls
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/projection_store.go — Projection store
+

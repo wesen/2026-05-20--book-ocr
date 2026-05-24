@@ -10,7 +10,7 @@
 - [x] Phase 1: Implement pkg/workflow executor facade over runner.Runner with StepContext input/result/artifact/record/emit helpers
 - [x] Phase 1 validation: Add unit tests for typed executor adapter, StepContext helpers, and error classification
 - [x] Phase 2: Add Runtime skeleton and SQLite-backed StartRun/RunOnce design implementation
-- [ ] Phase 3: Add artifact/projection/operator APIs after executor facade stabilizes
+- [x] Phase 3: Add artifact/projection/operator APIs after executor facade stabilizes
 - [x] Phase 3a: Add embedded worker lifecycle, dependency helpers, and operator controls (retry/cancel)
 - [x] Phase 3b: Design and implement external ArtifactStore abstraction beyond SQLite result artifacts
-- [ ] Phase 3c: Design and implement ProjectionStore API for workflow packages
+- [x] Phase 3c: Design and implement ProjectionStore API for workflow packages
