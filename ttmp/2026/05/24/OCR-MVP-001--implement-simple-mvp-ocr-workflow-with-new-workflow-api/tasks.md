@@ -11,7 +11,7 @@
 - [x] Phase 1b: Implement fake-client workflow executors for discover-pages, ocr-page, and assemble-markdown using workflow artifacts and projections
 - [x] Phase 1c: Add integration tests that run the OCR MVP workflow with temp SQLite stores, fake page images, fake OCR, artifacts, projections, and final assembly
 - [x] Phase 2a: Implement Geppetto-backed OCR client using pinocchio/pkg/cmds/profilebootstrap default registry resolution
-- [ ] Phase 2b: Add focused tests for profile selection wiring and opt-in live OCR smoke test guard
+- [x] Phase 2b: Add focused tests for profile selection wiring and opt-in live OCR smoke test guard
 - [ ] Phase 3a: Add a small CLI/example command to run ocr-mvp with --book-id, --image-dir, --work-dir, --profile, --profile-registries, --dry-run, and --max-workers
 - [ ] Phase 3b: Document operator smoke flows for retrying failed page steps and canceling runs
 - [ ] Finalize: run full tests, update guide/diary/changelog, validate docmgr, optionally re-upload to reMarkable

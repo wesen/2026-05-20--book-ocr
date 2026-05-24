@@ -50,3 +50,14 @@ Implemented Phase 2a Geppetto OCR client using Pinocchio profilebootstrap defaul
 - /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrmvp/geppetto_ocr.go — Live OCR client path
 - /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrmvp/geppetto_ocr_test.go — Non-live tests for OCR output extraction helpers
 
+
+## 2026-05-24
+
+Completed Phase 2b profile-selection wiring tests and opt-in live OCR smoke test guard in scraper (commit 6a21bc3cbeaf420b235cec3b6ebdb36204188199).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/OCR-MVP-001--implement-simple-mvp-ocr-workflow-with-new-workflow-api/reference/01-diary.md — Diary updated with Phase 2b testing details
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrmvp/geppetto_ocr.go — Pinocchio selection helper used by live OCR client
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrmvp/geppetto_ocr_test.go — Profile-selection unit test and live smoke guard
+

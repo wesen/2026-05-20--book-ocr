@@ -44,7 +44,9 @@ RelatedFiles:
     - Path: scraper/pkg/workflows/ocrmvp/geppetto_ocr.go
       Note: Geppetto OCR client using Pinocchio profilebootstrap
     - Path: scraper/pkg/workflows/ocrmvp/geppetto_ocr_test.go
-      Note: Focused tests for OCR response extraction and media typing
+      Note: |-
+        Focused tests for OCR response extraction and media typing
+        Profile wiring and guarded live smoke tests
     - Path: scraper/pkg/workflows/ocrmvp/package.go
       Note: OCR MVP workflow package registration and entrypoint
     - Path: scraper/pkg/workflows/ocrmvp/package_test.go
@@ -59,6 +61,7 @@ LastUpdated: 2026-05-24T20:58:00-04:00
 WhatFor: Use this before implementing the OCR MVP workflow so the intern understands scraper workflow concepts, Geppetto OCR integration, profile registry resolution, artifacts, projections, and validation.
 WhenToUse: Read when implementing, reviewing, or extending OCR-MVP-001.
 ---
+
 
 
 

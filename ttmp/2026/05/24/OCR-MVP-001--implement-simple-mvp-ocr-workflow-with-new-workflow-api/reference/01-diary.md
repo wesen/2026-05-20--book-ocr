@@ -23,6 +23,8 @@ RelatedFiles:
       Note: Evidence inspected while writing diary and design
     - Path: scraper/pkg/workflows/ocrmvp/geppetto_ocr.go
       Note: Phase 2a implementation evidence
+    - Path: scraper/pkg/workflows/ocrmvp/geppetto_ocr_test.go
+      Note: Phase 2b testing evidence
     - Path: scraper/pkg/workflows/ocrmvp/package.go
       Note: Phase 1 implementation evidence
     - Path: scraper/pkg/workflows/ocrmvp/package_test.go
@@ -33,6 +35,7 @@ LastUpdated: 2026-05-24T20:58:00-04:00
 WhatFor: Record what was investigated, written, constrained, and delivered for OCR-MVP-001.
 WhenToUse: Read before implementing or extending the MVP OCR workflow.
 ---
+
 
 
 
@@ -535,4 +538,83 @@ GeppettoOCRClient.OCRPage
   -> turns.NewUserMultimodalBlock(prompt, image bytes)
   -> eng.RunInference(ctx, turn)
   -> last turns.BlockKindLLMText payload
+```
+
+## Step 6: Add Phase 2b profile-selection and live-smoke guard tests
+
+I completed the Phase 2 testing slice by making profile selection wiring testable without running a model provider. I factored the Pinocchio CLI-selection construction into a small helper and added a unit test that verifies explicit profile and registry values are preserved in the parsed profile settings.
+
+I also added an opt-in live OCR smoke test guard. The live test is skipped by default and only runs when `OCR_MVP_LIVE=1` and `OCR_MVP_LIVE_IMAGE` points to a page image. This keeps normal CI and pre-commit validation deterministic while documenting the intended live-test entrypoint.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 4)
+
+**Assistant interpretation:** Continue the detailed task list by finishing the Phase 2b testing/guard task after implementing the live Geppetto OCR client.
+
+**Inferred user intent:** The user wants implementation to proceed in small validated increments with useful diary evidence.
+
+**Commit (code):** `6a21bc3cbeaf420b235cec3b6ebdb36204188199` — "Test OCR profile selection wiring"
+
+### What I did
+
+- Refactored `scraper/pkg/workflows/ocrmvp/geppetto_ocr.go`:
+  - added `newPinocchioSelectionValues(input)` helper used by `GeppettoOCRClient`.
+- Extended `scraper/pkg/workflows/ocrmvp/geppetto_ocr_test.go`:
+  - verified profile and profile-registry values survive into Pinocchio profile settings;
+  - added skipped-by-default live smoke test guard using `OCR_MVP_LIVE` and `OCR_MVP_LIVE_IMAGE`.
+- Ran:
+  - `go test ./pkg/workflows/ocrmvp -count=1`
+  - `GOWORK=off go test ./pkg/workflows/ocrmvp -count=1`
+- Committed code. The scraper pre-commit hook ran full validation successfully.
+
+### Why
+
+- Phase 2a added live integration code, but normal tests still needed to prove the profile-selection path without API calls.
+- The opt-in live test gives future implementers a clear place to smoke-test real OCR without making CI flaky or requiring credentials.
+
+### What worked
+
+- Explicit `Profile` and `ProfileRegistries` values decode correctly from the generated Pinocchio profile settings section.
+- The live smoke test is safely skipped by default.
+- Full pre-commit validation passed.
+
+### What didn't work
+
+- N/A. This was a small test-focused change after the Phase 2a integration compiled successfully.
+
+### What I learned
+
+- Pinocchio's `profilebootstrap.ProfileSettingsSectionSlug` and re-exported `ProfileSettings` type are enough to write focused wiring tests without resolving a real registry.
+
+### What was tricky to build
+
+- The helper return type needed to stay concrete (`*values.Values`) because `profilebootstrap.ResolveCLIEngineSettings` expects the real parsed-values object, not just an interface with `DecodeSectionInto`.
+
+### What warrants a second pair of eyes
+
+- Whether the live smoke test should require `OCR_MVP_LIVE_PROFILE`, or whether allowing Pinocchio defaults when it is empty is the better operator experience. I left it optional so default profile behavior can be tested.
+
+### What should be done in the future
+
+- Phase 3a: add the CLI/example command.
+- Consider adding a documented one-page fixture image for repeatable live smoke tests.
+
+### Code review instructions
+
+- Review:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrmvp/geppetto_ocr.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrmvp/geppetto_ocr_test.go`
+- Validate with:
+  - `cd /home/manuel/workspaces/2026-05-20/book-ocr/scraper && go test ./pkg/workflows/ocrmvp -count=1`
+
+### Technical details
+
+Live smoke test command shape:
+
+```bash
+OCR_MVP_LIVE=1 \
+OCR_MVP_LIVE_IMAGE=/path/to/page_001.png \
+OCR_MVP_LIVE_PROFILE=gpt-5-nano-low \
+go test ./pkg/workflows/ocrmvp -run TestLiveGeppettoOCRClientGuarded -count=1
 ```
