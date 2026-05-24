@@ -15,6 +15,8 @@ RelatedFiles:
       Note: Primary implementation guide written in this ticket
     - Path: pinocchio/pkg/cmds/profilebootstrap/engine_settings.go
       Note: Evidence inspected for profile-backed Geppetto engine construction
+    - Path: scraper/cmd/ocr-mvp/main.go
+      Note: Phase 3 CLI implementation evidence
     - Path: scraper/go.mod
       Note: Dependency churn noted in diary
     - Path: scraper/pkg/workflow/projection_store.go
@@ -35,6 +37,7 @@ LastUpdated: 2026-05-24T20:58:00-04:00
 WhatFor: Record what was investigated, written, constrained, and delivered for OCR-MVP-001.
 WhenToUse: Read before implementing or extending the MVP OCR workflow.
 ---
+
 
 
 
@@ -617,4 +620,106 @@ OCR_MVP_LIVE=1 \
 OCR_MVP_LIVE_IMAGE=/path/to/page_001.png \
 OCR_MVP_LIVE_PROFILE=gpt-5-nano-low \
 go test ./pkg/workflows/ocrmvp -run TestLiveGeppettoOCRClientGuarded -count=1
+```
+
+## Step 7: Add Phase 3 CLI and operator smoke documentation
+
+I added a small runnable `ocr-mvp` command under `scraper/cmd/ocr-mvp`. The command wires the workflow runtime, file artifact store, SQLite projection store, queues, OCR MVP package registration, dry-run/live OCR client selection, and run loop into one copy/pasteable smoke-test entrypoint.
+
+I also updated the design guide with a CLI and operator smoke runbook. The runbook documents dry-run execution, live execution through Pinocchio profile defaults, and the current Go API path for retrying a failed page step or canceling a run.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 4)
+
+**Assistant interpretation:** Continue from Phase 2 into Phase 3 by adding a runnable command and documenting operator flows.
+
+**Inferred user intent:** The user wants each ticket task to move toward a usable MVP, with commits and diary evidence at sensible boundaries.
+
+**Commit (code):** `8a067f98c7e556ea1c9148bbc2838a0ef23a236a` — "Add OCR MVP CLI"
+
+### What I did
+
+- Added `scraper/cmd/ocr-mvp/main.go`.
+- CLI flags include:
+  - `--book-id`;
+  - `--image-dir`;
+  - `--page-glob`;
+  - `--start-page` / `--end-page`;
+  - `--work-dir`;
+  - `--profile`;
+  - repeatable/comma-separated `--profile-registries`;
+  - `--dry-run`;
+  - `--max-workers`;
+  - `--poll-interval`;
+  - `--run-id`.
+- Smoke-tested the CLI with two fake page files and `--dry-run`.
+- Fixed an `exhaustive` lint warning by explicitly handling `pending` and `running` workflow statuses in the terminal-status helper.
+- Updated the design guide with:
+  - dry-run command;
+  - live command;
+  - profile-registry override example;
+  - retry/cancel Go snippets;
+  - projection-inspection snippet.
+
+### Why
+
+- The package-level tests prove the API, but a CLI makes the MVP easy to run against real page directories.
+- Keeping the command under `cmd/ocr-mvp` avoids prematurely expanding scraper's main CLI surface.
+- Operator retry/cancel flows are part of the OCR use case, even if a full operator command/UI remains future work.
+
+### What worked
+
+- Dry-run CLI smoke completed successfully and produced an `AssembleResult` with a final markdown artifact URI.
+- Pre-commit validation passed after fixing the exhaustive switch warning.
+
+### What didn't work
+
+- First commit attempt failed lint:
+  - `cmd/ocr-mvp/main.go:149:2: missing cases in switch of type model.WorkflowStatus: model.WorkflowStatusPending, model.WorkflowStatusRunning (exhaustive)`
+- I fixed it by adding explicit non-terminal cases for `pending` and `running`.
+
+### What I learned
+
+- The CLI can run the full dry-run workflow in three scheduler cycles: discover, page OCR steps, assemble.
+- The scheduler logs are verbose but useful for smoke validation.
+
+### What was tricky to build
+
+- The command needs to support Pinocchio defaults without forcing flags. The implementation passes `--profile` and `--profile-registries` into `RunInput`, but leaves them empty by default so `GeppettoOCRClient` can use Pinocchio's normal resolution path.
+- Terminal status handling must satisfy the repository's exhaustive linter.
+
+### What warrants a second pair of eyes
+
+- Whether the command should stay as `cmd/ocr-mvp` or move into scraper's main Cobra command tree after the MVP hardens.
+- Whether the command should print less scheduler JSON by configuring logging.
+- Whether retry/cancel should get first-class CLI subcommands in the next pass.
+
+### What should be done in the future
+
+- Add dedicated operator CLI commands for retry/cancel/list projection rows.
+- Re-upload the updated guide if the user wants the newest runbook on reMarkable.
+- Finalize docs after deciding whether to stop here or continue with more operator tooling.
+
+### Code review instructions
+
+- Review:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/cmd/ocr-mvp/main.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/OCR-MVP-001--implement-simple-mvp-ocr-workflow-with-new-workflow-api/design-doc/01-mvp-ocr-workflow-implementation-guide.md`
+- Validate with:
+  - `cd /home/manuel/workspaces/2026-05-20/book-ocr/scraper && go test ./cmd/ocr-mvp ./pkg/workflows/ocrmvp -count=1`
+- Dry-run smoke:
+  - create a temp page dir with `page_001.png`, `page_002.png`;
+  - run `go run ./cmd/ocr-mvp --book-id smoke --image-dir <dir> --work-dir <tmp>/work --dry-run --max-workers 2`.
+
+### Technical details
+
+Dry-run smoke command executed during this step:
+
+```bash
+tmp=$(mktemp -d)
+mkdir -p "$tmp/pages"
+printf 'fake1' > "$tmp/pages/page_001.png"
+printf 'fake2' > "$tmp/pages/page_002.png"
+go run ./cmd/ocr-mvp --book-id smoke --image-dir "$tmp/pages" --work-dir "$tmp/work" --dry-run --max-workers 2
 ```

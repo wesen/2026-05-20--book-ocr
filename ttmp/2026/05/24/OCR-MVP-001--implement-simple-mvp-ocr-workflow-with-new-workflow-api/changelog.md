@@ -61,3 +61,14 @@ Completed Phase 2b profile-selection wiring tests and opt-in live OCR smoke test
 - /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrmvp/geppetto_ocr.go — Pinocchio selection helper used by live OCR client
 - /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrmvp/geppetto_ocr_test.go — Profile-selection unit test and live smoke guard
 
+
+## 2026-05-24
+
+Implemented Phase 3 OCR MVP CLI and added operator smoke-flow documentation (commit 8a067f98c7e556ea1c9148bbc2838a0ef23a236a).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/OCR-MVP-001--implement-simple-mvp-ocr-workflow-with-new-workflow-api/design-doc/01-mvp-ocr-workflow-implementation-guide.md — Updated with CLI and operator smoke runbook
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/OCR-MVP-001--implement-simple-mvp-ocr-workflow-with-new-workflow-api/reference/01-diary.md — Diary updated with Phase 3 CLI details
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/cmd/ocr-mvp/main.go — CLI implementation
+

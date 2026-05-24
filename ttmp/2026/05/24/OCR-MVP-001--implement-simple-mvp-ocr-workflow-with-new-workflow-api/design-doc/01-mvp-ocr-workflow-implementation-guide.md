@@ -19,6 +19,8 @@ RelatedFiles:
       Note: Pinocchio helper for resolving profile-backed Geppetto engine settings
     - Path: pinocchio/pkg/cmds/profilebootstrap/profile_selection.go
       Note: Pinocchio default profile and registry selection behavior
+    - Path: scraper/cmd/ocr-mvp/main.go
+      Note: Runnable OCR MVP CLI and dry-run/live wiring
     - Path: scraper/go.mod
       Note: Dependency updates for Geppetto and Pinocchio imports
     - Path: scraper/go.sum
@@ -61,6 +63,7 @@ LastUpdated: 2026-05-24T20:58:00-04:00
 WhatFor: Use this before implementing the OCR MVP workflow so the intern understands scraper workflow concepts, Geppetto OCR integration, profile registry resolution, artifacts, projections, and validation.
 WhenToUse: Read when implementing, reviewing, or extending OCR-MVP-001.
 ---
+
 
 
 
@@ -951,6 +954,93 @@ Eventually yes, but not in this MVP. Keeping rendering out of scope lets this ti
 8. Run dry-run CLI smoke test.
 9. Optionally run one live page with `--profile` and configured registries.
 10. Update diary/changelog/tasks.
+
+## CLI and Operator Smoke Runbook
+
+The implementation now includes a small example command at `scraper/cmd/ocr-mvp/main.go`. It is intentionally separate from the main scraper Cobra tree so the MVP can be exercised without committing to a long-term command surface.
+
+### Dry-run command
+
+Use dry-run mode first. It does not call a live model provider and is safe for local smoke tests.
+
+```bash
+cd /home/manuel/workspaces/2026-05-20/book-ocr/scraper
+
+go run ./cmd/ocr-mvp \
+  --book-id smoke \
+  --image-dir /path/to/page-images \
+  --work-dir /tmp/ocr-mvp-smoke \
+  --dry-run \
+  --max-workers 2
+```
+
+Expected behavior:
+
+- creates `/tmp/ocr-mvp-smoke/engine.db`;
+- creates `/tmp/ocr-mvp-smoke/artifacts/`;
+- creates `/tmp/ocr-mvp-smoke/projections/ocr-mvp.db`;
+- starts one workflow run;
+- schedules `discover-pages`, `ocr-page-NNN`, and `assemble-markdown` steps;
+- prints the final `AssembleResult` JSON.
+
+### Live OCR command
+
+Live mode uses `GeppettoOCRClient`. Profile resolution follows Pinocchio defaults. If `--profile` and `--profile-registries` are omitted, the command uses Pinocchio's normal env/config/XDG profile resolution.
+
+```bash
+cd /home/manuel/workspaces/2026-05-20/book-ocr/scraper
+
+go run ./cmd/ocr-mvp \
+  --book-id aitr-794 \
+  --image-dir /home/manuel/workspaces/2026-05-20/book-ocr/output/books/presentation-based-uis/pages \
+  --work-dir /tmp/ocr-mvp-aitr \
+  --profile gpt-5-nano-low \
+  --max-workers 4
+```
+
+If the desired profile registry is not in Pinocchio's default config path, pass one or more registry sources:
+
+```bash
+go run ./cmd/ocr-mvp \
+  --book-id aitr-794 \
+  --image-dir /path/to/pages \
+  --work-dir /tmp/ocr-mvp-aitr \
+  --profile gpt-5-nano-low \
+  --profile-registries ~/.config/pinocchio/profiles.yaml
+```
+
+### Operator retry and cancel smoke flows
+
+The current CLI starts a new run and waits for terminal status. Retry/cancel are available through the workflow runtime API and should be wrapped in a future operator command.
+
+Retry one failed page step:
+
+```go
+rt, err := workflow.NewRuntime(ctx, workflow.Config{
+    Store: workflow.SQLiteStore("/tmp/ocr-mvp-aitr/engine.db"),
+})
+if err != nil { return err }
+defer rt.Close()
+
+err = rt.RetryStep(ctx, model.WorkflowID("ocr-mvp-run-id"), model.OpID("ocr-page-047"))
+```
+
+Cancel a run:
+
+```go
+err = rt.CancelRun(ctx, model.WorkflowID("ocr-mvp-run-id"))
+```
+
+Projection inspection:
+
+```go
+rt, _ := workflow.NewRuntime(ctx, workflow.Config{
+    Store:           workflow.SQLiteStore("/tmp/ocr-mvp-aitr/engine.db"),
+    ProjectionStore: workflow.NewSQLiteProjectionStore("/tmp/ocr-mvp-aitr/projections"),
+})
+projection, _ := rt.Projection(ctx, "ocr-mvp")
+rows, _ := projection.Query(ctx, `SELECT page_num, status, error_code FROM pages WHERE book_id = ? ORDER BY page_num`, "aitr-794")
+```
 
 ## References
 
