@@ -19,6 +19,10 @@ RelatedFiles:
       Note: Pinocchio helper for resolving profile-backed Geppetto engine settings
     - Path: pinocchio/pkg/cmds/profilebootstrap/profile_selection.go
       Note: Pinocchio default profile and registry selection behavior
+    - Path: scraper/go.mod
+      Note: Dependency updates for Geppetto and Pinocchio imports
+    - Path: scraper/go.sum
+      Note: Dependency checksums for Geppetto and Pinocchio imports
     - Path: scraper/pkg/workflow/artifact_store.go
       Note: External artifact store used for page and book markdown artifacts
     - Path: scraper/pkg/workflow/context.go
@@ -37,6 +41,10 @@ RelatedFiles:
       Note: Page discovery and dynamic OCR/assemble step emission
     - Path: scraper/pkg/workflows/ocrmvp/executors.go
       Note: OCR page and assemble executors using artifacts/projections
+    - Path: scraper/pkg/workflows/ocrmvp/geppetto_ocr.go
+      Note: Geppetto OCR client using Pinocchio profilebootstrap
+    - Path: scraper/pkg/workflows/ocrmvp/geppetto_ocr_test.go
+      Note: Focused tests for OCR response extraction and media typing
     - Path: scraper/pkg/workflows/ocrmvp/package.go
       Note: OCR MVP workflow package registration and entrypoint
     - Path: scraper/pkg/workflows/ocrmvp/package_test.go
@@ -51,6 +59,7 @@ LastUpdated: 2026-05-24T20:58:00-04:00
 WhatFor: Use this before implementing the OCR MVP workflow so the intern understands scraper workflow concepts, Geppetto OCR integration, profile registry resolution, artifacts, projections, and validation.
 WhenToUse: Read when implementing, reviewing, or extending OCR-MVP-001.
 ---
+
 
 
 

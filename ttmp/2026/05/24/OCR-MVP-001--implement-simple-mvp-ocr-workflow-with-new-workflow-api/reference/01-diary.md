@@ -15,10 +15,14 @@ RelatedFiles:
       Note: Primary implementation guide written in this ticket
     - Path: pinocchio/pkg/cmds/profilebootstrap/engine_settings.go
       Note: Evidence inspected for profile-backed Geppetto engine construction
+    - Path: scraper/go.mod
+      Note: Dependency churn noted in diary
     - Path: scraper/pkg/workflow/projection_store.go
       Note: Lint cleanup recorded in diary
     - Path: scraper/pkg/workflow/runtime.go
       Note: Evidence inspected while writing diary and design
+    - Path: scraper/pkg/workflows/ocrmvp/geppetto_ocr.go
+      Note: Phase 2a implementation evidence
     - Path: scraper/pkg/workflows/ocrmvp/package.go
       Note: Phase 1 implementation evidence
     - Path: scraper/pkg/workflows/ocrmvp/package_test.go
@@ -29,6 +33,7 @@ LastUpdated: 2026-05-24T20:58:00-04:00
 WhatFor: Record what was investigated, written, constrained, and delivered for OCR-MVP-001.
 WhenToUse: Read before implementing or extending the MVP OCR workflow.
 ---
+
 
 
 
@@ -421,4 +426,113 @@ New package registration API:
 ```go
 err := ocrmvp.Register(rt, ocrmvp.Config{Client: fakeOrLiveClient})
 run, err := rt.StartRun(ctx, ocrmvp.PackageName, ocrmvp.RunInput{BookID: "book", ImageDir: dir})
+```
+
+## Step 5: Implement Phase 2a Geppetto OCR client with Pinocchio profile bootstrap
+
+I implemented the live OCR client path as a separate commit after the fake-client workflow skeleton. The new `GeppettoOCRClient` uses Pinocchio's `profilebootstrap` package to resolve the selected/default profile registry stack, builds a Geppetto engine from the resolved settings, creates a multimodal turn with the page image bytes, and extracts the final assistant text block as OCR markdown.
+
+This keeps the workflow package aligned with the user's constraint: OCR uses Geppetto directly, while profile/model selection uses Pinocchio's default registry behavior. The normal workflow tests still use fake OCR, so package tests and pre-commit validation do not require API keys or live provider calls.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 4)
+
+**Assistant interpretation:** Continue task-by-task implementation after Phase 1, moving to the Geppetto-backed OCR client while keeping validation non-live by default.
+
+**Inferred user intent:** The user wants the MVP to progress toward real OCR execution while preserving reliable tests and proper profile-registry integration.
+
+**Commit (code):** `0f3b04556260f1d07f13032b89bbca3df2a66b5f` — "Add Geppetto OCR client"
+
+### What I did
+
+- Added `scraper/pkg/workflows/ocrmvp/geppetto_ocr.go`:
+  - `GeppettoOCRClient`;
+  - `NewGeppettoOCRClient`;
+  - Pinocchio profile selection via `profilebootstrap.NewCLISelectionValues`;
+  - engine settings resolution via `profilebootstrap.ResolveCLIEngineSettings`;
+  - Geppetto engine construction via `profilebootstrap.NewEngineFromResolvedCLIEngineSettings`;
+  - multimodal turn construction with `turns.NewSystemTextBlock` and `turns.NewUserMultimodalBlock`;
+  - final LLM text extraction with `lastLLMText`;
+  - media type inference from image file extension.
+- Added `scraper/pkg/workflows/ocrmvp/geppetto_ocr_test.go`:
+  - `lastLLMText` happy path;
+  - missing-output error path;
+  - media type detection.
+- Updated `scraper/go.mod` and `scraper/go.sum` to include released `geppetto` and `pinocchio` dependencies so `GOWORK=off` package tests can compile.
+- Ran:
+  - `go test ./pkg/workflows/ocrmvp -count=1`
+  - `GOWORK=off go test ./pkg/workflows/ocrmvp -count=1`
+  - `go test ./pkg/workflows/ocrmvp ./pkg/workflow -count=1`
+- Committed code. The scraper pre-commit hook also ran full validation:
+  - `go test ./... -count=1`
+  - web unit tests;
+  - `golangci-lint`;
+  - `gosec`;
+  - `govulncheck`.
+
+### Why
+
+- The user explicitly asked to use `geppetto/` for OCR and Pinocchio's proper/default profile registries.
+- Using `profilebootstrap` preserves Pinocchio's profile precedence and avoids hard-coding environment variables or shelling out.
+- Adding direct module requirements keeps the package buildable outside the root `go.work` context.
+
+### What worked
+
+- The client compiled against the local workspace and with `GOWORK=off` after adding module requirements.
+- The full scraper pre-commit hook passed.
+- The live client is isolated behind the `OCRClient` interface, so tests remain deterministic.
+
+### What didn't work
+
+- First compile failed because I guessed the resolved profile field name incorrectly:
+  - `resolved.ResolvedEngineProfile.ProfileSlug undefined`
+- I inspected `geppetto/pkg/engineprofiles/registry.go` and corrected it to:
+  - `resolved.ResolvedEngineProfile.EngineProfileSlug.String()`
+
+### What I learned
+
+- `ResolvedEngineProfile` exposes `RegistrySlug` and `EngineProfileSlug`, not `ProfileSlug`.
+- The root `go.work` can make cross-module imports compile, but `GOWORK=off` revealed missing module requirements. Adding released dependencies is necessary for standalone scraper builds.
+
+### What was tricky to build
+
+- The implementation needs to combine two ownership domains correctly: Pinocchio profile/config bootstrap and Geppetto inference execution. The client now uses Pinocchio only for settings/profile resolution and Geppetto for turn construction and inference.
+- Adding Pinocchio as a direct dependency upgraded several transitive dependencies in `scraper/go.mod`/`go.sum`; this is expected but should be reviewed because it broadens the dependency surface.
+
+### What warrants a second pair of eyes
+
+- Review the dependency churn in `scraper/go.mod` and `scraper/go.sum` from adding `github.com/go-go-golems/pinocchio v0.10.26` and `github.com/go-go-golems/geppetto v0.11.28`.
+- Confirm importing `pinocchio/pkg/cmds/profilebootstrap` from scraper is acceptable long-term, or decide whether to extract a smaller shared profile-bootstrap package.
+- Confirm image bytes in `turns.NewUserMultimodalBlock` are the desired transport for all providers used by the selected profiles.
+
+### What should be done in the future
+
+- Phase 2b: add focused tests around profile selection wiring and an opt-in live OCR smoke test guard.
+- Phase 3a: add the CLI/example command.
+
+### Code review instructions
+
+- Start with:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrmvp/geppetto_ocr.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrmvp/geppetto_ocr_test.go`
+- Review dependency changes:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/go.mod`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/go.sum`
+- Validate with:
+  - `cd /home/manuel/workspaces/2026-05-20/book-ocr/scraper && go test ./pkg/workflows/ocrmvp ./pkg/workflow -count=1`
+  - `cd /home/manuel/workspaces/2026-05-20/book-ocr/scraper && GOWORK=off go test ./pkg/workflows/ocrmvp -count=1`
+
+### Technical details
+
+Live OCR path:
+
+```text
+GeppettoOCRClient.OCRPage
+  -> profilebootstrap.NewCLISelectionValues(Profile, ProfileRegistries)
+  -> profilebootstrap.ResolveCLIEngineSettings(ctx, parsed)
+  -> profilebootstrap.NewEngineFromResolvedCLIEngineSettings(resolved)
+  -> turns.NewUserMultimodalBlock(prompt, image bytes)
+  -> eng.RunInference(ctx, turn)
+  -> last turns.BlockKindLLMText payload
 ```

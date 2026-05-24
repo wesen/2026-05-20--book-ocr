@@ -39,3 +39,14 @@ Implemented Phase 1 OCR MVP workflow skeleton and fake-client integration tests 
 - /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrmvp/package.go — OCR MVP registration and package entrypoint
 - /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrmvp/package_test.go — Integration test with fake OCR
 
+
+## 2026-05-24
+
+Implemented Phase 2a Geppetto OCR client using Pinocchio profilebootstrap default registry resolution in scraper (commit 0f3b04556260f1d07f13032b89bbca3df2a66b5f).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/OCR-MVP-001--implement-simple-mvp-ocr-workflow-with-new-workflow-api/reference/01-diary.md — Diary updated with Phase 2a implementation and validation details
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrmvp/geppetto_ocr.go — Live OCR client path
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrmvp/geppetto_ocr_test.go — Non-live tests for OCR output extraction helpers
+
