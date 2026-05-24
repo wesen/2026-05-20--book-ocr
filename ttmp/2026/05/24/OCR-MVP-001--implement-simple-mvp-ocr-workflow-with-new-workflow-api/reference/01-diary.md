@@ -904,3 +904,67 @@ run_id=$(grep -o 'ocr-mvp-[^ ]*' "$tmp/run.out" | head -1)
 go run ./cmd/ocr-mvp status --work-dir "$tmp/work" --run-id "$run_id"
 go run ./cmd/ocr-mvp pages --work-dir "$tmp/work" --book-id smoke
 ```
+
+## Step 10: Upload operator CLI guide refresh
+
+I uploaded a refreshed reMarkable bundle after adding the concrete operator subcommands and updating the implementation guide. This keeps the device copy aligned with the latest CLI surface rather than leaving the Phase 3 upload with the older Go-snippet-only operator section.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 9)
+
+**Assistant interpretation:** Continue the implementation/documentation loop through delivery of the updated guide.
+
+**Inferred user intent:** The user expects continued implementation work to remain documented, committed, validated, and deliverable.
+
+### What I did
+
+- Uploaded `OCR MVP 001 Workflow Guide Operator CLI.pdf` to `/ai/2026/05/24/OCR-MVP-001`.
+- The bundle includes the implementation guide and diary with the new `run`, `status`, `pages`, `retry`, and `cancel` command documentation.
+
+### Why
+
+- The operator CLI materially changes the runbook, so the reMarkable copy needed a refresh.
+
+### What worked
+
+- Upload succeeded:
+  - `OK: uploaded OCR MVP 001 Workflow Guide Operator CLI.pdf -> /ai/2026/05/24/OCR-MVP-001`
+
+### What didn't work
+
+- N/A.
+
+### What I learned
+
+- The current ticket bundle is now best read as the Operator CLI version, superseding the previous Phase 3 upload for day-to-day command usage.
+
+### What was tricky to build
+
+- N/A; this was a delivery/update step.
+
+### What warrants a second pair of eyes
+
+- Check whether old uploaded PDFs should be kept for history or manually removed from reMarkable to avoid ambiguity.
+
+### What should be done in the future
+
+- If another CLI/API phase lands, upload a new bundle with a distinct name rather than overwriting history.
+
+### Code review instructions
+
+- Verify the updated guide's CLI section and the latest uploaded file name.
+
+### Technical details
+
+Upload command:
+
+```bash
+remarquee upload bundle \
+  design-doc/01-mvp-ocr-workflow-implementation-guide.md \
+  reference/01-diary.md \
+  --name "OCR MVP 001 Workflow Guide Operator CLI" \
+  --remote-dir "/ai/2026/05/24/OCR-MVP-001" \
+  --toc-depth 2 \
+  --non-interactive
+```

@@ -93,3 +93,13 @@ Added first-class OCR MVP operator subcommands for status, page listing, retry, 
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/OCR-MVP-001--implement-simple-mvp-ocr-workflow-with-new-workflow-api/reference/01-diary.md — Diary updated with operator CLI phase
 - /home/manuel/workspaces/2026-05-20/book-ocr/scraper/cmd/ocr-mvp/main.go — Operator subcommands
 
+
+## 2026-05-24
+
+Uploaded refreshed OCR MVP guide with operator CLI documentation to reMarkable as 'OCR MVP 001 Workflow Guide Operator CLI.pdf'.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/OCR-MVP-001--implement-simple-mvp-ocr-workflow-with-new-workflow-api/design-doc/01-mvp-ocr-workflow-implementation-guide.md — Uploaded as part of refreshed operator CLI bundle
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/OCR-MVP-001--implement-simple-mvp-ocr-workflow-with-new-workflow-api/reference/01-diary.md — Recorded operator CLI upload evidence
+
