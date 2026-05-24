@@ -15,14 +15,21 @@ RelatedFiles:
       Note: Primary implementation guide written in this ticket
     - Path: pinocchio/pkg/cmds/profilebootstrap/engine_settings.go
       Note: Evidence inspected for profile-backed Geppetto engine construction
+    - Path: scraper/pkg/workflow/projection_store.go
+      Note: Lint cleanup recorded in diary
     - Path: scraper/pkg/workflow/runtime.go
       Note: Evidence inspected while writing diary and design
+    - Path: scraper/pkg/workflows/ocrmvp/package.go
+      Note: Phase 1 implementation evidence
+    - Path: scraper/pkg/workflows/ocrmvp/package_test.go
+      Note: Phase 1 validation evidence
 ExternalSources: []
 Summary: Chronological diary for OCR-MVP-001 ticket creation and implementation-guide authoring.
 LastUpdated: 2026-05-24T20:58:00-04:00
 WhatFor: Record what was investigated, written, constrained, and delivered for OCR-MVP-001.
 WhenToUse: Read before implementing or extending the MVP OCR workflow.
 ---
+
 
 
 # Diary
@@ -289,4 +296,129 @@ remarquee upload bundle \
   --remote-dir "/ai/2026/05/24/OCR-MVP-001" \
   --toc-depth 2 \
   --non-interactive
+```
+
+## Step 4: Implement Phase 1 fake-client OCR workflow package
+
+I started working the new detailed task list task-by-task and implemented the first executable MVP slice in `scraper/pkg/workflows/ocrmvp`. This phase deliberately uses an injectable/fake OCR client instead of live Geppetto calls, so it validates the workflow runtime shape before adding provider/profile complexity.
+
+The package now registers an `ocr-mvp` workflow package plus three executors: `discover-pages`, `ocr-page`, and `assemble-markdown`. The integration test creates fake page images, runs a real workflow runtime with SQLite store, file artifact store, and SQLite projection store, and verifies page projections, external artifact refs, and final ordered markdown assembly.
+
+### Prompt Context
+
+**User prompt (verbatim):** "add detailed phases + tasks to the ticket. Work on them task byt ask, commit at appropriate intervas, keep a diary"
+
+**Assistant interpretation:** Expand OCR-MVP-001 with concrete implementation phases/tasks, then begin implementing them one by one with commits, validation, and diary updates.
+
+**Inferred user intent:** The user wants execution to start now, not only more planning, while preserving ticket traceability.
+
+**Commit (code):** `f827d63671369d3ea762e11e8c9bab61f0266dbf` — "Add OCR MVP workflow skeleton"
+
+### What I did
+
+- Added detailed implementation tasks to `OCR-MVP-001`:
+  - Phase 1a package skeleton/types/projection/registration;
+  - Phase 1b fake-client executors;
+  - Phase 1c integration tests;
+  - Phase 2 Geppetto + Pinocchio profile bootstrap;
+  - Phase 3 CLI/operator docs;
+  - final validation/docs.
+- Created `scraper/pkg/workflows/ocrmvp` with:
+  - `types.go` for run/page/result/client contracts;
+  - `prompt.go` for prompt versioning and prompt rendering;
+  - `client.go` for the dry-run OCR client;
+  - `projection.go` for pages/runs projection schema and update helpers;
+  - `package.go` for `Register` and `Package` construction;
+  - `discover.go` for page discovery and dynamic step emission;
+  - `executors.go` for page OCR and markdown assembly executors;
+  - `package_test.go` for fake-client workflow integration tests.
+- Fixed lint in `scraper/pkg/workflow/projection_store.go` by checking `rows.Close` in a deferred closure.
+- Ran focused tests:
+  - `go test ./pkg/workflows/ocrmvp -count=1`
+  - `go test ./pkg/workflows/ocrmvp ./pkg/workflow -count=1`
+- Committed code. The scraper pre-commit hook also ran full validation:
+  - `go test ./... -count=1`
+  - web unit tests through `pnpm test:unit`
+  - `golangci-lint`
+  - `gosec`
+  - `govulncheck`
+
+### Why
+
+- The fake-client path proves the workflow API can express the OCR shape before adding Geppetto/provider dependencies.
+- It exercises the newly added runtime features: dynamic child steps, dependency loading, external artifacts, projections, and result inspection.
+- It creates a stable test harness that Phase 2 can reuse when adding the live Geppetto OCR client.
+
+### What worked
+
+- The runtime successfully processed `discover-pages`, emitted three `ocr-page-*` steps, waited for them, then ran `assemble-markdown`.
+- `StepContext.StoreArtifact` produced external artifact refs for page markdown and final book markdown.
+- `SQLiteProjectionStore` recorded page status/profile/registry and run summary rows.
+- The integration test verified final assembled markdown ordering.
+- The scraper pre-commit validation passed after fixes.
+
+### What didn't work
+
+- The first commit attempt failed during lint:
+  - `pkg/workflow/projection_store.go:104:18: Error return value of rows.Close is not checked (errcheck)`
+  - `pkg/workflows/ocrmvp/executors.go:88:4: QF1012: Use fmt.Fprintf(...) instead of WriteString(fmt.Sprintf(...))`
+  - `pkg/workflows/ocrmvp/executors.go:119:6: func requiredDependencyIDs is unused`
+- I fixed these by:
+  - changing `defer rows.Close()` to `defer func() { _ = rows.Close() }()`;
+  - using `fmt.Fprintf(&out, ...)`;
+  - removing the unused helper and import.
+
+### What I learned
+
+- The workflow runtime can process emitted child steps and a dependency-gated assemble step in a compact integration test.
+- The existing pre-commit hook is stricter than the focused package tests, so commits are a useful validation boundary.
+- Projection close handling needed one lint cleanup from the previous projection-store implementation.
+
+### What was tricky to build
+
+- The assemble step needs page OCR outputs in order. The simplest Phase 1 approach stores page markdown in `PageOCRResult.Markdown` as well as in external artifacts, then the assemble step reads dependency result data and sorts by `PageNumber`. This avoids adding artifact-read APIs before the workflow shape is proven.
+- Dynamic emission requires stable IDs. I used `ocr-page-%03d` step IDs so operator retry can target a page predictably.
+
+### What warrants a second pair of eyes
+
+- Whether duplicating page markdown in result data is acceptable for MVP tests. The guide already calls this out as a compromise; a later phase can assemble by opening external artifacts instead.
+- Whether `scraper/pkg/workflows/ocrmvp` is the final package location or whether it should move under an app-specific module after validation.
+- Whether `Register(rt, cfg)` is the right public registration API before Phase 2 introduces Geppetto client configuration.
+
+### What should be done in the future
+
+- Phase 2a: implement the Geppetto-backed OCR client using Pinocchio profile bootstrap.
+- Phase 2b: add profile-selection wiring tests and opt-in live OCR smoke test.
+- Phase 3a: add the CLI/example runner.
+
+### Code review instructions
+
+- Start with:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrmvp/package.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrmvp/discover.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrmvp/executors.go`
+- Then review contracts and projections:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrmvp/types.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrmvp/projection.go`
+- Validate with:
+  - `cd /home/manuel/workspaces/2026-05-20/book-ocr/scraper && go test ./pkg/workflows/ocrmvp ./pkg/workflow -count=1`
+  - or full pre-commit-equivalent validation via commit hook / `go test ./... -count=1`.
+
+### Technical details
+
+New workflow step graph:
+
+```text
+discover-pages
+  ├─ ocr-page-001
+  ├─ ocr-page-002
+  ├─ ocr-page-003
+  └─ assemble-markdown (depends on every ocr-page step)
+```
+
+New package registration API:
+
+```go
+err := ocrmvp.Register(rt, ocrmvp.Config{Client: fakeOrLiveClient})
+run, err := rt.StartRun(ctx, ocrmvp.PackageName, ocrmvp.RunInput{BookID: "book", ImageDir: dir})
 ```

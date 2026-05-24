@@ -28,15 +28,30 @@ RelatedFiles:
     - Path: scraper/pkg/workflow/package.go
       Note: Workflow package and RunBuilder API for initial OCR step graph
     - Path: scraper/pkg/workflow/projection_store.go
-      Note: SQLite projection store for OCR page status/read model
+      Note: |-
+        SQLite projection store for OCR page status/read model
+        Projection store lint fix from Phase 1 validation
     - Path: scraper/pkg/workflow/runtime.go
       Note: Runtime configuration
+    - Path: scraper/pkg/workflows/ocrmvp/discover.go
+      Note: Page discovery and dynamic OCR/assemble step emission
+    - Path: scraper/pkg/workflows/ocrmvp/executors.go
+      Note: OCR page and assemble executors using artifacts/projections
+    - Path: scraper/pkg/workflows/ocrmvp/package.go
+      Note: OCR MVP workflow package registration and entrypoint
+    - Path: scraper/pkg/workflows/ocrmvp/package_test.go
+      Note: Fake-client integration test for the workflow MVP
+    - Path: scraper/pkg/workflows/ocrmvp/projection.go
+      Note: OCR pages/runs projection schema and update helpers
+    - Path: scraper/pkg/workflows/ocrmvp/types.go
+      Note: Run/page/result/client contracts for the MVP workflow
 ExternalSources: []
 Summary: Design and intern-oriented implementation guide for a simple OCR workflow package built on scraper/pkg/workflow, using Geppetto for multimodal OCR and Pinocchio's profile registry defaults.
 LastUpdated: 2026-05-24T20:58:00-04:00
 WhatFor: Use this before implementing the OCR MVP workflow so the intern understands scraper workflow concepts, Geppetto OCR integration, profile registry resolution, artifacts, projections, and validation.
 WhenToUse: Read when implementing, reviewing, or extending OCR-MVP-001.
 ---
+
 
 
 # MVP OCR Workflow Implementation Guide

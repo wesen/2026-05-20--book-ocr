@@ -27,3 +27,15 @@ Validated OCR-MVP-001 docs, added missing topic vocabulary entries, and uploaded
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/OCR-MVP-001--implement-simple-mvp-ocr-workflow-with-new-workflow-api/reference/01-diary.md — Updated with validation and upload evidence
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/vocabulary.yaml — Added workflow and implementation-guide topic slugs
 
+
+## 2026-05-24
+
+Implemented Phase 1 OCR MVP workflow skeleton and fake-client integration tests in scraper (commit f827d63671369d3ea762e11e8c9bab61f0266dbf); added detailed Phase 1-3 task breakdown.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/OCR-MVP-001--implement-simple-mvp-ocr-workflow-with-new-workflow-api/reference/01-diary.md — Diary updated with Phase 1 implementation and validation details
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrmvp/executors.go — Discover/OCR/assemble workflow behavior
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrmvp/package.go — OCR MVP registration and package entrypoint
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrmvp/package_test.go — Integration test with fake OCR
+
