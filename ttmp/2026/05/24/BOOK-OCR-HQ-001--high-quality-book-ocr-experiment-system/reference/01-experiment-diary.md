@@ -9,6 +9,8 @@ Owners: []
 RelatedFiles:
     - Path: ../../../../../../../../../../code/wesen/go-go-golems/go-go-parc/Projects/2026/05/24/ARTICLE - Building Book OCR on Scraper Job System - Workflow Runtime Deep Dive.md
       Note: Obsidian project report created before experiment ticket
+    - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/analysis/01-final-ocr-quality-report.md
+      Note: Final selected artifact and QA rationale
     - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/experiments/001-baseline-single-page/logs/01-run-clean-registry-summary.md
       Note: Compact summary of successful 30-page provider run
     - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/experiments/001-baseline-single-page/manifest.yaml
@@ -45,6 +47,7 @@ LastUpdated: 0001-01-01T00:00:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -690,4 +693,80 @@ python3 scripts/03-qa-ocr-markdown.py \
   experiments/008-deterministic-continuity-cleanup/outputs/02-final-quality-v4-mini-pages-001-030-normalized.md \
   --out experiments/008-deterministic-continuity-cleanup/outputs/04-qa-after-cleanup.md \
   --expected-pages 30
+```
+
+## Step 7: Write the final quality report and close the experiment loop
+
+With the raw v4 mini output and deterministic cleanup pass in place, I wrote a final quality report that explains which artifact to use, why that artifact was selected, what validation was performed, and what limitations remain. This turns the experiment directory from a pile of runs into a reviewable conclusion.
+
+The report recommends Experiment 008's normalized markdown as the best current review artifact, while preserving Experiment 007's raw model output as provenance. It also documents why the next quality jump should be a real continuity workflow rather than another single-page prompt tweak.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 4)
+
+**Assistant interpretation:** Continue from implementation and experiment execution into final documentation and handoff.
+
+**Inferred user intent:** Leave a complete, reviewable package with a clear selected output and next-step rationale.
+
+### What I did
+
+- Created `analysis/01-final-ocr-quality-report.md` with docmgr.
+- Wrote the final OCR quality report.
+- Summarized the experiment path from baseline through v2, v3, v4, mini model selection, and deterministic cleanup.
+- Identified the selected review artifact and raw provenance artifact.
+- Recorded QA results, vision validation, limitations, and future work.
+
+### Why
+
+- The experiments needed a final decision document, not just individual notes.
+- Reviewers need to know which file to read and which file preserves raw model provenance.
+- Future work should start from the evidence gathered here instead of rediscovering the same list-page and lexicon issues.
+
+### What worked
+
+- The final report clearly separates:
+  - raw model output: Experiment 007;
+  - normalized review output: Experiment 008;
+  - QA reports;
+  - cleanup diff;
+  - next-step recommendations.
+- The final report is stored as a docmgr analysis document and can be uploaded or shared as the handoff document.
+
+### What didn't work
+
+- N/A. This step was documentation-only and did not require new code or OCR runs.
+
+### What I learned
+
+- A quality experiment is not complete until it has a selected artifact and a rationale for not continuing to tweak the current approach.
+- In this case, more single-page prompt tuning is less valuable than adding a continuity workflow.
+
+### What was tricky to build
+
+- The report had to avoid overstating the QA results. Automated checks pass, but they do not prove word-perfect transcription.
+- The selected artifact had to be framed carefully: Experiment 008 is best for review; Experiment 007 is best for raw provenance.
+
+### What warrants a second pair of eyes
+
+- Confirm that Experiment 008's normalized dot-leader style is preferred for downstream reading.
+- Review whether the final report should be uploaded to reMarkable or copied into Obsidian.
+
+### What should be done in the future
+
+- Start a follow-up ticket for a true continuity/cleanup workflow and targeted re-OCR loop.
+
+### Code review instructions
+
+- Read the final report:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/analysis/01-final-ocr-quality-report.md`
+- Then inspect the selected artifact:
+  - `experiments/008-deterministic-continuity-cleanup/outputs/02-final-quality-v4-mini-pages-001-030-normalized.md`
+
+### Technical details
+
+The final report was created with:
+
+```bash
+docmgr doc add --ticket BOOK-OCR-HQ-001 --doc-type analysis --title "Final OCR Quality Report"
 ```
