@@ -72,3 +72,13 @@ Implemented Phase 3 OCR MVP CLI and added operator smoke-flow documentation (com
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/OCR-MVP-001--implement-simple-mvp-ocr-workflow-with-new-workflow-api/reference/01-diary.md — Diary updated with Phase 3 CLI details
 - /home/manuel/workspaces/2026-05-20/book-ocr/scraper/cmd/ocr-mvp/main.go — CLI implementation
 
+
+## 2026-05-24
+
+Finalized OCR-MVP-001 implementation pass: all tasks complete, docs validated, and updated Phase 3 guide uploaded to reMarkable at /ai/2026/05/24/OCR-MVP-001.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/OCR-MVP-001--implement-simple-mvp-ocr-workflow-with-new-workflow-api/design-doc/01-mvp-ocr-workflow-implementation-guide.md — Updated implementation guide and runbook uploaded to reMarkable
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/OCR-MVP-001--implement-simple-mvp-ocr-workflow-with-new-workflow-api/reference/01-diary.md — Final diary entry with validation and upload evidence
+

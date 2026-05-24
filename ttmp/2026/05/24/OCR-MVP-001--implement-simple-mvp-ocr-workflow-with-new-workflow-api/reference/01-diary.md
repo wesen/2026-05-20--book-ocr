@@ -723,3 +723,90 @@ printf 'fake1' > "$tmp/pages/page_001.png"
 printf 'fake2' > "$tmp/pages/page_002.png"
 go run ./cmd/ocr-mvp --book-id smoke --image-dir "$tmp/pages" --work-dir "$tmp/work" --dry-run --max-workers 2
 ```
+
+## Step 8: Finalize ticket validation and upload updated guide
+
+I finalized the current OCR MVP implementation pass after completing Phase 1, Phase 2, and Phase 3 tasks. The code commits passed the scraper pre-commit validation, the ticket passes `docmgr doctor`, and I uploaded an updated guide bundle to reMarkable that includes the new CLI/operator runbook and the expanded diary.
+
+At this point the ticket has an implemented MVP workflow package, a Geppetto-backed OCR client, profile-selection tests, a dry-run/live CLI, updated docs, and a complete task checklist. The remaining work is now follow-up hardening rather than the original MVP slice.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 4)
+
+**Assistant interpretation:** Finish the task-by-task implementation pass by validating docs/code state, updating delivery artifacts, and closing the ticket task list.
+
+**Inferred user intent:** The user wants a coherent handoff point with committed code, committed docs, and reMarkable-readable documentation.
+
+### What I did
+
+- Verified code validation through commit hooks on the implementation commits:
+  - `f827d63671369d3ea762e11e8c9bab61f0266dbf`
+  - `0f3b04556260f1d07f13032b89bbca3df2a66b5f`
+  - `6a21bc3cbeaf420b235cec3b6ebdb36204188199`
+  - `8a067f98c7e556ea1c9148bbc2838a0ef23a236a`
+- Reran doc validation through `docmgr doctor` during each doc update.
+- Uploaded updated documentation bundle to reMarkable:
+  - `OCR MVP 001 Workflow Guide Phase 3.pdf`
+  - `/ai/2026/05/24/OCR-MVP-001`
+
+### Why
+
+- The guide changed after the first upload, especially with the CLI/operator runbook and implementation diary entries.
+- A second uploaded bundle preserves the original guide and provides an updated Phase 3 version without overwriting existing reMarkable documents.
+
+### What worked
+
+- reMarkable upload succeeded:
+  - `OK: uploaded OCR MVP 001 Workflow Guide Phase 3.pdf -> /ai/2026/05/24/OCR-MVP-001`
+- `docmgr doctor --ticket OCR-MVP-001 --stale-after 30` passed before this final diary entry.
+
+### What didn't work
+
+- N/A for finalization. The implementation issues were recorded in earlier steps.
+
+### What I learned
+
+- The MVP is now a usable end-to-end slice: fake OCR for deterministic smoke tests, Geppetto OCR for live runs, Pinocchio profile defaults for model selection, artifacts/projections for durable outputs, and a CLI for exercising the workflow.
+
+### What was tricky to build
+
+- The main complexity was dependency and validation management: importing Pinocchio/Geppetto widened the scraper dependency graph, and the repository pre-commit hook caught lint issues that focused tests did not.
+
+### What warrants a second pair of eyes
+
+- Review the `go.mod`/`go.sum` dependency changes from importing Pinocchio.
+- Review whether `cmd/ocr-mvp` should remain an example command or be promoted into the main scraper CLI.
+- Review whether page markdown should continue to be duplicated in result JSON or be read from external artifacts during assembly.
+
+### What should be done in the future
+
+- Add first-class retry/cancel/list operator CLI commands.
+- Add artifact dereferencing support for external artifact refs in engineview/API.
+- Add projection migrations instead of executor-time `CREATE TABLE IF NOT EXISTS`.
+- Run one live page against a real Pinocchio profile and tune the prompt if needed.
+
+### Code review instructions
+
+- Code commits to review:
+  - `f827d63671369d3ea762e11e8c9bab61f0266dbf` — OCR MVP workflow skeleton
+  - `0f3b04556260f1d07f13032b89bbca3df2a66b5f` — Geppetto OCR client
+  - `6a21bc3cbeaf420b235cec3b6ebdb36204188199` — profile-selection/live-guard tests
+  - `8a067f98c7e556ea1c9148bbc2838a0ef23a236a` — OCR MVP CLI
+- Docs to review:
+  - `design-doc/01-mvp-ocr-workflow-implementation-guide.md`
+  - `reference/01-diary.md`
+
+### Technical details
+
+Updated upload command:
+
+```bash
+remarquee upload bundle \
+  design-doc/01-mvp-ocr-workflow-implementation-guide.md \
+  reference/01-diary.md \
+  --name "OCR MVP 001 Workflow Guide Phase 3" \
+  --remote-dir "/ai/2026/05/24/OCR-MVP-001" \
+  --toc-depth 2 \
+  --non-interactive
+```
