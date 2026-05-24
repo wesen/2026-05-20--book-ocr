@@ -15,6 +15,10 @@ topics:
       description: Workflow runtime and durable step orchestration
     - slug: implementation-guide
       description: Implementation guides and onboarding-oriented technical plans
+    - slug: book-processing
+      description: Book processing, OCR, transcription, and document conversion workflows
+    - slug: experiments
+      description: Experiment tracking, evaluation, and iterative research workflows
 docTypes:
     - slug: design-doc
       description: Structured rationale and architecture notes

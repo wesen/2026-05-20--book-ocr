@@ -1,0 +1,28 @@
+experiment_id: 001-baseline-single-page
+book_id: presentation-based-uis-hq-001-baseline
+source_pages: /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages
+page_range: 1-30
+profile_preference:
+  - gpt-5-mini-low
+  - gpt-5-nano-low
+strategy:
+  kind: single_page_baseline
+  context_window: none
+  chunk_style_pass: none
+  figure_extraction: inline_marker_only
+outputs:
+  work_dir: /tmp/book-ocr-hq-001/001-baseline-single-page
+  final_markdown: outputs/final.md
+  projection_pages: outputs/pages.tsv
+  run_log: logs/run.log
+quality_checks:
+  - missing_pages
+  - suspicious_short_pages
+  - duplicate_running_headers
+  - page_number_leakage
+  - title_page_as_image_description
+  - blank_page_policy
+  - figure_marker_quality
+notes: |
+  Baseline establishes the current OCR MVP behavior on the first 30 pages.
+  It should not try to be clever. Later experiments compare against it.
