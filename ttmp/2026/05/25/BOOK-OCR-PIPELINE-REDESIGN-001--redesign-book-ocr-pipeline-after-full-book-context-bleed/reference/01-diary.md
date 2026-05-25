@@ -714,3 +714,71 @@ internal/ocrpipeline/structured_ocr.go
 internal/ocrpipeline/structured_ocr_test.go
 cmd/book-ocr/main.go structured-page wiring
 ```
+
+## Step 8: Refresh the reMarkable upload for the structured OCR design guide
+
+I uploaded the updated structured OCR design guide to reMarkable after adding the restart-ready implementation phases. This refresh makes the reMarkable copy match the current ticket plan for tomorrow's work.
+
+### Prompt Context
+
+**User prompt (verbatim):** "upload design guide to remarkable."
+
+**Assistant interpretation:** Upload the current structured OCR redesign guide PDF to the reMarkable destination.
+
+**Inferred user intent:** The user wants the latest implementation plan available on the reMarkable for offline review and tomorrow's restart.
+
+**Commit (code):** N/A — upload/documentation bookkeeping only.
+
+### What I did
+
+- Uploaded the guide with `remarquee upload bundle` and `--force` to replace the previous copy.
+- Destination:
+  - `/ai/2026/05/25/BOOK-OCR-PIPELINE-REDESIGN-001/BOOK OCR PIPELINE REDESIGN 001 Guide.pdf`
+
+### Why
+
+- The guide changed after the previous upload; it now includes the detailed fresh-start implementation plan and updated tasks.
+
+### What worked
+
+- Upload succeeded with:
+  - `OK: uploaded BOOK OCR PIPELINE REDESIGN 001 Guide.pdf -> /ai/2026/05/25/BOOK-OCR-PIPELINE-REDESIGN-001`
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- The refreshed guide is now the canonical reMarkable artifact for tomorrow's structured OCR restart.
+
+### What was tricky to build
+
+- N/A
+
+### What warrants a second pair of eyes
+
+- Confirm on-device that the PDF includes the `Fresh-Start Implementation Plan for Tomorrow` section if reviewing from reMarkable.
+
+### What should be done in the future
+
+- Re-upload after Phase 1 lands if the design guide changes materially again.
+
+### Code review instructions
+
+- Review the uploaded source guide:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-PIPELINE-REDESIGN-001--redesign-book-ocr-pipeline-after-full-book-context-bleed/design-doc/01-structured-book-ocr-pipeline-redesign-and-implementation-guide.md`
+
+### Technical details
+
+Upload command:
+
+```bash
+remarquee upload bundle \
+  ttmp/2026/05/25/BOOK-OCR-PIPELINE-REDESIGN-001--redesign-book-ocr-pipeline-after-full-book-context-bleed/design-doc/01-structured-book-ocr-pipeline-redesign-and-implementation-guide.md \
+  --name "BOOK OCR PIPELINE REDESIGN 001 Guide" \
+  --remote-dir "/ai/2026/05/25/BOOK-OCR-PIPELINE-REDESIGN-001" \
+  --toc-depth 2 \
+  --force \
+  --non-interactive
+```
