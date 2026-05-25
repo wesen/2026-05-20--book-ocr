@@ -46,3 +46,39 @@ func TestRunnerDryRunPersistsFilesSQLiteAndTurns(t *testing.T) {
 	require.NoError(t, turnsDB.QueryRow(`select count(*) from turns`).Scan(&turnCount))
 	require.Equal(t, 2, turnCount)
 }
+
+func TestRescoreOutputDirRepairsSavedResponseAndUpdatesSQLite(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	imageDir := filepath.Join(dir, "pages")
+	require.NoError(t, os.MkdirAll(imageDir, 0o755))
+	for _, page := range []int{12, 13, 14} {
+		require.NoError(t, os.WriteFile(filepath.Join(imageDir, "page_"+formatPage(page)+".png"), []byte("fake image"), 0o644))
+	}
+	outDir := filepath.Join(dir, "out")
+	runner, closeFn, err := NewRunner(ctx, Config{BookID: "report-794", ImageDir: imageDir, TargetPages: []int{13}, Scenarios: []string{ScenarioTargetOnly}, OutDir: outDir, DryRun: true, RunID: "rescore-test"})
+	require.NoError(t, err)
+	_, err = runner.Run(ctx)
+	require.NoError(t, err)
+	closeFn()
+
+	variant := `{"page_number":13,"text":"Figure 1-1: A Rudimentary User Interface\nApplication Data Base\nobservables\nqueries"}`
+	require.NoError(t, os.WriteFile(filepath.Join(outDir, "trials", "trial-0001", "response.txt"), []byte(variant), 0o644))
+
+	result, err := RescoreOutputDir(ctx, RescoreConfig{OutDir: outDir, Write: true})
+	require.NoError(t, err)
+	require.Len(t, result.Trials, 1)
+	require.True(t, result.Trials[0].Metrics.JSONParseOK)
+	require.True(t, result.Trials[0].Metrics.SchemaRepaired)
+	require.Equal(t, "schema-repair", result.Trials[0].Metrics.ParseStrategy)
+	require.Equal(t, 1.0, result.Trials[0].Metrics.TargetOnlyScore)
+
+	resultsDB, err := sql.Open("sqlite3", filepath.Join(outDir, "results.sqlite"))
+	require.NoError(t, err)
+	defer resultsDB.Close()
+	var schemaRepaired int
+	var parseStrategy string
+	require.NoError(t, resultsDB.QueryRow(`select schema_repaired, parse_strategy from trial_metrics where trial_id='trial-0001'`).Scan(&schemaRepaired, &parseStrategy))
+	require.Equal(t, 1, schemaRepaired)
+	require.Equal(t, "schema-repair", parseStrategy)
+}

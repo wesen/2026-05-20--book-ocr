@@ -21,6 +21,10 @@ type BenchmarkCommand struct {
 	*cmds.CommandDescription
 }
 
+type RescoreCommand struct {
+	*cmds.CommandDescription
+}
+
 type BenchmarkSettings struct {
 	BookID            string   `glazed:"book-id"`
 	ImageDir          string   `glazed:"image-dir"`
@@ -36,6 +40,12 @@ type BenchmarkSettings struct {
 	DryRun            bool     `glazed:"dry-run"`
 	MaxTrials         int      `glazed:"max-trials"`
 	RunID             string   `glazed:"run-id"`
+}
+
+type RescoreSettings struct {
+	OutDir     string `glazed:"out-dir"`
+	SQLitePath string `glazed:"sqlite"`
+	Write      bool   `glazed:"write"`
 }
 
 func NewBenchmarkCommand() (*BenchmarkCommand, error) {
@@ -77,6 +87,38 @@ Examples:
 		cmds.WithSections(glazedSection, commandSettingsSection),
 	)
 	return &BenchmarkCommand{CommandDescription: desc}, nil
+}
+
+func NewRescoreCommand() (*RescoreCommand, error) {
+	glazedSection, err := settings.NewGlazedSchema()
+	if err != nil {
+		return nil, err
+	}
+	commandSettingsSection, err := cli.NewCommandSettingsSection()
+	if err != nil {
+		return nil, err
+	}
+	desc := cmds.NewCommandDescription(
+		"rescore",
+		cmds.WithShort("Re-score an existing VLM separation benchmark output directory"),
+		cmds.WithLong(`Re-score saved benchmark trial responses without calling the provider.
+
+The command reads <out-dir>/trials/trial-*/trial.json and response.txt, reparses each response
+with the current JSON sanitizer/schema-repair logic, recomputes metrics, and optionally rewrites
+trial artifacts, summary files, and SQLite metric rows.
+
+Examples:
+  book-ocr vlm-separation rescore --out-dir /tmp/book-ocr-vlm-separation-live-001 --output table
+  book-ocr vlm-separation rescore --out-dir /tmp/book-ocr-vlm-separation-live-001 --write=false --output json
+`),
+		cmds.WithFlags(
+			fields.New("out-dir", fields.TypeString, fields.WithHelp("Existing benchmark output directory")),
+			fields.New("sqlite", fields.TypeString, fields.WithDefault(""), fields.WithHelp("Benchmark result SQLite path; defaults to <out-dir>/results.sqlite")),
+			fields.New("write", fields.TypeBool, fields.WithDefault(true), fields.WithHelp("Rewrite trial artifacts, summary files, and SQLite metric rows")),
+		),
+		cmds.WithSections(glazedSection, commandSettingsSection),
+	)
+	return &RescoreCommand{CommandDescription: desc}, nil
 }
 
 func (c *BenchmarkCommand) RunIntoGlazeProcessor(ctx context.Context, vals *values.Values, gp middlewares.Processor) error {
@@ -121,12 +163,49 @@ func (c *BenchmarkCommand) RunIntoGlazeProcessor(ctx context.Context, vals *valu
 			types.MRP("target_page", trial.TargetPage),
 			types.MRP("status", trial.Status),
 			types.MRP("json_parse_ok", trial.Metrics.JSONParseOK),
+			types.MRP("json_sanitized", trial.Metrics.JSONSanitized),
+			types.MRP("schema_repaired", trial.Metrics.SchemaRepaired),
+			types.MRP("parse_strategy", trial.Metrics.ParseStrategy),
 			types.MRP("suspected_bleed", trial.Metrics.SuspectedBleed),
 			types.MRP("target_only_score", trial.Metrics.TargetOnlyScore),
 			types.MRP("forbidden_phrase_hits", trial.Metrics.ForbiddenPhraseHits),
 			types.MRP("turn_session_id", trial.TurnSessionID),
 			types.MRP("turn_id", trial.TurnID),
 			types.MRP("out_dir", result.Manifest.OutDir),
+		)
+		if err := gp.AddRow(ctx, row); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *RescoreCommand) RunIntoGlazeProcessor(ctx context.Context, vals *values.Values, gp middlewares.Processor) error {
+	s := &RescoreSettings{}
+	if err := vals.DecodeSectionInto(schema.DefaultSlug, s); err != nil {
+		return err
+	}
+	result, err := RescoreOutputDir(ctx, RescoreConfig{OutDir: s.OutDir, SQLitePath: s.SQLitePath, Write: s.Write})
+	if err != nil {
+		return err
+	}
+	for _, trial := range result.Trials {
+		row := types.NewRow(
+			types.MRP("run_id", trial.RunID),
+			types.MRP("trial_id", trial.ID),
+			types.MRP("scenario", trial.Scenario),
+			types.MRP("target_page", trial.TargetPage),
+			types.MRP("status", trial.Status),
+			types.MRP("json_parse_ok", trial.Metrics.JSONParseOK),
+			types.MRP("json_sanitized", trial.Metrics.JSONSanitized),
+			types.MRP("schema_repaired", trial.Metrics.SchemaRepaired),
+			types.MRP("parse_strategy", trial.Metrics.ParseStrategy),
+			types.MRP("suspected_bleed", trial.Metrics.SuspectedBleed),
+			types.MRP("target_only_score", trial.Metrics.TargetOnlyScore),
+			types.MRP("expected_phrase_hits", trial.Metrics.ExpectedPhraseHits),
+			types.MRP("expected_phrase_total", trial.Metrics.ExpectedPhraseTotal),
+			types.MRP("forbidden_phrase_hits", trial.Metrics.ForbiddenPhraseHits),
+			types.MRP("out_dir", s.OutDir),
 		)
 		if err := gp.AddRow(ctx, row); err != nil {
 			return err
@@ -150,18 +229,30 @@ func NewRootCommand() (*cobra.Command, error) {
 	if err != nil {
 		return nil, err
 	}
-	cobraBenchmark, err := cli.BuildCobraCommandFromCommand(benchmark,
+	cobraBenchmark, err := buildGlazedCobraCommand(benchmark)
+	if err != nil {
+		return nil, err
+	}
+	rescore, err := NewRescoreCommand()
+	if err != nil {
+		return nil, err
+	}
+	cobraRescore, err := buildGlazedCobraCommand(rescore)
+	if err != nil {
+		return nil, err
+	}
+	root.AddCommand(cobraBenchmark, cobraRescore)
+	return root, nil
+}
+
+func buildGlazedCobraCommand(command cmds.Command) (*cobra.Command, error) {
+	return cli.BuildCobraCommandFromCommand(command,
 		cli.WithParserConfig(cli.CobraParserConfig{
 			AppName:           "book-ocr",
 			ShortHelpSections: []string{schema.DefaultSlug},
 			MiddlewaresFunc:   cli.CobraCommandDefaultMiddlewares,
 		}),
 	)
-	if err != nil {
-		return nil, err
-	}
-	root.AddCommand(cobraBenchmark)
-	return root, nil
 }
 
 func ExecuteRoot(ctx context.Context, args []string) error {
