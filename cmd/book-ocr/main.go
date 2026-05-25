@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -66,6 +67,8 @@ func run(args []string) error {
 		return runQualityPass(subArgs)
 	case "structured-page":
 		return runStructuredPage(subArgs)
+	case "structured-run":
+		return runStructuredRun(subArgs)
 	case "vlm-separation":
 		return vlmseparation.ExecuteRoot(context.Background(), subArgs)
 	case "help", "-h", "--help":
@@ -88,6 +91,7 @@ func printUsage() {
   ocr-mvp pages --work-dir DIR --book-id BOOK_ID [--status STATUS]
   ocr-mvp quality-pass --markdown PATH --output-dir DIR [--expected-pages N]
   ocr-mvp structured-page --book-id BOOK --page N --image PATH --work-dir DIR --dry-run
+  ocr-mvp structured-run --book-id BOOK --image-dir DIR --start-page N --end-page M --work-dir DIR --dry-run
   ocr-mvp vlm-separation benchmark [flags]
 
 Run flags include --book-id, --image-dir, --work-dir, --profile, --profile-registries, --prompt-version, --context-window, --log-level, --dry-run, and --max-workers.
@@ -261,6 +265,98 @@ func runStructuredPage(args []string) error {
 	fmt.Printf("structured json: %s\n", result.StructuredJSON)
 	fmt.Printf("rendered markdown: %s\n", result.RenderedMD)
 	fmt.Printf("validation: %s\n", result.ValidationJSON)
+	return nil
+}
+
+type structuredRunReport struct {
+	BookID        string                                `json:"book_id"`
+	PageCount     int                                   `json:"page_count"`
+	AssembledPath string                                `json:"assembled_path"`
+	Pages         []ocrpipeline.StructuredPageRunResult `json:"pages"`
+	Warnings      []string                              `json:"warnings,omitempty"`
+}
+
+func runStructuredRun(args []string) error {
+	fs := flag.NewFlagSet("structured-run", flag.ContinueOnError)
+	var registries registryFlags
+	bookID := fs.String("book-id", "", "Book identifier for structured OCR metadata")
+	imageDir := fs.String("image-dir", "", "Directory containing page images")
+	pageGlob := fs.String("page-glob", "page_*.png", "Glob used inside image-dir to discover page images")
+	startPage := fs.Int("start-page", 0, "Optional first page number to process")
+	endPage := fs.Int("end-page", 0, "Optional last page number to process")
+	workDir := fs.String("work-dir", ".structured-ocr-run", "Directory for structured OCR run artifacts")
+	runID := fs.String("run-id", "structured-run", "Run identifier used in turn conv_id")
+	profile := fs.String("profile", "", "Optional Pinocchio profile slug for live structured OCR")
+	logLevel := fs.String("log-level", "info", "zerolog level: trace, debug, info, warn, error, disabled")
+	dryRun := fs.Bool("dry-run", true, "Use deterministic dry-run structured OCR")
+	fs.Var(&registries, "profile-registries", "Pinocchio profile registry source (repeatable or comma-separated)")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if err := configureLogLevel(*logLevel); err != nil {
+		return err
+	}
+	if strings.TrimSpace(*bookID) == "" {
+		return fmt.Errorf("--book-id is required")
+	}
+	if strings.TrimSpace(*imageDir) == "" {
+		return fmt.Errorf("--image-dir is required")
+	}
+	absImageDir, err := filepath.Abs(*imageDir)
+	if err != nil {
+		return err
+	}
+	absWorkDir, err := filepath.Abs(*workDir)
+	if err != nil {
+		return err
+	}
+	pages, err := ocrmvp.DiscoverPageImages(ocrmvp.RunInput{BookID: *bookID, ImageDir: absImageDir, PageGlob: *pageGlob, StartPage: *startPage, EndPage: *endPage})
+	if err != nil {
+		return err
+	}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	client := ocrpipeline.StructuredOCRClient(ocrpipeline.NewGeppettoStructuredOCRClient())
+	if *dryRun {
+		client = ocrpipeline.DryRunStructuredOCRClient{}
+	}
+	results := make([]ocrpipeline.StructuredPageRunResult, 0, len(pages))
+	var assembled strings.Builder
+	for _, page := range pages {
+		result, err := ocrpipeline.RunStructuredPage(ctx, ocrpipeline.StructuredOCRInput{BookID: *bookID, RunID: *runID, PageNumber: page.PageNumber, ImagePath: page.ImagePath, WorkDir: absWorkDir, Profile: *profile, ProfileRegistries: append([]string(nil), registries...), DryRun: *dryRun}, client)
+		if err != nil {
+			return fmt.Errorf("structured OCR page %03d: %w", page.PageNumber, err)
+		}
+		md, err := os.ReadFile(result.RenderedMD)
+		if err != nil {
+			return err
+		}
+		if assembled.Len() > 0 {
+			assembled.WriteString("\n")
+		}
+		assembled.Write(md)
+		results = append(results, result)
+		fmt.Printf("structured page %03d written to %s\n", result.PageNumber, result.PageDir)
+	}
+	if err := os.MkdirAll(absWorkDir, 0o755); err != nil {
+		return err
+	}
+	assembledPath := filepath.Join(absWorkDir, "assembled.md")
+	if err := os.WriteFile(assembledPath, []byte(assembled.String()), 0o644); err != nil {
+		return err
+	}
+	report := structuredRunReport{BookID: *bookID, PageCount: len(results), AssembledPath: assembledPath, Pages: results}
+	reportJSON, err := json.MarshalIndent(report, "", "  ")
+	if err != nil {
+		return err
+	}
+	reportPath := filepath.Join(absWorkDir, "validation-report.json")
+	if err := os.WriteFile(reportPath, append(reportJSON, '\n'), 0o644); err != nil {
+		return err
+	}
+	fmt.Printf("structured run pages: %d\n", len(results))
+	fmt.Printf("assembled markdown: %s\n", assembledPath)
+	fmt.Printf("validation report: %s\n", reportPath)
 	return nil
 }
 
