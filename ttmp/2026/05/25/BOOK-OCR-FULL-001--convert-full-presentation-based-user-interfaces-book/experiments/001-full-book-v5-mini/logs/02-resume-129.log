@@ -1,0 +1,4 @@
+resuming run ocr-mvp-2456c4ae-6728-4511-aecc-3de87eb335e2 in /tmp/book-ocr-full-report794-v5-mini/work
+status=failed processed=1 succeeded=0 failed=0 retried=0
+error: workflow finished with status failed
+exit status 1

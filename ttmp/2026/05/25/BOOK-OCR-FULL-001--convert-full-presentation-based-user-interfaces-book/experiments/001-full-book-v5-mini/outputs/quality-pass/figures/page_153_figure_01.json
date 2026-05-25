@@ -1,0 +1,16 @@
+{
+  "page_number": 153,
+  "figure_index": 1,
+  "description": "Icon-style desktop with clock, user icons, folders, trays, document, and campfire",
+  "image_path": "/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_153_figure_01.png",
+  "markdown_ref": "",
+  "crop_rect": {
+    "x": 118,
+    "y": 169,
+    "width": 1521,
+    "height": 1742
+  },
+  "method": "ink-band-v1",
+  "sidecar_path": "/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_153_figure_01.json",
+  "debug_path": "/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_153_figure_01.debug.png"
+}

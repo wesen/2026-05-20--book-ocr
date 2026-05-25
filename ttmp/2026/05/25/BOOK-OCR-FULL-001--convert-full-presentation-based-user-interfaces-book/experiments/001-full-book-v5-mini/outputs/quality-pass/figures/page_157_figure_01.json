@@ -1,0 +1,16 @@
+{
+  "page_number": 157,
+  "figure_index": 1,
+  "description": "Menu-style screen showing host status line at top and two command menus at left",
+  "image_path": "/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_157_figure_01.png",
+  "markdown_ref": "",
+  "crop_rect": {
+    "x": 148,
+    "y": 163,
+    "width": 1427,
+    "height": 1734
+  },
+  "method": "ink-band-v1",
+  "sidecar_path": "/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_157_figure_01.json",
+  "debug_path": "/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_157_figure_01.debug.png"
+}

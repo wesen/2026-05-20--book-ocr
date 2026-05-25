@@ -1,0 +1,16 @@
+{
+  "page_number": 48,
+  "figure_index": 2,
+  "description": "Three-column spreadsheet showing values 100, 20, A1*B1 in row1; 75,5 blank in row2; 2375 in A3",
+  "image_path": "/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_048_figure_02.png",
+  "markdown_ref": "",
+  "crop_rect": {
+    "x": 203,
+    "y": 199,
+    "width": 1248,
+    "height": 1664
+  },
+  "method": "ink-band-v1",
+  "sidecar_path": "/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_048_figure_02.json",
+  "debug_path": "/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_048_figure_02.debug.png"
+}

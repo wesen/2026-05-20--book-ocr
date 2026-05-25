@@ -1,0 +1,16 @@
+{
+  "page_number": 160,
+  "figure_index": 1,
+  "description": "Menu-style interface showing a directory/menu window with file list and message display",
+  "image_path": "/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_160_figure_01.png",
+  "markdown_ref": "",
+  "crop_rect": {
+    "x": 214,
+    "y": 178,
+    "width": 1411,
+    "height": 1731
+  },
+  "method": "ink-band-v1",
+  "sidecar_path": "/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_160_figure_01.json",
+  "debug_path": "/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_160_figure_01.debug.png"
+}

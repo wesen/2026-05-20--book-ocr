@@ -1,0 +1,16 @@
+{
+  "page_number": 63,
+  "figure_index": 1,
+  "description": "Diagram showing two-tier presenter interface extension with presentation editor, presentation data base, presenters, recognizers, presenter state, and application data base",
+  "image_path": "/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_063_figure_01.png",
+  "markdown_ref": "",
+  "crop_rect": {
+    "x": 117,
+    "y": 205,
+    "width": 1344,
+    "height": 1224
+  },
+  "method": "ink-band-v1",
+  "sidecar_path": "/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_063_figure_01.json",
+  "debug_path": "/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_063_figure_01.debug.png"
+}

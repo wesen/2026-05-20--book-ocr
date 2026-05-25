@@ -1,0 +1,16 @@
+{
+  "page_number": 113,
+  "figure_index": 1,
+  "description": "diagram of Command Description Support showing Command, Command Set, Command Application, Domain Object, Command Parameter, and Parameter Type relationships",
+  "image_path": "/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_113_figure_01.png",
+  "markdown_ref": "",
+  "crop_rect": {
+    "x": 177,
+    "y": 202,
+    "width": 1357,
+    "height": 1671
+  },
+  "method": "ink-band-v1",
+  "sidecar_path": "/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_113_figure_01.json",
+  "debug_path": "/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_113_figure_01.debug.png"
+}

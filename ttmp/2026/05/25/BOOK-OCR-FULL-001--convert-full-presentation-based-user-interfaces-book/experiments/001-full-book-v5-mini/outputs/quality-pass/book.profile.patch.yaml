@@ -1,0 +1,77 @@
+source_profile: report-794-full-v5-mini
+proposals:
+    page_types:
+        add:
+            12: diagram
+            13: diagram
+            15: diagram
+            17: diagram
+            21: diagram
+            31: diagram
+            32: diagram
+            33: diagram
+            34: diagram
+            36: diagram
+            42: diagram
+            43: diagram
+            45: diagram
+            47: diagram
+            48: diagram
+            51: diagram
+            54: diagram
+            58: diagram
+            59: diagram
+            60: diagram
+            61: diagram
+            63: diagram
+            65: diagram
+            74: diagram
+            77: diagram
+            83: diagram
+            86: diagram
+            87: diagram
+            88: diagram
+            89: diagram
+            90: diagram
+            93: diagram
+            95: diagram
+            96: diagram
+            97: diagram
+            98: diagram
+            103: diagram
+            104: diagram
+            107: diagram
+            109: diagram
+            110: diagram
+            112: diagram
+            113: diagram
+            115: diagram
+            116: diagram
+            124: diagram
+            133: diagram
+            134: diagram
+            135: diagram
+            136: diagram
+            146: diagram
+            147: diagram
+            150: diagram
+            151: diagram
+            153: diagram
+            154: diagram
+            155: diagram
+            157: diagram
+            158: diagram
+            160: diagram
+            161: diagram
+            162: diagram
+            163: diagram
+            165: diagram
+            166: diagram
+            167: diagram
+            168: diagram
+            170: diagram
+            173: diagram
+    qa:
+        expected_figure_count: 75
+reasons:
+    - Figure extraction discovered embedded figures that may be worth promoting into stable page-type and QA policy.

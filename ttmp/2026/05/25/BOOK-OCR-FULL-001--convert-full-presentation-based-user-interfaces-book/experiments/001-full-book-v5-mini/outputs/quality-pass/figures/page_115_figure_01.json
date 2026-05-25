@@ -1,0 +1,16 @@
+{
+  "page_number": 115,
+  "figure_index": 1,
+  "description": "Reference resolution diagrams showing paths from a presentation TEXT to directory instances via properties, filenames, pathnames, and composite parent",
+  "image_path": "/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_115_figure_01.png",
+  "markdown_ref": "",
+  "crop_rect": {
+    "x": 245,
+    "y": 205,
+    "width": 1234,
+    "height": 1669
+  },
+  "method": "ink-band-v1",
+  "sidecar_path": "/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_115_figure_01.json",
+  "debug_path": "/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_115_figure_01.debug.png"
+}

@@ -1,0 +1,1360 @@
+book_id: report-794-full-v5-mini
+source_profile: report-794-full-v5-mini
+run_id: ocr-quality-1219f2a4-50e3-4392-8471-1f07499cf631
+updated: "2026-05-25T00:57:19-04:00"
+observed_pages:
+    - page: 12
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 13
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 15
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 17
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 21
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 31
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 31
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 32
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 32
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 33
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 33
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 33
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 34
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 36
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 42
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 43
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 45
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 47
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 48
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 48
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 51
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 54
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 58
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 59
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 60
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 60
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 61
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 63
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 65
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 74
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 77
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 83
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 86
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 87
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 88
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 89
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 90
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 93
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 95
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 96
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 97
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 98
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 103
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 104
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 107
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 109
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 110
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 112
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 113
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 115
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 116
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 124
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 133
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 134
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 135
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 136
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 146
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 147
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 150
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 151
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 153
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 154
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 155
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 157
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 158
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 160
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 161
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 162
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 163
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 165
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 166
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 167
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 168
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 170
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+    - page: 173
+      inferred_type: diagram
+      confidence: 0.8
+      evidence:
+        - figure extraction
+        - markdown figure marker or synthesized diagram marker
+figures:
+    - page: 12
+      description: Diagram of a rudimentary user interface showing application data base with commands, queries, and observables connected to transducers and users
+      marker_source: explicit
+      image_path: figures/page_012_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_012_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_012_figure_01.debug.png
+      crop_rect:
+        x: 202
+        "y": 198
+        width: 1407
+        height: 1658
+      method: ink-band-v1
+    - page: 13
+      description: Rudimentary user-interface diagram showing users, transducers, and an application data base
+      marker_source: explicit
+      image_path: figures/page_013_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_013_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_013_figure_01.debug.png
+      crop_rect:
+        x: 117
+        "y": 80
+        width: 1522
+        height: 1818
+      method: ink-band-v1
+    - page: 15
+      description: Full-page diagram showing components and data flows for the Representation Shift Model
+      marker_source: synthesized-or-explicit
+      image_path: figures/page_015_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_015_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_015_figure_01.debug.png
+      crop_rect:
+        x: 182
+        "y": 176
+        width: 1400
+        height: 1042
+      method: ink-band-v1
+    - page: 17
+      description: Diagram of the Primitive Presentation System (PPS) showing Presentation Editor, Presentation Data Base, Presenter, Recognizer, and Application Data Base and the flows between them
+      marker_source: explicit
+      image_path: figures/page_017_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_017_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_017_figure_01.debug.png
+      crop_rect:
+        x: 117
+        "y": 167
+        width: 1522
+        height: 1693
+      method: ink-band-v1
+    - page: 21
+      description: Hierarchical block diagram showing PSBase structure
+      marker_source: explicit
+      image_path: figures/page_021_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_021_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_021_figure_01.debug.png
+      crop_rect:
+        x: 142
+        "y": 173
+        width: 1313
+        height: 1535
+      method: ink-band-v1
+    - page: 31
+      description: Three-column spreadsheet showing formulas A1*B1, A2*B2, and C1+C2
+      marker_source: explicit
+      image_path: figures/page_031_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_031_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_031_figure_01.debug.png
+      crop_rect:
+        x: 430
+        "y": 172
+        width: 1043
+        height: 1730
+      method: ink-band-v1
+    - page: 31
+      description: Three-column spreadsheet showing values 2000, 375, and 2375 computed from formulas
+      marker_source: explicit
+      image_path: figures/page_031_figure_02.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_031_figure_02.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_031_figure_02.debug.png
+      crop_rect:
+        x: 430
+        "y": 172
+        width: 1043
+        height: 1730
+      method: ink-band-v1
+    - page: 32
+      description: Table showing PPSCalc formula display with three columns A B C and three rows
+      marker_source: explicit
+      image_path: figures/page_032_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_032_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_032_figure_01.debug.png
+      crop_rect:
+        x: 198
+        "y": 201
+        width: 1250
+        height: 1619
+      method: ink-band-v1
+    - page: 32
+      description: Table showing PPSCalc value display with computed values
+      marker_source: explicit
+      image_path: figures/page_032_figure_02.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_032_figure_02.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_032_figure_02.debug.png
+      crop_rect:
+        x: 198
+        "y": 201
+        width: 1250
+        height: 1619
+      method: ink-band-v1
+    - page: 33
+      description: Small three-column spreadsheet showing edited values
+      marker_source: explicit
+      image_path: figures/page_033_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_033_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_033_figure_01.debug.png
+      crop_rect:
+        x: 204
+        "y": 202
+        width: 1435
+        height: 1594
+      method: ink-band-v1
+    - page: 33
+      description: Small three-column spreadsheet showing recalculated values
+      marker_source: explicit
+      image_path: figures/page_033_figure_02.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_033_figure_02.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_033_figure_02.debug.png
+      crop_rect:
+        x: 204
+        "y": 202
+        width: 1435
+        height: 1594
+      method: ink-band-v1
+    - page: 33
+      description: Small three-column spreadsheet showing formula display
+      marker_source: explicit
+      image_path: figures/page_033_figure_03.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_033_figure_03.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_033_figure_03.debug.png
+      crop_rect:
+        x: 204
+        "y": 202
+        width: 1435
+        height: 1594
+      method: ink-band-v1
+    - page: 34
+      description: Table with three columns A B C and three rows showing new numeric values
+      marker_source: explicit
+      image_path: figures/page_034_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_034_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_034_figure_01.debug.png
+      crop_rect:
+        x: 192
+        "y": 203
+        width: 1399
+        height: 1639
+      method: ink-band-v1
+    - page: 36
+      description: Diagram showing modular world-model with presenter, recognizer, sensors, effectors, and world model data base
+      marker_source: explicit
+      image_path: figures/page_036_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_036_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_036_figure_01.debug.png
+      crop_rect:
+        x: 117
+        "y": 173
+        width: 1522
+        height: 1183
+      method: ink-band-v1
+    - page: 42
+      description: Vertical flow diagram of presenter components
+      marker_source: explicit
+      image_path: figures/page_042_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_042_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_042_figure_01.debug.png
+      crop_rect:
+        x: 400
+        "y": 213
+        width: 1048
+        height: 1590
+      method: ink-band-v1
+    - page: 43
+      description: Flowchart-style diagram showing presenter components and data flow
+      marker_source: explicit
+      image_path: figures/page_043_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_043_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_043_figure_01.debug.png
+      crop_rect:
+        x: 174
+        "y": 205
+        width: 1429
+        height: 1656
+      method: ink-band-v1
+    - page: 45
+      description: flow diagram showing presentation editor, presentation data base, presenter, organizational recognizer, semantic recognizer, domain changer, application data base and controls
+      marker_source: explicit
+      image_path: figures/page_045_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_045_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_045_figure_01.debug.png
+      crop_rect:
+        x: 199
+        "y": 200
+        width: 1292
+        height: 1667
+      method: ink-band-v1
+    - page: 47
+      description: A 3x3 spreadsheet showing columns A B C and rows 1-3 with values; illustrates moving a value from C3 to A3
+      marker_source: explicit
+      image_path: figures/page_047_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_047_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_047_figure_01.debug.png
+      crop_rect:
+        x: 195
+        "y": 203
+        width: 1326
+        height: 1646
+      method: ink-band-v1
+    - page: 48
+      description: Three-column spreadsheet showing formulas moved into A3 and C1*C2 entries
+      marker_source: explicit
+      image_path: figures/page_048_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_048_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_048_figure_01.debug.png
+      crop_rect:
+        x: 203
+        "y": 199
+        width: 1248
+        height: 1664
+      method: ink-band-v1
+    - page: 48
+      description: Three-column spreadsheet showing values 100, 20, A1*B1 in row1; 75,5 blank in row2; 2375 in A3
+      marker_source: explicit
+      image_path: figures/page_048_figure_02.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_048_figure_02.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_048_figure_02.debug.png
+      crop_rect:
+        x: 203
+        "y": 199
+        width: 1248
+        height: 1664
+      method: ink-band-v1
+    - page: 51
+      description: Full-page diagram of the Representation Shift Model
+      marker_source: explicit
+      image_path: figures/page_051_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_051_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_051_figure_01.debug.png
+      crop_rect:
+        x: 472
+        "y": 192
+        width: 803
+        height: 1676
+      method: ink-band-v1
+    - page: 54
+      description: Schematic diagram showing presenter and recognizer mappings between presentation and application databases
+      marker_source: explicit
+      image_path: figures/page_054_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_054_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_054_figure_01.debug.png
+      crop_rect:
+        x: 117
+        "y": 77
+        width: 1522
+        height: 1776
+      method: ink-band-v1
+    - page: 58
+      description: Diagram showing planned data base extension with presentation and future databases
+      marker_source: explicit
+      image_path: figures/page_058_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_058_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_058_figure_01.debug.png
+      crop_rect:
+        x: 117
+        "y": 93
+        width: 1522
+        height: 1780
+      method: ink-band-v1
+    - page: 59
+      description: Diagram showing two PPS systems, one for immediate changes and one for planned changes
+      marker_source: explicit
+      image_path: figures/page_059_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_059_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_059_figure_01.debug.png
+      crop_rect:
+        x: 192
+        "y": 200
+        width: 1311
+        height: 1291
+      method: ink-band-v1
+    - page: 60
+      description: diagram showing extension with both planning and immediate changes
+      marker_source: explicit
+      image_path: figures/page_060_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_060_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_060_figure_01.debug.png
+      crop_rect:
+        x: 196
+        "y": 197
+        width: 1259
+        height: 1685
+      method: ink-band-v1
+    - page: 60
+      description: diagram showing command data base extension
+      marker_source: explicit
+      image_path: figures/page_060_figure_02.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_060_figure_02.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_060_figure_02.debug.png
+      crop_rect:
+        x: 196
+        "y": 197
+        width: 1259
+        height: 1685
+      method: ink-band-v1
+    - page: 61
+      description: Diagram showing two linked PPS systems with presentation and command databases
+      marker_source: explicit
+      image_path: figures/page_061_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_061_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_061_figure_01.debug.png
+      crop_rect:
+        x: 174
+        "y": 195
+        width: 1345
+        height: 1421
+      method: ink-band-v1
+    - page: 63
+      description: Diagram showing two-tier presenter interface extension with presentation editor, presentation data base, presenters, recognizers, presenter state, and application data base
+      marker_source: explicit
+      image_path: figures/page_063_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_063_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_063_figure_01.debug.png
+      crop_rect:
+        x: 117
+        "y": 205
+        width: 1344
+        height: 1224
+      method: ink-band-v1
+    - page: 65
+      description: diagram showing presenter, presenter commands, presentation data bases, recognizers, and application data base with control arrows
+      marker_source: explicit
+      image_path: figures/page_065_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_065_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_065_figure_01.debug.png
+      crop_rect:
+        x: 168
+        "y": 197
+        width: 1379
+        height: 1214
+      method: ink-band-v1
+    - page: 74
+      description: Diagram of the Dired presentation model showing presenter, directory, deletion planning, and confirmation components
+      marker_source: explicit
+      image_path: figures/page_074_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_074_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_074_figure_01.debug.png
+      crop_rect:
+        x: 165
+        "y": 198
+        width: 1322
+        height: 1616
+      method: ink-band-v1
+    - page: 77
+      description: Diagram of Zmacs presentation system showing Buffer PPS, Screen PPS, Command Minibuffer, Completion List PPS, PDBs, PEs, and Recognizers
+      marker_source: explicit
+      image_path: figures/page_077_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_077_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_077_figure_01.debug.png
+      crop_rect:
+        x: 146
+        "y": 213
+        width: 1277
+        height: 1678
+      method: ink-band-v1
+    - page: 83
+      description: Zmacs scroll bar with boxed sample text and quotes
+      marker_source: explicit
+      image_path: figures/page_083_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_083_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_083_figure_01.debug.png
+      crop_rect:
+        x: 144
+        "y": 202
+        width: 1335
+        height: 1388
+      method: ink-band-v1
+    - page: 86
+      description: Xerox Star opened folder showing desktop with icons and windows
+      marker_source: explicit
+      image_path: figures/page_086_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_086_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_086_figure_01.debug.png
+      crop_rect:
+        x: 248
+        "y": 198
+        width: 1257
+        height: 1623
+      method: ink-band-v1
+    - page: 87
+      description: Xerox Star property sheet window showing document properties
+      marker_source: explicit
+      image_path: figures/page_087_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_087_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_087_figure_01.debug.png
+      crop_rect:
+        x: 201
+        "y": 202
+        width: 1437
+        height: 1658
+      method: ink-band-v1
+    - page: 88
+      description: Xerox Star property sheet window showing document icons and a DOCUMENT PROPERTIES dialog
+      marker_source: explicit
+      image_path: figures/page_088_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_088_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_088_figure_01.debug.png
+      crop_rect:
+        x: 286
+        "y": 213
+        width: 1057
+        height: 1167
+      method: ink-band-v1
+    - page: 89
+      description: Xerox Star delete-confirmation dialog and desktop icons
+      marker_source: explicit
+      image_path: figures/page_089_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_089_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_089_figure_01.debug.png
+      crop_rect:
+        x: 328
+        "y": 206
+        width: 953
+        height: 1159
+      method: ink-band-v1
+    - page: 90
+      description: Full-page flowchart showing the Xerox Star model
+      marker_source: explicit
+      image_path: figures/page_090_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_090_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_090_figure_01.debug.png
+      crop_rect:
+        x: 143
+        "y": 191
+        width: 1286
+        height: 1652
+      method: ink-band-v1
+    - page: 93
+      description: Sample Steamer Schematic
+      marker_source: explicit
+      image_path: figures/page_093_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_093_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_093_figure_01.debug.png
+      crop_rect:
+        x: 133
+        "y": 190
+        width: 1367
+        height: 1374
+      method: ink-band-v1
+    - page: 95
+      description: Steamer menu console showing a vertical Steamer title bar at left and a horizontal menu/control table
+      marker_source: explicit
+      image_path: figures/page_095_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_095_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_095_figure_01.debug.png
+      crop_rect:
+        x: 212
+        "y": 197
+        width: 1281
+        height: 1675
+      method: ink-band-v1
+    - page: 96
+      description: Full-page diagram of the Steamer Model showing presentation elements, presentation databases, presentations, renderers, and connections
+      marker_source: explicit
+      image_path: figures/page_096_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_096_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_096_figure_01.debug.png
+      crop_rect:
+        x: 202
+        "y": 200
+        width: 1301
+        height: 1745
+      method: ink-band-v1
+    - page: 97
+      description: Icon sampler panel showing various shapes, pump and valve symbols, meters, bars, and example graphs
+      marker_source: explicit
+      image_path: figures/page_097_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_097_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_097_figure_01.debug.png
+      crop_rect:
+        x: 292
+        "y": 197
+        width: 1249
+        height: 1415
+      method: ink-band-v1
+    - page: 98
+      description: Sample of Steamer icon set
+      marker_source: explicit
+      image_path: figures/page_098_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_098_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_098_figure_01.debug.png
+      crop_rect:
+        x: 202
+        "y": 201
+        width: 1251
+        height: 1674
+      method: ink-band-v1
+    - page: 103
+      description: Diagram showing PSBase support for PPS components
+      marker_source: explicit
+      image_path: figures/page_103_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_103_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_103_figure_01.debug.png
+      crop_rect:
+        x: 243
+        "y": 205
+        width: 1274
+        height: 1640
+      method: ink-band-v1
+    - page: 104
+      description: Hierarchical block diagram showing PSBase structure
+      marker_source: explicit
+      image_path: figures/page_104_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_104_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_104_figure_01.debug.png
+      crop_rect:
+        x: 328
+        "y": 193
+        width: 1151
+        height: 1523
+      method: ink-band-v1
+    - page: 107
+      description: Class description network diagram showing file and directory classes and their relationships
+      marker_source: explicit
+      image_path: figures/page_107_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_107_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_107_figure_01.debug.png
+      crop_rect:
+        x: 240
+        "y": 202
+        width: 1370
+        height: 1281
+      method: ink-band-v1
+    - page: 109
+      description: Sample presentation data base structure diagram
+      marker_source: explicit
+      image_path: figures/page_109_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_109_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_109_figure_01.debug.png
+      crop_rect:
+        x: 128
+        "y": 198
+        width: 1158
+        height: 1692
+      method: ink-band-v1
+    - page: 110
+      description: Diagram of inter-presentation relationships showing Presentation node linked to Attachment, Composite Presentation, Connecting Arrow, CA1, Text nodes, and Attachments
+      marker_source: explicit
+      image_path: figures/page_110_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_110_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_110_figure_01.debug.png
+      crop_rect:
+        x: 138
+        "y": 210
+        width: 1501
+        height: 1492
+      method: ink-band-v1
+    - page: 112
+      description: Diagram of command description support showing relationships among Domain Object, Command Set, Command, Command Application, Command Parameter, and Parameter Type
+      marker_source: explicit
+      image_path: figures/page_112_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_112_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_112_figure_01.debug.png
+      crop_rect:
+        x: 250
+        "y": 211
+        width: 1221
+        height: 1589
+      method: ink-band-v1
+    - page: 113
+      description: diagram of Command Description Support showing Command, Command Set, Command Application, Domain Object, Command Parameter, and Parameter Type relationships
+      marker_source: explicit
+      image_path: figures/page_113_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_113_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_113_figure_01.debug.png
+      crop_rect:
+        x: 177
+        "y": 202
+        width: 1357
+        height: 1671
+      method: ink-band-v1
+    - page: 115
+      description: Reference resolution diagrams showing paths from a presentation TEXT to directory instances via properties, filenames, pathnames, and composite parent
+      marker_source: explicit
+      image_path: figures/page_115_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_115_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_115_figure_01.debug.png
+      crop_rect:
+        x: 245
+        "y": 205
+        width: 1234
+        height: 1669
+      method: ink-band-v1
+    - page: 116
+      description: Diagram showing several reference resolution cases from TEXT presentations to directory/file/pathname/composite targets
+      marker_source: explicit
+      image_path: figures/page_116_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_116_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_116_figure_01.debug.png
+      crop_rect:
+        x: 142
+        "y": 201
+        width: 1387
+        height: 1503
+      method: ink-band-v1
+    - page: 124
+      description: Network-style diagram showing a composite presentation for a user-at-host producing an email-like string
+      marker_source: explicit
+      image_path: figures/page_124_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_124_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_124_figure_01.debug.png
+      crop_rect:
+        x: 230
+        "y": 211
+        width: 1293
+        height: 1588
+      method: ink-band-v1
+    - page: 133
+      description: Presentation structure diagram showing Composite and Date nodes with Text leaves and pdo links
+      marker_source: explicit
+      image_path: figures/page_133_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_133_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_133_figure_01.debug.png
+      crop_rect:
+        x: 295
+        "y": 204
+        width: 1222
+        height: 1550
+      method: ink-band-v1
+    - page: 134
+      description: Hand-drawn presentation graph showing Composite and Date nodes connected to Text and value nodes with pdo markers
+      marker_source: explicit
+      image_path: figures/page_134_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_134_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_134_figure_01.debug.png
+      crop_rect:
+        x: 200
+        "y": 201
+        width: 1253
+        height: 1657
+      method: ink-band-v1
+    - page: 135
+      description: Sketch of screen showing a dotted sketched curve between an ellipse and a rectangle, with an edit-commands menu at left
+      marker_source: explicit
+      image_path: figures/page_135_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_135_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_135_figure_01.debug.png
+      crop_rect:
+        x: 184
+        "y": 191
+        width: 1423
+        height: 1749
+      method: ink-band-v1
+    - page: 136
+      description: Diagram showing a recognized curve converted to a straight arrow connecting an ellipse to a rectangle
+      marker_source: explicit
+      image_path: figures/page_136_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_136_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_136_figure_01.debug.png
+      crop_rect:
+        x: 182
+        "y": 189
+        width: 1429
+        height: 1737
+      method: ink-band-v1
+    - page: 146
+      description: Icon-style interface
+      marker_source: explicit
+      image_path: figures/page_146_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_146_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_146_figure_01.debug.png
+      crop_rect:
+        x: 117
+        "y": 194
+        width: 1522
+        height: 1732
+      method: ink-band-v1
+    - page: 147
+      description: Icon-style desktop showing a clock, folder and document icons, and a selected file display
+      marker_source: explicit
+      image_path: figures/page_147_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_147_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_147_figure_01.debug.png
+      crop_rect:
+        x: 154
+        "y": 205
+        width: 1393
+        height: 1740
+      method: ink-band-v1
+    - page: 150
+      description: Desktop-style icon interface with folders, file icons, and a message window
+      marker_source: explicit
+      image_path: figures/page_150_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_150_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_150_figure_01.debug.png
+      crop_rect:
+        x: 146
+        "y": 190
+        width: 1493
+        height: 1731
+      method: ink-band-v1
+    - page: 151
+      description: Icon-style desktop showing folder, document, user, clock, and mail icons
+      marker_source: explicit
+      image_path: figures/page_151_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_151_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_151_figure_01.debug.png
+      crop_rect:
+        x: 150
+        "y": 170
+        width: 1397
+        height: 1731
+      method: ink-band-v1
+    - page: 153
+      description: Icon-style desktop with clock, user icons, folders, trays, document, and campfire
+      marker_source: explicit
+      image_path: figures/page_153_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_153_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_153_figure_01.debug.png
+      crop_rect:
+        x: 118
+        "y": 169
+        width: 1521
+        height: 1742
+      method: ink-band-v1
+    - page: 154
+      description: Icon-style desktop showing clock, icons, folders, and a mail window
+      marker_source: explicit
+      image_path: figures/page_154_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_154_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_154_figure_01.debug.png
+      crop_rect:
+        x: 152
+        "y": 173
+        width: 1405
+        height: 1719
+      method: ink-band-v1
+    - page: 155
+      description: Icon-style desktop with clock, folders, icons, and a user info box
+      marker_source: explicit
+      image_path: figures/page_155_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_155_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_155_figure_01.debug.png
+      crop_rect:
+        x: 148
+        "y": 165
+        width: 1407
+        height: 1711
+      method: ink-band-v1
+    - page: 157
+      description: Menu-style screen showing host status line at top and two command menus at left
+      marker_source: explicit
+      image_path: figures/page_157_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_157_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_157_figure_01.debug.png
+      crop_rect:
+        x: 148
+        "y": 163
+        width: 1427
+        height: 1734
+      method: ink-band-v1
+    - page: 158
+      description: Menu-style file/directory interface screenshot
+      marker_source: explicit
+      image_path: figures/page_158_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_158_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_158_figure_01.debug.png
+      crop_rect:
+        x: 214
+        "y": 168
+        width: 1406
+        height: 1746
+      method: ink-band-v1
+    - page: 160
+      description: Menu-style interface showing a directory/menu window with file list and message display
+      marker_source: explicit
+      image_path: figures/page_160_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_160_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_160_figure_01.debug.png
+      crop_rect:
+        x: 214
+        "y": 178
+        width: 1411
+        height: 1731
+      method: ink-band-v1
+    - page: 161
+      description: Menu-style terminal screen showing file and mail menus
+      marker_source: explicit
+      image_path: figures/page_161_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_161_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_161_figure_01.debug.png
+      crop_rect:
+        x: 198
+        "y": 175
+        width: 1428
+        height: 1748
+      method: ink-band-v1
+    - page: 162
+      description: Menu-style terminal interface showing menu boxes and a user jobs listing
+      marker_source: explicit
+      image_path: figures/page_162_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_162_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_162_figure_01.debug.png
+      crop_rect:
+        x: 210
+        "y": 178
+        width: 1408
+        height: 1718
+      method: ink-band-v1
+    - page: 163
+      description: Menu-style interface screenshot
+      marker_source: explicit
+      image_path: figures/page_163_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_163_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_163_figure_01.debug.png
+      crop_rect:
+        x: 142
+        "y": 172
+        width: 1473
+        height: 1724
+      method: ink-band-v1
+    - page: 165
+      description: Menu-style mail-summary screen with command menus and mail file listing
+      marker_source: explicit
+      image_path: figures/page_165_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_165_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_165_figure_01.debug.png
+      crop_rect:
+        x: 213
+        "y": 179
+        width: 1426
+        height: 1747
+      method: ink-band-v1
+    - page: 166
+      description: Menu-style interface screen showing host/status bar, left menu boxes, and mail file listing
+      marker_source: explicit
+      image_path: figures/page_166_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_166_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_166_figure_01.debug.png
+      crop_rect:
+        x: 196
+        "y": 197
+        width: 1262
+        height: 1669
+      method: ink-band-v1
+    - page: 167
+      description: Annotation-style interface screen with menus, annotation tools, and directory listing
+      marker_source: explicit
+      image_path: figures/page_167_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_167_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_167_figure_01.debug.png
+      crop_rect:
+        x: 212
+        "y": 184
+        width: 1409
+        height: 1717
+      method: ink-band-v1
+    - page: 168
+      description: Annotation-style screen shot showing menu boxes, tool box, and a directory listing with annotation arrows
+      marker_source: explicit
+      image_path: figures/page_168_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_168_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_168_figure_01.debug.png
+      crop_rect:
+        x: 214
+        "y": 168
+        width: 1407
+        height: 1721
+      method: ink-band-v1
+    - page: 170
+      description: Annotation-style interface showing a directory window with command menus, annotation tools, and a file list with change annotations
+      marker_source: explicit
+      image_path: figures/page_170_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_170_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_170_figure_01.debug.png
+      crop_rect:
+        x: 216
+        "y": 176
+        width: 1403
+        height: 1733
+      method: ink-band-v1
+    - page: 173
+      description: Diagram showing components and connections for application database management
+      marker_source: explicit
+      image_path: figures/page_173_figure_01.png
+      sidecar_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_173_figure_01.json
+      debug_path: /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/figures/page_173_figure_01.debug.png
+      crop_rect:
+        x: 250
+        "y": 178
+        width: 1180
+        height: 1690
+      method: ink-band-v1
+qa_findings:
+    - code: adjacent_duplicate_line
+      page: 170
+      message: 'adjacent duplicate non-empty line: changed'
