@@ -433,3 +433,69 @@ phase snapshots:        turn_block_membership.phase
 ```
 
 Therefore input/final snapshots for the same page turn should be queried from `turn_block_membership`, not counted as separate `turns` rows.
+
+## Step 5: Update the Obsidian project report with oracle and redesign progress
+
+I updated the Obsidian VLM benchmark article so the durable project report matches the latest implementation state. The article now reflects the refined page 59/116 oracles, the regenerated report score of 0.992, and the first structured OCR contract implementation.
+
+The update also explains the new production packages at a high level: `internal/ocrpipeline` for structured page contracts, deterministic rendering, and turn persistence, and `internal/ocrvalidation` for anchor and adjacent-caption validation.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 3)
+
+**Assistant interpretation:** Keep the vault report current after improving oracles and landing the first structured OCR redesign code slice.
+
+**Inferred user intent:** The user wants the Obsidian report to remain the readable source of truth for benchmark findings and redesign progress.
+
+**Commit (code):** N/A — vault documentation update. Obsidian commit: `54c97ee160fe55a8a9a7812f908bb7b52de42713` — "Article: update OCR benchmark and redesign progress"
+
+### What I did
+
+- Updated the VLM benchmark article in the parc vault.
+- Replaced stale report interpretation around pages 59 and 116.
+- Added a section describing the first structured OCR implementation slice.
+- Committed and pushed the vault.
+
+### Why
+
+- The article previously said pages 59 and 116 were remaining oracle improvement targets.
+- Those oracles were improved and the report was regenerated, so the article needed to be corrected.
+- The first structured OCR contracts also changed project status and next steps.
+
+### What worked
+
+- Vault commit `54c97ee160fe55a8a9a7812f908bb7b52de42713` was pushed.
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- The article should distinguish benchmark progress from production pipeline progress. They are related but have different write boundaries.
+
+### What was tricky to build
+
+- The update needed to avoid overstating the benchmark: improved oracles and high scores do not make neighboring image context a production write path.
+
+### What warrants a second pair of eyes
+
+- Review whether the article's latest status section is clear that the next code step is a fake/dry-run target-page-only structured OCR client.
+
+### What should be done in the future
+
+- Update the article again after the structured OCR client exists and has a dry-run workflow.
+
+### Code review instructions
+
+- Review the final sections of:
+  - `/home/manuel/code/wesen/go-go-golems/go-go-parc/Projects/2026/05/25/ARTICLE - VLM Separation Benchmark for Book OCR - Prompt Block Layouts and Turn Persistence.md`
+
+### Technical details
+
+Vault commit:
+
+```text
+54c97ee160fe55a8a9a7812f908bb7b52de42713 Article: update OCR benchmark and redesign progress
+```

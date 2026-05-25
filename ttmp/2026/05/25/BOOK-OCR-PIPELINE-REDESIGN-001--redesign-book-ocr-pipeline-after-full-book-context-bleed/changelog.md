@@ -47,3 +47,13 @@ Implemented the first deterministic structured OCR contracts: renderer, turn-sto
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrvalidation/anchors.go — Anchor validation
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-PIPELINE-REDESIGN-001--redesign-book-ocr-pipeline-after-full-book-context-bleed/reference/01-diary.md — Implementation diary
 
+
+## 2026-05-25
+
+Updated and pushed the Obsidian project report with refined benchmark oracle results and structured OCR contract progress (vault commit 54c97ee).
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/go-go-parc/Projects/2026/05/25/ARTICLE - VLM Separation Benchmark for Book OCR - Prompt Block Layouts and Turn Persistence.md — Updated vault report
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-PIPELINE-REDESIGN-001--redesign-book-ocr-pipeline-after-full-book-context-bleed/reference/01-diary.md — Vault update diary
+
