@@ -1,7 +1,7 @@
 ---
 Title: Move book-specific OCR policy out of scraper into book-ocr repository
 Ticket: BOOK-OCR-EXTERNALIZE-001
-Status: active
+Status: complete
 Topics:
     - ocr
     - workflow
@@ -13,10 +13,11 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-05-24T23:31:44.356303873-04:00
+LastUpdated: 2026-05-25T00:12:30.471715285-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 # Move book-specific OCR policy out of scraper into book-ocr repository
 
