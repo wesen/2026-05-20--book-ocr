@@ -258,11 +258,30 @@ Expected outputs:
 
 ## Current Status
 
-This document corrects the direction of `BOOK-OCR-EXTERNALIZE-001`. The target is not just Report 794 policy externalization. The target is full OCR extraction:
+The full OCR extraction has now been implemented at the repository-boundary level. The OCR page workflow, OCR quality workflow, book profile/discovery code, and OCR CLI were copied into `2026-05-20--book-ocr`, tested there, smoke-tested against the Report 794 artifacts, and then removed from `scraper`.
+
+Current boundary:
 
 ```text
 scraper/                  workflow runtime and job queue mechanisms
 2026-05-20--book-ocr/     OCR application, profiles, prompts, QA, figures, experiments
 ```
 
-No code has been moved as part of this document update. The next implementation step is Phase 1: create a Go module and minimal `cmd/book-ocr` in `2026-05-20--book-ocr`.
+Important commits:
+
+```text
+54fa0be Set up book OCR Go module
+04785a5 Move OCR workflows into book OCR repo
+cd01992 Move OCR workflows out of scraper
+1fb1cd3 Docs: record OCR workflow extraction
+```
+
+Validation performed:
+
+```text
+cd 2026-05-20--book-ocr && go test ./... -count=1
+cd scraper && go test ./... -count=1
+go run ./cmd/book-ocr quality-pass ... --embed-figures
+```
+
+The next cleanup step is naming and productization, not extraction. The moved packages still use behavior-preserving names such as `ocrmvp` and workflow package strings such as `ocr-mvp`; those should be renamed in follow-up work once the repository boundary has settled.
