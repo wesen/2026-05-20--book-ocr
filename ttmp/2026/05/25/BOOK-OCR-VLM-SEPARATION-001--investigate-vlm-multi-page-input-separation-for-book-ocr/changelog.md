@@ -121,3 +121,13 @@ Added a formal VLM benchmark report command, generated broad-run report.md/repor
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/report.go — Report implementation
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-VLM-SEPARATION-001--investigate-vlm-multi-page-input-separation-for-book-ocr/reference/01-diary.md — Report diary
 
+
+## 2026-05-25
+
+Refined weak page 59/116 risky-page oracles and regenerated the combined broad-run report (commit 0d9498e).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/oracle.go — Refined robust anchors for pages 59 and 116
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-VLM-SEPARATION-001--investigate-vlm-multi-page-input-separation-for-book-ocr/reference/01-diary.md — Oracle refinement diary
+

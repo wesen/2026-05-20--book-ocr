@@ -1133,3 +1133,96 @@ Vault commit:
 ```text
 1954655c49ed0616deaa25ef1a5c1bb91a79f967 Article: document VLM benchmark report command
 ```
+
+## Step 11: Refine weak risky-page oracles and regenerate the combined report
+
+The broad report showed that pages 59 and 116 scored low in every scenario while still showing no forbidden-caption hits. That pattern is a coverage/oracle signal, not a context-separation signal. I inspected the saved responses and page images, then replaced brittle anchors with robust visible page-local phrases.
+
+After the update, the report command produced a cleaner interpretation: all scenarios remain parseable and bleed-free, pages 59 and 116 now score 1.0, and the only remaining sub-1.0 cells are page 13 and page 88 under `single-block-target-first`, both caused by missing expected anchors rather than forbidden content.
+
+### Prompt Context
+
+**User prompt (verbatim):** "improve oracles, then improve the OCR redesign. Commit at appropriate intervals, keep a diary as you work"
+
+**Assistant interpretation:** First refine the benchmark's weak page oracles, then update the structured OCR redesign with the benchmark lessons, committing coherent changes and documenting the work.
+
+**Inferred user intent:** The user wants the benchmark and redesign documents to become more accurate and implementation-ready, with chronological evidence of what changed and why.
+
+**Commit (code):** `0d9498edf334bd19be50eb01a2ad001220827f88` — "Tighten VLM benchmark page anchors"
+
+### What I did
+
+- Inspected saved live responses for pages 59 and 116 across all four scenarios.
+- Used vision inspection on page images 59 and 116 to identify robust visible anchors.
+- Updated `internal/vlmseparation/oracle.go`:
+  - page 59 now expects `Presentation Data Base`, `Application Data Base`, `Future Data Base`, and the Figure 3-2 caption.
+  - page 116 now expects `Graphics Redisplay`, `PSBase`, and `presentation data base`.
+- Re-ran:
+  - `go test ./internal/vlmseparation -count=1`
+  - `go test ./... -count=1`
+  - `vlm-separation report` across the main broad run and retry runs.
+
+### Why
+
+- The prior page 59 anchor `planned changes` was not reliably emitted even though the page clearly contains the relevant figure labels and caption.
+- The prior page 116 anchors `presentation editor functions` and `history-keeping` were not visible in the saved OCR responses for that page; better anchors are visible in the page and repeatedly transcribed.
+
+### What worked
+
+- The regenerated report now has:
+  - raw trials: 66
+  - logical trials: 64
+  - successful logical trials: 64
+  - parseable logical trials: 64
+  - suspected bleed: 0
+  - forbidden hits: 0
+  - average target-only score: 0.992
+- Scenario averages after oracle refinement:
+  - `multi-block-labeled`: 1.000
+  - `single-block-target-first`: 0.969
+  - `target-only`: 1.000
+  - `target-plus-text-context`: 1.000
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- Uniform low scores across all scenarios are a strong indication that an oracle is brittle or too far downstream in the page text, not that a specific prompt layout failed.
+- The oracles should prefer short, visible, repeatedly transcribed anchors over semantically meaningful but less stable phrases.
+
+### What was tricky to build
+
+- Page 116 is a prose page that starts by discussing Figure 5-7 from the previous page, so the oracle must forbid the Figure 5-7 caption while still accepting visible prose references to figure 5-7.
+- Page 59 is a diagram page where the robust anchors are diagram labels, not prose phrases.
+
+### What warrants a second pair of eyes
+
+- Review whether the page 116 anchors are sufficiently discriminative, since `presentation data base` may also appear on neighboring pages.
+- Review whether future oracles should store an `anchor_kind` field to distinguish captions, labels, prose phrases, and headings.
+
+### What should be done in the future
+
+- Add report sections for oracle coverage diagnostics so uniformly missed anchors are easier to identify.
+- Consider moving benchmark oracles into YAML/JSON fixtures so they can be reviewed without editing Go code.
+
+### Code review instructions
+
+- Review `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/oracle.go`.
+- Compare regenerated report:
+  - `/tmp/book-ocr-vlm-separation-live-risky-pages/report.md`
+  - `/tmp/book-ocr-vlm-separation-live-risky-pages/report.json`
+
+### Technical details
+
+Report command used:
+
+```bash
+go run ./cmd/book-ocr vlm-separation --log-level warn report \
+  --out-dir /tmp/book-ocr-vlm-separation-live-risky-pages \
+  --out-dir /tmp/book-ocr-vlm-separation-live-risky-pages-retry-43-mbl-2 \
+  --out-dir /tmp/book-ocr-vlm-separation-live-risky-pages-retry-88-text \
+  --report-dir /tmp/book-ocr-vlm-separation-live-risky-pages \
+  --output table
+```
