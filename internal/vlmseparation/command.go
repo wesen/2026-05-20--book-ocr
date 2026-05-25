@@ -8,6 +8,7 @@ import (
 	"github.com/go-go-golems/glazed/pkg/cli"
 	"github.com/go-go-golems/glazed/pkg/cmds"
 	"github.com/go-go-golems/glazed/pkg/cmds/fields"
+	"github.com/go-go-golems/glazed/pkg/cmds/logging"
 	"github.com/go-go-golems/glazed/pkg/cmds/schema"
 	"github.com/go-go-golems/glazed/pkg/cmds/values"
 	"github.com/go-go-golems/glazed/pkg/middlewares"
@@ -138,6 +139,12 @@ func NewRootCommand() (*cobra.Command, error) {
 	root := &cobra.Command{
 		Use:   "vlm-separation",
 		Short: "Investigate VLM target/context page separation",
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return logging.InitLoggerFromCobra(cmd)
+		},
+	}
+	if err := logging.AddLoggingSectionToRootCommand(root, "book-ocr"); err != nil {
+		return nil, err
 	}
 	benchmark, err := NewBenchmarkCommand()
 	if err != nil {
