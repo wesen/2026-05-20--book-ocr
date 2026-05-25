@@ -11,3 +11,8 @@
 - [x] 9. Produce best-current 30-page markdown result plus QA report
 - [x] 10. Update guide, diary, changelog, doc relations, validate docmgr, and commit/push docs
 - [x] Follow-up: Assess baseline quality with manual/vision review and run targeted quality-v2 prompt experiment
+- [ ] Follow-up: Add a structured second-pass cleanup workflow using OCR output plus page metadata
+- [ ] Follow-up: Add automated page-level QA projections to the workflow runtime
+- [ ] Follow-up: Add targeted re-OCR for pages that fail QA
+- [ ] Follow-up: Add figure-specific structured extraction for diagram pages
+- [ ] Follow-up: Expand the first-30-page approach to the full book once the second-pass loop is stable
