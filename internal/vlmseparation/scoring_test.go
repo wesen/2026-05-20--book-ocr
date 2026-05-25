@@ -12,6 +12,17 @@ func TestParsePages(t *testing.T) {
 	require.Equal(t, []int{12, 13, 31, 32}, pages)
 }
 
+func TestFigureAdjacentPresetHasSpecializedOracles(t *testing.T) {
+	pages, err := ParsePages("", "report794-figure-adjacent")
+	require.NoError(t, err)
+	require.Equal(t, []int{12, 13, 31, 32, 42, 43, 59, 60, 87, 88, 97, 98, 112, 113, 115, 116}, pages)
+	for _, page := range pages {
+		oracle := OracleForPage(page)
+		require.NotContains(t, oracle.ExpectedPhrases, "page "+formatPage(page), "page %d should not use fallback oracle", page)
+		require.NotEmpty(t, append(append([]string{}, oracle.ExpectedPhrases...), oracle.ExpectedCaptions...), "page %d should have expected phrases or captions", page)
+	}
+}
+
 func TestScoreTrialFlagsForbiddenCaptionBleed(t *testing.T) {
 	raw := `{"target_page":12,"transcribed_page_identity":{"title_or_caption_lines":["Figure 1-1: A Rudimentary User Interface"]},"content_markers":{"figure_captions":["Figure 1-1: A Rudimentary User Interface"]},"transcription":"A Rudimentary User Interface\nFigure 1-1: A Rudimentary User Interface","suspected_context_copy":false}`
 	parsed, err := ParseBenchmarkResponse(raw)
