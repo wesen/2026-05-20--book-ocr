@@ -46,3 +46,13 @@ Completed dry-run smoke validation: go test ./... passes and vlm-separation benc
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/command.go — Smoke-tested command
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/runner_test.go — Dry-run persistence regression test
 
+
+## 2026-05-25
+
+Ran the first live VLM separation benchmark on pages 12/13 with gpt-5-mini-low, inspected results, and fixed nested Glazed logging initialization to suppress provider trace deltas (commit 3a13734).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/command.go — Logging initialization fix
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-VLM-SEPARATION-001--investigate-vlm-multi-page-input-separation-for-book-ocr/reference/01-diary.md — Live benchmark diary
+

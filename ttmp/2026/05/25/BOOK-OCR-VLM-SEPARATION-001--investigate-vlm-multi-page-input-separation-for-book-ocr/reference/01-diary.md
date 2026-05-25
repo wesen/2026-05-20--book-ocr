@@ -370,3 +370,116 @@ sqlite3 /tmp/book-ocr-vlm-separation-dry/results.sqlite \
 sqlite3 /tmp/book-ocr-vlm-separation-dry/turns.db \
   "select count(*) from turns; select count(*) from blocks; select count(*) from turn_block_membership;"
 ```
+
+## Step 4: Run the first live VLM separation benchmark and fix command logging
+
+I ran the first opt-in live benchmark using `gpt-5-mini-low` over pages 12 and 13 with three scenarios: `target-only`, `single-block-target-first`, and `multi-block-labeled`. The run completed and wrote results to `/tmp/book-ocr-vlm-separation-live-001`, including benchmark SQLite rows and Pinocchio turn snapshots.
+
+The live run also exposed a command integration issue: because the benchmark was embedded under the older manual `book-ocr` CLI, the Glazed logging initialization was not being called for the nested command. Provider trace deltas printed to the terminal. I fixed the `vlm-separation` Cobra root to install Glazed logging flags and call `logging.InitLoggerFromCobra`, matching the Pinocchio/Glazed pattern.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Go ahead, then write a project report on the whole benchmark thing, as a deep dive technical blog post, and store it in the parc obsidian vault. Use a textbook writing style (no analogies, see skill). Commit and push the vault when done."
+
+**Assistant interpretation:** Run the live benchmark, then write and publish an Obsidian deep-dive report about the benchmark design, implementation, and first results.
+
+**Inferred user intent:** The user wants evidence from a real model run and a durable technical explanation in the Obsidian vault.
+
+**Commit (code):** `3a13734d8851a44319dbf2f47b219bca5944464f` — "Initialize logging for VLM separation command"
+
+### What I did
+
+- Ran live benchmark:
+  - model/profile: `gpt-5-mini-low`
+  - pages: 12, 13
+  - scenarios: `target-only`, `single-block-target-first`, `multi-block-labeled`
+  - output: `/tmp/book-ocr-vlm-separation-live-001`
+- Inspected benchmark SQLite results and raw response files.
+- Inspected turns DB row counts and session/runtime keys.
+- Fixed Glazed logging initialization in `internal/vlmseparation/command.go`.
+- Re-ran tests for the benchmark and command package.
+
+### Why
+
+- Dry-run validation proved persistence paths, but the investigation needs real provider behavior.
+- The noisy provider trace logs made the command hard to use and indicated the nested Glazed root was missing normal logging initialization.
+
+### What worked
+
+- Live benchmark completed 6 trials.
+- Persistence worked:
+  - turns DB `turns`: 6
+  - turns DB `blocks`: 34
+  - turns DB `turn_block_membership`: 56
+- The benchmark captured visibly different scenario behavior.
+- Multi-block-labeled performed best in this small run:
+  - page 12 score: 1.0
+  - page 13 score: 0.75
+- The logging fix compiles and tests pass.
+
+### What didn't work
+
+- Two `target-only` trials were marked `parse_failed` because the model returned JSON-like output that did not match the benchmark schema types exactly.
+- `single-block-target-first` returned parseable JSON but used unexpected fields (`text` or similar), producing score 0 under the current strict scorer.
+- The benchmark response schema needs tightening, probably through provider-native structured output or a repair parser.
+- The first live command emitted many provider trace delta logs before the logging fix.
+
+### What I learned
+
+- The current benchmark is already useful for inspecting block-layout behavior, but the scoring schema is too brittle for live model outputs.
+- Multi-block separation appears promising enough to test further, but this run is too small to conclude safety.
+- Strict JSON schema support should be added before larger live benchmark batches.
+
+### What was tricky to build
+
+- Glazed command initialization had to be added to a nested Cobra root that is launched from a manual `flag`-based CLI. The child command was Glazed, but its parent did not configure logging until this step.
+- The benchmark needs to distinguish two failure classes: target/context bleed and schema non-compliance. The first is the experimental question; the second is a benchmark harness issue.
+
+### What warrants a second pair of eyes
+
+- Review whether the live responses actually show bleed beyond what the current phrase oracle detects.
+- Review whether the `single-block-target-first` score of 0 reflects bad model behavior or scorer/schema mismatch.
+- Review how to add Geppetto structured-output schema configuration to the benchmark turns.
+
+### What should be done in the future
+
+- Add response repair or provider-native structured JSON schema.
+- Add a larger live run after schema compliance improves.
+- Add an inspect/report command that summarizes scenario outcomes directly from SQLite.
+
+### Code review instructions
+
+- Review logging fix:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/command.go`
+- Review live artifacts:
+  - `/tmp/book-ocr-vlm-separation-live-001/results.sqlite`
+  - `/tmp/book-ocr-vlm-separation-live-001/turns.db`
+  - `/tmp/book-ocr-vlm-separation-live-001/trials/trial-000*/response.txt`
+
+### Technical details
+
+Live command used:
+
+```bash
+go run ./cmd/book-ocr vlm-separation benchmark \
+  --dry-run=false \
+  --book-id report-794 \
+  --image-dir /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages \
+  --target-pages 12,13 \
+  --scenarios target-only,single-block-target-first,multi-block-labeled \
+  --profile gpt-5-mini-low \
+  --profile-registries /tmp/book-ocr-hq-001/profiles-clean.yaml \
+  --out-dir /tmp/book-ocr-vlm-separation-live-001 \
+  --output table
+```
+
+SQLite summary:
+
+```text
+trial-0001 target-only page 12 parse_failed score 0.75
+trial-0002 single-block-target-first page 12 succeeded score 0.00
+trial-0003 multi-block-labeled page 12 succeeded score 1.00
+trial-0004 target-only page 13 parse_failed score 0.75
+trial-0005 single-block-target-first page 13 succeeded score 0.00
+trial-0006 multi-block-labeled page 13 succeeded score 0.75
+```
