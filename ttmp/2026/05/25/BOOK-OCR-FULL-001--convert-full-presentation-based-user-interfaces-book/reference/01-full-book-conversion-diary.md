@@ -20,7 +20,9 @@ RelatedFiles:
       Note: Quality pass workflow for full-book artifacts
     - Path: ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/01-full-book-raw.md
       Note: Complete 202-page raw OCR artifact
-    - Path: ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/embedded-figures.md
+    - Path: ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/02-normalized.md
+      Note: Complete normalized OCR artifact
+    - Path: ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/03-embedded-figures.md
       Note: Complete normalized OCR artifact with embedded figure links
 ExternalSources: []
 Summary: Diary for the full 202-page OCR conversion of Presentation Based User Interfaces.
@@ -28,6 +30,7 @@ LastUpdated: 2026-05-25T00:00:00-04:00
 WhatFor: Use this to retrace commands, outputs, failures, and quality decisions for the full-book conversion.
 WhenToUse: Read before resuming, validating, or publishing the full-book OCR artifacts.
 ---
+
 
 
 
@@ -183,8 +186,8 @@ After page 129 succeeded, the run still had a canceled `assemble-markdown` step 
   - figure JSON sidecars: 75
 - Final primary artifacts:
   - `experiments/001-full-book-v5-mini/outputs/01-full-book-raw.md`
-  - `experiments/001-full-book-v5-mini/outputs/quality-pass/normalized.md`
-  - `experiments/001-full-book-v5-mini/outputs/quality-pass/embedded-figures.md`
+  - `experiments/001-full-book-v5-mini/outputs/quality-pass/02-normalized.md`
+  - `experiments/001-full-book-v5-mini/outputs/quality-pass/03-embedded-figures.md`
   - `experiments/001-full-book-v5-mini/outputs/quality-pass/book.discovery.yaml`
   - `experiments/001-full-book-v5-mini/outputs/quality-pass/book.profile.patch.yaml`
   - `experiments/001-full-book-v5-mini/outputs/quality-pass/run-log.sqlite`
@@ -230,7 +233,7 @@ After page 129 succeeded, the run still had a canceled `assemble-markdown` step 
   - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/cmd/book-ocr/main.go`
 - Review final artifacts:
   - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/01-full-book-raw.md`
-  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/embedded-figures.md`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-FULL-001--convert-full-presentation-based-user-interfaces-book/experiments/001-full-book-v5-mini/outputs/quality-pass/03-embedded-figures.md`
 - Validate with:
   - `cd /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr && go test ./... -count=1`
 

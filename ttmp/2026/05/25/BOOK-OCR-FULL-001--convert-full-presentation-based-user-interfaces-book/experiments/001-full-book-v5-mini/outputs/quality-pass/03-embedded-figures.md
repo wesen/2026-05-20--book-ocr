@@ -1,3 +1,17 @@
+---
+Title: Full Book Embedded Figure OCR
+Ticket: BOOK-OCR-FULL-001
+Status: active
+Topics:
+  - ocr
+  - book-processing
+  - experiments
+DocType: reference
+Intent: short-term
+Summary: "Normalized full-book OCR markdown with extracted figure image links."
+LastUpdated: 2026-05-25T00:00:00-04:00
+---
+
 
 <!-- page:001 -->
 

@@ -1,3 +1,17 @@
+---
+Title: Full Book Raw OCR
+Ticket: BOOK-OCR-FULL-001
+Status: active
+Topics:
+  - ocr
+  - book-processing
+  - experiments
+DocType: reference
+Intent: short-term
+Summary: "Raw full-book OCR markdown for Report 794 / Presentation Based User Interfaces."
+LastUpdated: 2026-05-25T00:00:00-04:00
+---
+
 <!-- page:001 -->
 
 Technical Report 794
