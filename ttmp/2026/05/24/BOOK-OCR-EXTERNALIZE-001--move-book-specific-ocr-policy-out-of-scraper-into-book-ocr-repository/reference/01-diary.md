@@ -234,3 +234,72 @@ Corrected target:
 scraper/                  workflow runtime and job queue mechanisms
 2026-05-20--book-ocr/     OCR application, profiles, prompts, QA, figures, experiments
 ```
+
+## Step 3: Add implementation phases for moving OCR into the book-ocr repository
+
+I added the concrete implementation phases to the ticket before moving code. The plan now breaks the extraction into repository setup, package copy, dependency wiring, external smoke tests, scraper removal, scraper verification, and final documentation.
+
+The key sequencing decision is to prove the external OCR application first, then delete OCR from `scraper`. This keeps the move reversible during implementation and gives a clear parity check before removing the old packages.
+
+### Prompt Context
+
+**User prompt (verbatim):** "go ahead, add detailed phases and tasks to the ticket, then move everything over. First, setup a default go package from ~/code/wesen/go-go-golems/go-template . Then do everything task by task, committing at appropriate intervals, keeping a detailed diary as you work."
+
+**Assistant interpretation:** Turn the corrected extraction design into phased ticket tasks, set up the book-ocr repo as a Go module from the template, move all OCR packages/CLI out of scraper, test/commit as each phase completes, and keep a retraceable diary.
+
+**Inferred user intent:** The user wants implementation, not only design: `scraper` should become workflow-runtime-only, and `2026-05-20--book-ocr` should become the OCR application repository.
+
+**Commit (code):** N/A — task planning only in this diary step.
+
+### What I did
+
+- Added implementation tasks for phases 1 through 8:
+  - Go module/template setup.
+  - OCR page workflow copy.
+  - OCR quality/bookprofile/CLI copy.
+  - Dependency wiring and tests.
+  - External smoke test.
+  - Scraper OCR removal.
+  - Scraper verification.
+  - Diary/changelog/design update.
+
+### Why
+
+- Moving code across repositories needs clear checkpoints.
+- The old `scraper` packages should not be deleted until the copied external application compiles and passes a real smoke test.
+
+### What worked
+
+- The ticket now has implementation tasks that match the corrected design.
+
+### What didn't work
+
+- No code has been moved yet in this step.
+
+### What I learned
+
+- The existing `2026-05-20--book-ocr` repository already contained the go-template scaffold files, but still had `XXX` placeholders. The setup phase should normalize those placeholders rather than blindly overwriting ticket docs.
+
+### What was tricky to build
+
+- The template setup must not erase the existing docmgr ticket workspace and reports in the repository.
+
+### What warrants a second pair of eyes
+
+- Whether the module path should be `github.com/go-go-golems/book-ocr` or another final repository name.
+
+### What should be done in the future
+
+- Execute phases 1 through 8 and record commits/tests in this diary.
+
+### Code review instructions
+
+- Review `tasks.md` in the ticket to confirm phase ordering before reviewing code movement.
+
+### Technical details
+
+The external application should ultimately run as:
+
+```bash
+go run ./cmd/book-ocr quality-pass --book-profile ./books/report-794/book.profile.yaml ...
+```
