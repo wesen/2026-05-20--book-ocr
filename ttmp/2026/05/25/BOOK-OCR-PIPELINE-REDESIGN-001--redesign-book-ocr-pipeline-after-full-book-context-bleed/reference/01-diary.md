@@ -16,6 +16,7 @@ RelatedFiles:
       Note: |-
         structured-page CLI wiring (commit cab6b6f)
         Live structured-page CLI and log-level flag (commit 8053bb7)
+        structured-run dry-run CLI and assembly contract (commit 638f8b3)
     - Path: internal/ocrmvp/geppetto_ocr.go
       Note: Context-image root cause reference
     - Path: internal/ocrpipeline/client.go
@@ -67,6 +68,7 @@ LastUpdated: 2026-05-25T00:00:00-04:00
 WhatFor: Use this diary to understand why the structured, target-page-only, turn-persisted OCR redesign ticket was created and what documentation was produced.
 WhenToUse: Read before implementing the redesigned pipeline or continuing the ticket.
 ---
+
 
 
 
@@ -1200,4 +1202,111 @@ for p in 012 013 042 043 115 116; do
   jq '[.blocks[] | select(.type=="figure")] | length' "$base/04-structured.json"
   jq '[.blocks[] | select(.type=="figure" and (.caption // "") != "")] | length' "$base/04-structured.json"
 done
+```
+
+## Step 12: Build Phase 4 structured-run dry-run assembly command
+
+I added a first multi-page `structured-run` command that executes the structured-page path over a discovered page range, writes per-page artifacts, assembles rendered Markdown, and emits a JSON validation report. This is still a simple sequential CLI runner rather than the final workflow-runtime package, but it proves the Phase 4 artifact layout and assembly contract in dry-run mode.
+
+The dry-run first-50 validation passed: 50 page markers, deterministic page directories, a root `turns.db`, an `assembled.md`, and a `validation-report.json`. Page 32 contributes Markdown table rows to the assembled output.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 9)
+
+**Assistant interpretation:** Continue implementing the structured OCR tasks in order, committing each coherent phase and preserving validation details.
+
+**Inferred user intent:** The user wants the structured OCR pipeline to advance beyond single-page tests toward a replayable multi-page run.
+
+**Commit (code):** `638f8b3e2a7c725b9f1387106b1f3fac878ae416` — "Add structured OCR dry-run command"
+
+### What I did
+
+- Added `book-ocr structured-run` in `cmd/book-ocr/main.go`.
+- Reused existing `ocrmvp.DiscoverPageImages` for page discovery.
+- Ran `RunStructuredPage` sequentially for each page.
+- Wrote:
+  - per-page structured artifacts under `pages/page_NNN/`,
+  - root `assembled.md`,
+  - root `validation-report.json`,
+  - root `turns.db` via the existing `OCRTurnStore` default.
+- Ran first-50 dry-run validation.
+
+### Why
+
+- Before adding workflow-runtime integration or live multi-page OCR, the structured page artifact contract needs a simple multi-page runner.
+- This verifies assembly and page-count behavior independently of provider variability.
+
+### What worked
+
+- Full tests passed:
+  - `go test ./... -count=1`
+- Dry-run command succeeded for pages 1-50:
+  - `/tmp/book-ocr-structured-50-dry`
+- Output checks:
+  - `assembled.md` contains `50` page markers.
+  - `validation-report.json` reports `page_count = 50`.
+  - `assembled.md` contains Markdown table rows from page 32.
+  - `turns.db` contains `50` turns.
+  - phase membership counts:
+    - `input|100`
+    - `final|150`
+
+### What didn't work
+
+- I accidentally ran `go test ./... -count=1` once from the parent workspace instead of the Go module directory, which failed with:
+  - `pattern ./...: directory prefix . does not contain modules listed in go.work or their selected dependencies`
+- Rerunning from `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr` passed.
+
+### What I learned
+
+- The current turn store layout works for multi-page dry-run: one logical turn row per page and phase memberships for input/final snapshots.
+- A simple sequential structured-run command is enough to validate artifacts before introducing workflow-runtime queuing and retry concerns.
+
+### What was tricky to build
+
+- The main tradeoff is naming: this Phase 4 command is a dry-run multi-page runner, not yet a durable workflow package. It deliberately proves artifacts first; workflow integration can wrap the same `RunStructuredPage` function later.
+
+### What warrants a second pair of eyes
+
+- Review whether `structured-run` should remain a simple sequential command or immediately move into `scraper/pkg/workflow` package registration.
+- Review the validation report shape before downstream tools depend on it.
+
+### What should be done in the future
+
+- Add a proper workflow package for `structured-run` if we need durable retries and operator controls before live first-50.
+- Add aggregate warning counts to `validation-report.json`.
+- Add adjacent-caption validation across assembled pages.
+
+### Code review instructions
+
+- Review:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/cmd/book-ocr/main.go`
+- Validate with:
+  - `go test ./... -count=1`
+  - the dry-run command below.
+
+### Technical details
+
+Dry-run command:
+
+```bash
+go run ./cmd/book-ocr structured-run \
+  --book-id report-794 \
+  --image-dir /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages \
+  --start-page 1 \
+  --end-page 50 \
+  --work-dir /tmp/book-ocr-structured-50-dry \
+  --dry-run \
+  --log-level warn
+```
+
+Validation commands:
+
+```bash
+rg -c '<!-- page:' /tmp/book-ocr-structured-50-dry/assembled.md
+rg -c '^\|' /tmp/book-ocr-structured-50-dry/assembled.md
+jq '.page_count' /tmp/book-ocr-structured-50-dry/validation-report.json
+sqlite3 /tmp/book-ocr-structured-50-dry/turns.db 'select count(*) from turns;'
+sqlite3 /tmp/book-ocr-structured-50-dry/turns.db 'select phase, count(*) from turn_block_membership group by phase;'
 ```
