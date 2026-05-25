@@ -64,6 +64,15 @@ func TestParseBenchmarkResponseRepairsTextFieldVariant(t *testing.T) {
 	require.Equal(t, 1, metrics.ExpectedPhraseHits)
 }
 
+func TestParseBenchmarkResponseRepairsOCRFieldVariant(t *testing.T) {
+	raw := `{"page":13,"ocr":"Figure 1-1: A Rudimentary User Interface\nApplication Data Base"}`
+	result := ParseBenchmarkResponseDetailed(raw)
+	require.NoError(t, result.Error)
+	require.True(t, result.SchemaRepaired)
+	require.Equal(t, 13, result.Response.TargetPage)
+	require.Contains(t, result.Response.Transcription, "Figure 1-1")
+}
+
 func TestParseBenchmarkResponseExtractsFencedJSONObject(t *testing.T) {
 	raw := "Here is the requested JSON:\n```json\n{\"target_page\":12,\"transcription\":\"A Rudimentary User Interface\"}\n```\nDone."
 	result := ParseBenchmarkResponseDetailed(raw)

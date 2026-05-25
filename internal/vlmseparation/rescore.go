@@ -107,7 +107,20 @@ func rescoreTrialResult(result TrialResult) (TrialResult, error) {
 		}
 	}
 	if raw == "" {
-		return TrialResult{}, fmt.Errorf("empty raw response for trial %s", result.ID)
+		result.RawResponse = ""
+		result.Parsed = nil
+		result.Metrics = ScoreTrial("", nil, OracleForPage(result.TargetPage), fmt.Errorf("empty raw response"))
+		result.Metrics.ParseStrategy = "missing-response"
+		if result.Status == "" || result.Status == "succeeded" {
+			result.Status = "failed"
+		}
+		if result.Error == "" {
+			result.Error = "empty raw response"
+		}
+		if result.CompletedAt.IsZero() {
+			result.CompletedAt = time.Now().UTC()
+		}
+		return result, nil
 	}
 	parseResult := ParseBenchmarkResponseDetailed(raw)
 	if parseResult.Response != nil && parseResult.Response.TargetPage == 0 {

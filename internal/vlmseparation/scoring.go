@@ -142,7 +142,7 @@ func parseFlexibleBenchmarkResponse(jsonText string) (*BenchmarkResponse, error)
 	}
 	response := &BenchmarkResponse{}
 	response.TargetPage = intFromAny(firstPresent(root, "target_page", "page_number", "page"))
-	response.Transcription = stringFromAny(firstPresent(root, "transcription", "text", "ocr_text", "markdown", "content"))
+	response.Transcription = stringFromAny(firstPresent(root, "transcription", "text", "ocr", "ocr_text", "markdown", "content"))
 	response.TranscribedPageIdentity = pageIdentityFromAny(firstPresent(root, "transcribed_page_identity", "page_identity", "identity"))
 	if response.TranscribedPageIdentity.PageNumberVisible == "" {
 		response.TranscribedPageIdentity.PageNumberVisible = stringFromAny(firstPresent(root, "page_number_visible", "visible_page_number"))
