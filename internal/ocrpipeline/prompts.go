@@ -40,6 +40,8 @@ Table rules:
 
 Figure rules:
 - Create a figure block only for a figure visibly present on the target page.
+- If a visible figure has a caption, copy that caption exactly into the figure block's caption field.
+- Do not emit an empty figure block when a visible caption exists; caption is required for captioned figures.
 - Prose references such as "as shown in Figure 1-1" are not figure blocks.
 - Table of Figures entries are list/text entries, not figure blocks.
 - Put long non-tabular diagram label transcriptions in diagram_text, not in paragraph text.

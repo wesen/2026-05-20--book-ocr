@@ -261,7 +261,16 @@ func RunStructuredPage(ctx context.Context, input StructuredOCRInput, client Str
 }
 
 func ValidateStructuredPage(page StructuredPageOCR, rendered string) StructuredValidation {
-	return StructuredValidation{PageNumber: page.PageNumber, FigureCaptions: ocrvalidation.ExtractFigureCaptions(rendered), RenderedBytes: len([]byte(rendered)), StructuredBlocks: len(page.Blocks)}
+	validation := StructuredValidation{PageNumber: page.PageNumber, FigureCaptions: ocrvalidation.ExtractFigureCaptions(rendered), RenderedBytes: len([]byte(rendered)), StructuredBlocks: len(page.Blocks)}
+	for _, block := range page.Blocks {
+		if block.Type == BlockFigure && strings.TrimSpace(block.Caption) == "" {
+			validation.Warnings = append(validation.Warnings, ocrvalidation.Warning{Code: "figure_missing_caption", Page: page.PageNumber, Value: block.ID, Message: fmt.Sprintf("figure block %q has no caption", block.ID)})
+		}
+		if block.Type == BlockTable && block.Table == nil {
+			validation.Warnings = append(validation.Warnings, ocrvalidation.Warning{Code: "table_missing_payload", Page: page.PageNumber, Value: block.ID, Message: fmt.Sprintf("table block %q has no table payload", block.ID)})
+		}
+	}
+	return validation
 }
 
 func writeTurnYAML(path string, turn *turns.Turn) error {

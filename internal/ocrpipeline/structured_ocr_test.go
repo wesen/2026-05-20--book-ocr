@@ -41,6 +41,7 @@ func TestRunStructuredPageDryRunWritesArtifactsAndMarkdownTable(t *testing.T) {
 	require.Contains(t, string(md), "| 1 | 100 | 20 | A1*B1 |")
 	require.Contains(t, string(md), "Figure 2-3: PPSCalc -- Value Display")
 	require.Contains(t, string(md), "| 3 |  |  | 2375 |")
+	require.Empty(t, result.Validation.Warnings)
 
 	db, err := sql.Open("sqlite3", filepath.Join(workDir, "turns.db"))
 	require.NoError(t, err)
@@ -60,6 +61,13 @@ func TestParseStructuredOCRResponseValidatesRequiredFields(t *testing.T) {
 	page, err := ParseStructuredOCRResponse(`{"schema_version":"structured-ocr/v1","book_id":"report-794","page_number":32,"page_type":"body","blocks":[]}`)
 	require.NoError(t, err)
 	require.Equal(t, 32, page.PageNumber)
+}
+
+func TestValidateStructuredPageWarnsForMissingFigureCaption(t *testing.T) {
+	page := StructuredPageOCR{SchemaVersion: StructuredOCRSchemaVersion, BookID: "report-794", PageNumber: 32, PageType: PageTypeFigure, Blocks: []OCRBlock{{ID: "p032-f001", Type: BlockFigure}}}
+	validation := ValidateStructuredPage(page, RenderPageMarkdown(page, nil, DefaultRenderOptions()))
+	require.Len(t, validation.Warnings, 1)
+	require.Equal(t, "figure_missing_caption", validation.Warnings[0].Code)
 }
 
 func TestParseStructuredOCRResponseRepairsCommonLiveShape(t *testing.T) {
