@@ -20,11 +20,17 @@ RelatedFiles:
     - Path: internal/ocrmvp/geppetto_ocr.go
       Note: Root cause code path for multi-image OCR context
     - Path: internal/vlmseparation/command.go
-      Note: Glazed benchmark command implementation
+      Note: |-
+        Glazed benchmark command implementation
+        Rescore command wiring
+    - Path: internal/vlmseparation/rescore.go
+      Note: Saved-run rescore workflow
     - Path: internal/vlmseparation/runner.go
       Note: |-
         Benchmark orchestration and dry-run/live execution
         Attaches parse strategy metadata to trial metrics
+    - Path: internal/vlmseparation/runner_test.go
+      Note: Rescore persistence regression test
     - Path: internal/vlmseparation/scenarios.go
       Note: Scenario-specific Geppetto turn/block layouts
     - Path: internal/vlmseparation/scoring.go
@@ -43,6 +49,7 @@ LastUpdated: 2026-05-25T00:00:00-04:00
 WhatFor: Use this diary to understand the investigation setup before implementing the Glazed benchmark command.
 WhenToUse: Read before continuing BOOK-OCR-VLM-SEPARATION-001 or changing the benchmark design.
 ---
+
 
 
 
@@ -675,4 +682,106 @@ Vault commit:
 
 ```text
 0ff992fdd26cfa5c5badbec8fe8b28d5b730ffc2 Article: update VLM benchmark parsing interpretation
+```
+
+## Step 7: Add a first-class rescore command for saved benchmark runs
+
+The response repair step originally re-scored the first live run through a temporary test harness. That proved the repaired parser worked, but it was not a reusable workflow. I added a first-class `vlm-separation rescore` command so saved benchmark output directories can be re-evaluated without another provider call.
+
+The command reads each trial's saved `trial.json` and `response.txt`, applies the current parser/scorer, rewrites trial artifacts and summary files by default, and updates `results.sqlite`. This makes scoring policy changes auditable and repeatable.
+
+### Prompt Context
+
+**User prompt (verbatim):** "continue."
+
+**Assistant interpretation:** Continue the benchmark hardening path after adding sanitize-backed parser repair, starting with the missing reusable rescore/report workflow.
+
+**Inferred user intent:** The user wants the benchmark to become operationally useful for repeated evidence review, not just one-off temporary test harnesses.
+
+**Commit (code):** `b60654989b1fb354fa36ccbb8970986297f53f17` — "Add VLM benchmark rescore command"
+
+### What I did
+
+- Added `internal/vlmseparation/rescore.go`.
+- Added Glazed command `book-ocr vlm-separation rescore`.
+- Added output rows that include:
+  - `json_parse_ok`,
+  - `json_sanitized`,
+  - `schema_repaired`,
+  - `parse_strategy`,
+  - phrase hits and scores.
+- Added a test that mutates a saved dry-run response into a live-style `page_number`/`text` schema variant and verifies that rescore repairs it and updates SQLite.
+- Ran the command against the first live benchmark output directory:
+  - `/tmp/book-ocr-vlm-separation-live-001`
+
+### Why
+
+- Saved benchmark runs need to be re-scoreable when parsing/scoring policy improves.
+- Re-running live providers just to apply a better parser is expensive and destroys a clean distinction between model output and benchmark interpretation.
+
+### What worked
+
+- `go test ./internal/vlmseparation -count=1` passes.
+- `go test ./... -count=1` passes.
+- `book-ocr vlm-separation rescore --out-dir /tmp/book-ocr-vlm-separation-live-001 --output table` works and rewrites metrics.
+- The live `results.sqlite` now contains repaired parse-strategy fields for the first live run.
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- A benchmark should treat scoring as a replayable projection over saved raw responses. The raw provider output is the source of truth; metrics are derived state.
+
+### What was tricky to build
+
+- The rescore path has to preserve existing trial metadata such as run ID, scenario, target page, turn IDs, request paths, and latency, while replacing only derived fields: parsed response, metrics, status, and error.
+- SQLite migration already existed from Step 5, so rescore needed to reuse `OpenResultDB` and `InsertTrial` instead of writing SQL directly.
+
+### What warrants a second pair of eyes
+
+- Review whether `rescore` should default to `--write=true` or whether it should default to dry/preview mode for safety.
+- Review whether summary files should include parse-strategy aggregate counts.
+
+### What should be done in the future
+
+- Add a richer `report` command that groups by scenario and writes Markdown directly from `results.sqlite`.
+- Run the broader risky-page live benchmark once the user confirms provider spend/runtime.
+
+### Code review instructions
+
+- Start with `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/rescore.go`.
+- Then review the new command wiring in `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/command.go`.
+- Then review `TestRescoreOutputDirRepairsSavedResponseAndUpdatesSQLite` in `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/runner_test.go`.
+- Validate with:
+  - `go test ./internal/vlmseparation -count=1`
+  - `go test ./... -count=1`
+  - `go run ./cmd/book-ocr vlm-separation rescore --out-dir /tmp/book-ocr-vlm-separation-live-001 --output table`
+
+### Technical details
+
+Rescore command:
+
+```bash
+go run ./cmd/book-ocr vlm-separation rescore \
+  --out-dir /tmp/book-ocr-vlm-separation-live-001 \
+  --output table
+```
+
+Updated live SQLite query:
+
+```sql
+select trial_id,
+       json_parse_ok,
+       json_sanitized,
+       schema_repaired,
+       parse_strategy,
+       expected_phrase_hits,
+       expected_phrase_total,
+       forbidden_phrase_hits,
+       suspected_bleed,
+       target_only_score
+from trial_metrics
+order by trial_id;
 ```
