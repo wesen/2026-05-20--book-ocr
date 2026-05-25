@@ -14,7 +14,9 @@ Intent: long-term
 Owners: []
 RelatedFiles:
     - Path: ../../../../../../../../../../code/wesen/go-go-golems/go-go-parc/Projects/2026/05/25/ARTICLE - VLM Separation Benchmark for Book OCR - Prompt Block Layouts and Turn Persistence.md
-      Note: Rewritten deep-dive article
+      Note: |-
+        Rewritten deep-dive article
+        Report command article update
     - Path: cmd/book-ocr/main.go
       Note: Registers vlm-separation benchmark subcommand
     - Path: go.mod
@@ -25,8 +27,11 @@ RelatedFiles:
       Note: |-
         Glazed benchmark command implementation
         Rescore command wiring
+        Report command wiring
     - Path: internal/vlmseparation/oracle.go
       Note: Expanded risky-page oracles
+    - Path: internal/vlmseparation/report.go
+      Note: Formal multi-run report generation
     - Path: internal/vlmseparation/rescore.go
       Note: |-
         Saved-run rescore workflow
@@ -36,7 +41,9 @@ RelatedFiles:
         Benchmark orchestration and dry-run/live execution
         Attaches parse strategy metadata to trial metrics
     - Path: internal/vlmseparation/runner_test.go
-      Note: Rescore persistence regression test
+      Note: |-
+        Rescore persistence regression test
+        Report retry-replacement regression test
     - Path: internal/vlmseparation/scenarios.go
       Note: Scenario-specific Geppetto turn/block layouts
     - Path: internal/vlmseparation/scoring.go
@@ -57,6 +64,7 @@ LastUpdated: 2026-05-25T00:00:00-04:00
 WhatFor: Use this diary to understand the investigation setup before implementing the Glazed benchmark command.
 WhenToUse: Read before continuing BOOK-OCR-VLM-SEPARATION-001 or changing the benchmark design.
 ---
+
 
 
 
@@ -1001,4 +1009,127 @@ Vault commit:
 
 ```text
 802b1b519aeaaaab0b8108c49ff6eb675d020277 Article: expand VLM benchmark deep dive
+```
+
+## Step 10: Add formal multi-run reporting and update the Obsidian report
+
+After the broad benchmark, the remaining gap was reproducible interpretation. The broad run had a main output directory plus two retry output directories. I added a `vlm-separation report` command that reads one or more saved benchmark directories, re-scores their saved responses with the current parser/scorer, merges duplicate logical page/scenario cells, and writes grouped Markdown and JSON reports.
+
+I then used that command to produce formal report artifacts for the broad risky-page run and updated the Obsidian article with a detailed explanation of the reporting workflow, retry replacement rule, generated outputs, and final aggregate tables.
+
+### Prompt Context
+
+**User prompt (verbatim):** "alright, continue. then update the obsidian vault project report."
+
+**Assistant interpretation:** Continue with the next benchmark hardening step, which was the missing report command, and then update the Obsidian report to describe it.
+
+**Inferred user intent:** The user wants the benchmark interpretation to become a reproducible tool output rather than an ad hoc manual summary, and wants the durable project report to stay current.
+
+**Commit (code):** `99446a46e21fddd7317f003bf25f98f7dca78d4c` — "Add VLM benchmark report command"
+
+### What I did
+
+- Added `internal/vlmseparation/report.go` with:
+  - multi-directory report loading,
+  - per-trial rescoring,
+  - logical cell selection by `target_page + scenario`,
+  - retry replacement ranking,
+  - scenario aggregates,
+  - page aggregates,
+  - low/notable trial extraction,
+  - Markdown/JSON rendering.
+- Added Glazed command:
+  - `book-ocr vlm-separation report`
+- Added a regression test proving a retry run replaces a failed main-run logical cell.
+- Ran the report command over:
+  - `/tmp/book-ocr-vlm-separation-live-risky-pages`
+  - `/tmp/book-ocr-vlm-separation-live-risky-pages-retry-43-mbl-2`
+  - `/tmp/book-ocr-vlm-separation-live-risky-pages-retry-88-text`
+- Generated:
+  - `/tmp/book-ocr-vlm-separation-live-risky-pages/report.md`
+  - `/tmp/book-ocr-vlm-separation-live-risky-pages/report.json`
+- Updated and pushed the Obsidian article:
+  - vault commit `1954655c49ed0616deaa25ef1a5c1bb91a79f967` — "Article: document VLM benchmark report command"
+
+### Why
+
+- The broad benchmark's final interpretation depended on combining a main run and retry runs.
+- That combination should be explicit, deterministic, and repeatable.
+- The Obsidian report needed to describe the final workflow rather than leaving retry replacement as prose-only interpretation.
+
+### What worked
+
+- `go test ./internal/vlmseparation -count=1` passes.
+- `go test ./... -count=1` passes.
+- The report command generated a combined report with:
+  - raw trials: 66
+  - logical trials: 64
+  - duplicate logical cells: 2
+  - retry replacements selected: 2
+  - successful logical trials: 64
+  - parseable logical trials: 64
+  - suspected bleed: 0
+  - forbidden hits: 0
+  - average score: 0.930
+- The Obsidian vault update was committed and pushed.
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- For benchmark systems, reporting should treat retry runs as candidate observations for the same logical cell, not as separate unrelated runs.
+- A formal report command makes it much easier to explain which failures were provider transport failures and which cells were successfully replaced.
+
+### What was tricky to build
+
+- The report command needed to merge duplicate logical cells without hiding the fact that duplicates existed. It now records raw trial count, logical trial count, duplicate count, and replacement count.
+- The ranking rule had to be simple and auditable: prefer succeeded trials, parseable responses, no bleed, and higher score.
+
+### What warrants a second pair of eyes
+
+- Review whether the retry replacement rank should consider recency or explicit user-provided replacement mappings instead of automatic best-candidate selection.
+- Review whether `report.md` should include direct relative links to each trial directory for easier navigation.
+
+### What should be done in the future
+
+- Improve the page 59 and 116 oracles.
+- Add optional report sections for parser strategy counts and provider failure categories.
+- Use the report command as the standard final step for future live benchmarks.
+
+### Code review instructions
+
+- Start with `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/report.go`.
+- Review command wiring in `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/command.go`.
+- Review `TestBuildReportMergesRetryRunByLogicalPageScenario` in `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/runner_test.go`.
+- Validate with:
+  - `go test ./internal/vlmseparation -count=1`
+  - `go test ./... -count=1`
+  - the `vlm-separation report` command shown below.
+
+### Technical details
+
+Report command used:
+
+```bash
+go run ./cmd/book-ocr vlm-separation --log-level warn report \
+  --out-dir /tmp/book-ocr-vlm-separation-live-risky-pages \
+  --out-dir /tmp/book-ocr-vlm-separation-live-risky-pages-retry-43-mbl-2 \
+  --out-dir /tmp/book-ocr-vlm-separation-live-risky-pages-retry-88-text \
+  --report-dir /tmp/book-ocr-vlm-separation-live-risky-pages \
+  --output table
+```
+
+Generated artifacts:
+
+```text
+/tmp/book-ocr-vlm-separation-live-risky-pages/report.md
+/tmp/book-ocr-vlm-separation-live-risky-pages/report.json
+```
+
+Vault commit:
+
+```text
+1954655c49ed0616deaa25ef1a5c1bb91a79f967 Article: document VLM benchmark report command
 ```
