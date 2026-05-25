@@ -16,6 +16,7 @@ import (
 
 	"github.com/go-go-golems/book-ocr/internal/ocrmvp"
 	"github.com/go-go-golems/book-ocr/internal/ocrquality"
+	"github.com/go-go-golems/book-ocr/internal/vlmseparation"
 	"github.com/go-go-golems/scraper/pkg/engine/model"
 	"github.com/go-go-golems/scraper/pkg/workflow"
 )
@@ -62,6 +63,8 @@ func run(args []string) error {
 		return listPages(subArgs)
 	case "quality-pass":
 		return runQualityPass(subArgs)
+	case "vlm-separation":
+		return vlmseparation.ExecuteRoot(context.Background(), subArgs)
 	case "help", "-h", "--help":
 		printUsage()
 		return nil
@@ -81,6 +84,7 @@ func printUsage() {
   ocr-mvp cancel --work-dir DIR --run-id RUN_ID
   ocr-mvp pages --work-dir DIR --book-id BOOK_ID [--status STATUS]
   ocr-mvp quality-pass --markdown PATH --output-dir DIR [--expected-pages N]
+  ocr-mvp vlm-separation benchmark [flags]
 
 Run flags include --book-id, --image-dir, --work-dir, --profile, --profile-registries, --prompt-version, --context-window, --log-level, --dry-run, and --max-workers.
 `)
