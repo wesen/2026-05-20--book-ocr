@@ -45,3 +45,12 @@ Added figure-aware prompt contract and marker-recovery fallback for caption-only
 - /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrmvp/prompt.go — Prompt v5
 - /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrquality/figures.go — Marker recovery
 
+
+## 2026-05-24
+
+Added intern-facing generic book OCR analysis/design guide explaining Report 794 specificity and a book-profile implementation plan.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/OCR-QUALITY-WORKERS-001--port-ocr-qa-and-cleanup-scripts-to-go-workflow-workers/design-doc/02-generic-book-ocr-system-analysis-and-implementation-guide.md — Genericization analysis and implementation guide
+
