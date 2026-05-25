@@ -65,3 +65,13 @@ Implemented stable book profile plus machine discovery/profile-patch layer and w
 - /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/bookprofile/profile.go — Stable profiles
 - /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrquality/package.go — Quality-pass discovery step
 
+
+## 2026-05-24
+
+Added figure crop JSON sidecars and debug overlay PNGs so extracted figures are auditable, with smoke test output under /tmp/ocr-quality-sidecar-smoke (code commit d4eb1e36a3a7374fe4425354e9882dd3989b12a0).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/bookprofile/discovery.go — Crop metadata in discovery state
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrquality/figures.go — Sidecar/debug overlay generation
+

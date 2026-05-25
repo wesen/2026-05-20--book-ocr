@@ -13,13 +13,17 @@ Intent: long-term
 Owners: []
 RelatedFiles:
     - Path: ../../../../../../../scraper/pkg/workflows/bookprofile/discovery.go
-      Note: Discovery and patch implementation for Step 4
+      Note: |-
+        Discovery and patch implementation for Step 4
+        Discovery now records crop metadata for Step 5
     - Path: ../../../../../../../scraper/pkg/workflows/bookprofile/profile.go
       Note: Stable book profile implementation for Step 4
     - Path: ../../../../../../../scraper/pkg/workflows/ocrmvp/prompt.go
       Note: Figure-aware OCR prompt version for Step 3
     - Path: ../../../../../../../scraper/pkg/workflows/ocrquality/figures.go
-      Note: Caption-only diagram marker recovery for Step 3
+      Note: |-
+        Caption-only diagram marker recovery for Step 3
+        Figure crop sidecar and debug overlay implementation for Step 5
     - Path: ../../../../../../../scraper/pkg/workflows/ocrquality/package.go
       Note: Quality-pass profile/discovery wiring for Step 4
     - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/analysis/01-final-ocr-quality-report.md
@@ -40,6 +44,7 @@ LastUpdated: 2026-05-24T20:40:00-04:00
 WhatFor: Use this to understand what changed while porting OCR quality scripts to Go and adding context-aware OCR inputs.
 WhenToUse: Read before continuing OCR quality worker implementation or debugging the quality-pass workflow.
 ---
+
 
 
 
@@ -544,4 +549,110 @@ figures:
     marker_source: synthesized-or-explicit
   - page: 21
     marker_source: explicit
+```
+
+## Step 5: Add figure crop sidecars and debug overlays
+
+A crop sidecar is a small metadata file that sits next to an extracted figure image. It records how the crop was produced: source page, figure index, description, crop rectangle, segmentation method, warnings, and debug-overlay path. It is called a sidecar because it travels alongside the primary artifact (`page_015_figure_01.png`) without changing the image file itself.
+
+I added sidecars because figure extraction is otherwise hard to audit. A reviewer can see the final crop, but without metadata they cannot tell which rectangle was selected, which method selected it, or whether the worker thought the crop was suspicious. The debug overlay makes this even more inspectable by drawing the selected crop rectangle on the original page image.
+
+### Prompt Context
+
+**User prompt (verbatim):** "what's the crop sidecar? why sidecar?"
+
+**Assistant interpretation:** Explain the term and then proceed with the sidecar/debug-overlay implementation that had just been proposed.
+
+**Inferred user intent:** The user wants figure extraction to become auditable and understandable, not just produce opaque PNG crops.
+
+**Commit (code):** `d4eb1e36a3a7374fe4425354e9882dd3989b12a0` — "Add OCR figure crop sidecars"
+
+### What I did
+
+- Extended `FigureExtraction` with:
+  - `CropRect`
+  - `Method`
+  - `SidecarPath`
+  - `DebugPath`
+  - `Warnings`
+- Changed figure extraction to return both the crop image and the selected source-page rectangle.
+- Added JSON sidecar generation next to each extracted figure PNG.
+- Added debug overlay PNG generation with a red rectangle over the selected crop region.
+- Stored sidecar JSON and debug overlay PNGs as workflow artifacts.
+- Added crop metadata fields to `bookprofile.DiscoveredFigure` so discovery YAML can record crop provenance.
+- Smoke-tested the quality pass against the Report 794 raw markdown.
+
+### Why
+
+- Full-book figure extraction will need debugging and QA.
+- The final PNG alone is insufficient evidence: it does not explain how the crop was selected.
+- Sidecars keep the image clean while preserving machine-readable provenance.
+- Debug overlays let a reviewer inspect segmentation failures quickly.
+
+### What worked
+
+- `go test ./pkg/workflows/bookprofile ./pkg/workflows/ocrquality -count=1` passed during development.
+- The full pre-commit hook passed Go tests, web tests, lint, gosec, and govulncheck.
+- Smoke test succeeded with run ID `ocr-quality-a38f3611-5407-478e-86b2-cb7f294c71a1`.
+- The smoke output produced, for each figure:
+  - `page_NNN_figure_01.png`
+  - `page_NNN_figure_01.json`
+  - `page_NNN_figure_01.debug.png`
+
+### What didn't work
+
+- The current sidecar records only the selected crop, not all candidate regions.
+- The debug overlay draws the final rectangle, but does not yet show ignored footer zones, connected components, or candidate scores.
+- Warning rules are still basic: very large crop, very small crop, or crop extending into bottom page-furniture zone.
+
+### What I learned
+
+- Sidecars are the right boundary between stable content artifacts and mutable/debuggable extraction metadata.
+- The workflow artifact store can preserve both human-facing images and machine-readable metadata without changing the markdown format.
+- The discovery YAML becomes much more useful once figure observations include crop rectangles and methods.
+
+### What was tricky to build
+
+- The extraction path previously returned only a file path. It now has to return a structured `FigureExtraction` and still produce the same markdown link behavior.
+- The sidecar should include the paths to the sidecar/debug files, but must be written after those paths are known.
+- The debug overlay has to draw in original page coordinates, not crop-local coordinates.
+
+### What warrants a second pair of eyes
+
+- Whether warning thresholds should be profile-configurable.
+- Whether debug overlays should include semi-transparent shaded regions rather than only a red rectangle.
+- Whether sidecar paths should be relative instead of absolute in persisted discovery YAML.
+
+### What should be done in the future
+
+- Add connected-component candidate extraction and include all candidates in the sidecar.
+- Add optional enhanced crop output.
+- Add figure QA counts into the quality report.
+- Add an operator command to inspect sidecar/debug overlays for suspicious crops.
+
+### Code review instructions
+
+- Review:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrquality/figures.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrquality/package.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/bookprofile/discovery.go`
+- Inspect smoke output:
+  - `/tmp/ocr-quality-sidecar-smoke/out/figures/page_015_figure_01.json`
+  - `/tmp/ocr-quality-sidecar-smoke/out/figures/page_015_figure_01.debug.png`
+
+### Technical details
+
+Example sidecar:
+
+```json
+{
+  "page_number": 15,
+  "figure_index": 1,
+  "description": "Full-page diagram showing The Representation Shift Model",
+  "image_path": "/tmp/ocr-quality-sidecar-smoke/out/figures/page_015_figure_01.png",
+  "crop_rect": { "x": 182, "y": 176, "width": 1400, "height": 1042 },
+  "method": "ink-band-v1",
+  "sidecar_path": "/tmp/ocr-quality-sidecar-smoke/out/figures/page_015_figure_01.json",
+  "debug_path": "/tmp/ocr-quality-sidecar-smoke/out/figures/page_015_figure_01.debug.png"
+}
 ```
