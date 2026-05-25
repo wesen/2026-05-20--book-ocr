@@ -56,3 +56,14 @@ Ran the first live VLM separation benchmark on pages 12/13 with gpt-5-mini-low, 
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/command.go — Logging initialization fix
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-VLM-SEPARATION-001--investigate-vlm-multi-page-input-separation-for-book-ocr/reference/01-diary.md — Live benchmark diary
 
+
+## 2026-05-25
+
+Added sanitize-backed response repair so live benchmark scoring separates schema drift from target/context bleed (commit 3e994dd).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/scoring.go — Response repair
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/sqlite.go — Metric schema migration
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-VLM-SEPARATION-001--investigate-vlm-multi-page-input-separation-for-book-ocr/reference/01-diary.md — Diary update
+

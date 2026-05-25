@@ -15,16 +15,24 @@ Owners: []
 RelatedFiles:
     - Path: cmd/book-ocr/main.go
       Note: Registers vlm-separation benchmark subcommand
+    - Path: go.mod
+      Note: Adds sanitize dependency
     - Path: internal/ocrmvp/geppetto_ocr.go
       Note: Root cause code path for multi-image OCR context
     - Path: internal/vlmseparation/command.go
       Note: Glazed benchmark command implementation
     - Path: internal/vlmseparation/runner.go
-      Note: Benchmark orchestration and dry-run/live execution
+      Note: |-
+        Benchmark orchestration and dry-run/live execution
+        Attaches parse strategy metadata to trial metrics
     - Path: internal/vlmseparation/scenarios.go
       Note: Scenario-specific Geppetto turn/block layouts
+    - Path: internal/vlmseparation/scoring.go
+      Note: Sanitize-backed response parsing and schema repair
     - Path: internal/vlmseparation/sqlite.go
-      Note: Benchmark run/trial/metric SQLite persistence
+      Note: |-
+        Benchmark run/trial/metric SQLite persistence
+        Metric schema migration for parse strategy fields
     - Path: internal/vlmseparation/turns.go
       Note: Pinocchio turns DB wrapper
     - Path: ttmp/2026/05/25/BOOK-OCR-VLM-SEPARATION-001--investigate-vlm-multi-page-input-separation-for-book-ocr/design-doc/01-vlm-multi-page-separation-benchmark-design-and-implementation-guide.md
@@ -35,6 +43,7 @@ LastUpdated: 2026-05-25T00:00:00-04:00
 WhatFor: Use this diary to understand the investigation setup before implementing the Glazed benchmark command.
 WhenToUse: Read before continuing BOOK-OCR-VLM-SEPARATION-001 or changing the benchmark design.
 ---
+
 
 
 
@@ -482,4 +491,122 @@ trial-0003 multi-block-labeled page 12 succeeded score 1.00
 trial-0004 target-only page 13 parse_failed score 0.75
 trial-0005 single-block-target-first page 13 succeeded score 0.00
 trial-0006 multi-block-labeled page 13 succeeded score 0.75
+```
+
+## Step 5: Add sanitize-backed response repair for live benchmark scoring
+
+The first live run showed that response parsing was conflating two different issues: target/context bleed and schema-shape drift. The model often returned useful target-page text, but it used fields such as `text`, a string `target_page`, an array-valued `content_markers`, or a string-valued `transcribed_page_identity`. Those are benchmark-harness schema problems, not OCR separation failures.
+
+I added a parse pipeline that first attempts strict benchmark JSON, then validates/repairs the JSON text with `github.com/go-go-golems/sanitize/pkg/json`, and finally performs a conservative schema repair into the canonical `BenchmarkResponse` shape. The metrics now record whether the JSON was sanitized, whether the schema was repaired, and which parse strategy was used.
+
+### Prompt Context
+
+**User prompt (verbatim):** "yes. You can look at ~/code/wesen/go-go-golems/sanitize potentially, whch works on yaml ."
+
+**Assistant interpretation:** Proceed with the proposed response-repair step and use the existing `sanitize` project as a reference or dependency for malformed JSON/YAML-style LLM output recovery.
+
+**Inferred user intent:** The user wants the benchmark to distinguish real VLM separation failures from parse/schema compliance noise, reusing prior sanitizer work instead of building an ad hoc parser from scratch.
+
+**Commit (code):** `3e994dd366ab45a8b5c438b982a4106d65f9f5d8` — "Repair VLM benchmark response parsing"
+
+### What I did
+
+- Inspected `/home/manuel/code/wesen/go-go-golems/sanitize` and found the existing JSON sanitizer package at `pkg/json`.
+- Added dependency `github.com/go-go-golems/sanitize v0.0.1` to `book-ocr`.
+- Replaced the brittle response parser with a staged parser:
+  - strip code fences and extract the first JSON object,
+  - parse strict `BenchmarkResponse` when shape is already correct,
+  - run `jsonsanitize.Sanitize(...)`,
+  - coerce common live-response schema variants into the canonical response shape.
+- Added metric fields:
+  - `json_sanitized`,
+  - `schema_repaired`,
+  - `parse_strategy`.
+- Migrated SQLite `trial_metrics` with backwards-compatible `ALTER TABLE` additions.
+- Added tests for the live string/array schema variants, `text`-field variants, and fenced JSON extraction.
+- Re-ran the existing live response files through the new parser in a temporary test harness.
+
+### Why
+
+- The benchmark is supposed to measure target-page isolation, not strict JSON compliance alone.
+- The first live run produced useful text that scored poorly because the scorer ignored semantically equivalent fields.
+- Reusing `sanitize/pkg/json` gives us parser/linter/fixer behavior that was already built for malformed LLM-style JSON recovery.
+
+### What worked
+
+- `go test ./internal/vlmseparation -count=1` passes.
+- `go test ./... -count=1` passes.
+- Dry-run benchmark still produces strict JSON and all six smoke trials score 1.0.
+- Re-scoring the previous live responses now parses all six trials successfully.
+- The previous live responses re-score as:
+  - `trial-0001 target-only page 12`: score 1.00
+  - `trial-0002 single-block-target-first page 12`: score 1.00
+  - `trial-0003 multi-block-labeled page 12`: score 1.00
+  - `trial-0004 target-only page 13`: score 1.00
+  - `trial-0005 single-block-target-first page 13`: score 1.00
+  - `trial-0006 multi-block-labeled page 13`: score 0.75
+
+### What didn't work
+
+- I did not update the already-written `/tmp/book-ocr-vlm-separation-live-001/results.sqlite`; the re-score was done through a temporary Go test harness against the saved `response.txt` files.
+- The live benchmark still needs either a first-class `rescore` command or a report command so old runs can be re-evaluated without temporary code.
+- The repair parser does not replace provider-native structured output; it only makes the benchmark more robust after the fact.
+
+### What I learned
+
+- The apparent `single-block-target-first` failure in the first result table was mostly schema drift: the model returned `text` instead of the canonical `transcription` field.
+- The first live run did not provide evidence of forbidden-caption bleed for pages 12/13 under the current phrase oracle once schema variants are repaired.
+- Schema compliance and visual-context isolation must be tracked as separate dimensions.
+
+### What was tricky to build
+
+- `encoding/json` can silently accept JSON with unknown fields and produce a zero-valued `BenchmarkResponse`; this made `{"text":"..."}` look like a successful parse while losing the actual transcription. I fixed this by requiring strict parses to have both target page and meaningful canonical content before accepting them.
+- Some live fields were semantically useful but had incompatible shapes: `target_page` as a string, `content_markers` as an array, and `suspected_context_copy` as explanatory text rather than a boolean. The repair path now preserves those values as target page, unique phrases/captions, and notes without setting false bleed flags.
+
+### What warrants a second pair of eyes
+
+- Review whether the repair heuristics are conservative enough, especially the fallback from generic marker arrays to `unique_phrases` and figure-caption classification.
+- Review whether `suspected_context_copy` string values should always be notes, or whether some should set `SuspectedContextCopy=true`.
+- Review whether `TargetPage == 0` should be filled in only by the runner or inside the parser with explicit expected-page context.
+
+### What should be done in the future
+
+- Add a `vlm-separation rescore` or `vlm-separation report` command that reads an existing output directory and rewrites/augments metrics without calling the provider.
+- Add provider-native structured output when the selected Geppetto engine supports it.
+- Update the Obsidian report with the corrected interpretation after re-scoring the first live run.
+
+### Code review instructions
+
+- Start with `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/scoring.go` and review `ParseBenchmarkResponseDetailed`.
+- Then review `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/runner.go` for how parse metadata is attached to metrics.
+- Then review `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/sqlite.go` for the `trial_metrics` schema migration.
+- Validate with:
+  - `go test ./internal/vlmseparation -count=1`
+  - `go test ./... -count=1`
+  - dry-run command against pages 12/13 and query `parse_strategy` columns in `results.sqlite`.
+
+### Technical details
+
+The new parser records these strategies:
+
+```text
+strict-json
+strict-json-sanitized
+strict-json-after-sanitize-validation
+schema-repair
+sanitize-and-schema-repair
+failed
+```
+
+Example SQLite query after a dry run:
+
+```sql
+select trial_id,
+       json_parse_ok,
+       json_sanitized,
+       schema_repaired,
+       parse_strategy,
+       target_only_score
+from trial_metrics
+order by trial_id;
 ```
