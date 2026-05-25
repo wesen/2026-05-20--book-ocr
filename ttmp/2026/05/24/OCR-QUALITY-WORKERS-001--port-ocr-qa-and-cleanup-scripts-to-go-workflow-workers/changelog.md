@@ -54,3 +54,14 @@ Added intern-facing generic book OCR analysis/design guide explaining Report 794
 
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/OCR-QUALITY-WORKERS-001--port-ocr-qa-and-cleanup-scripts-to-go-workflow-workers/design-doc/02-generic-book-ocr-system-analysis-and-implementation-guide.md — Genericization analysis and implementation guide
 
+
+## 2026-05-24
+
+Implemented stable book profile plus machine discovery/profile-patch layer and wired quality-pass to emit discovery artifacts without mutating canonical profiles (code commit c6e5bc2a03a990ee3131b5243110a1fdca95606a).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/bookprofile/discovery.go — Discovery and patch proposals
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/bookprofile/profile.go — Stable profiles
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrquality/package.go — Quality-pass discovery step
+

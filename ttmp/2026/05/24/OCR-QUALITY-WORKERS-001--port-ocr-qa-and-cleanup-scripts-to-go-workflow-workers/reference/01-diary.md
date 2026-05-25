@@ -12,10 +12,16 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: ../../../../../../../scraper/pkg/workflows/bookprofile/discovery.go
+      Note: Discovery and patch implementation for Step 4
+    - Path: ../../../../../../../scraper/pkg/workflows/bookprofile/profile.go
+      Note: Stable book profile implementation for Step 4
     - Path: ../../../../../../../scraper/pkg/workflows/ocrmvp/prompt.go
       Note: Figure-aware OCR prompt version for Step 3
     - Path: ../../../../../../../scraper/pkg/workflows/ocrquality/figures.go
       Note: Caption-only diagram marker recovery for Step 3
+    - Path: ../../../../../../../scraper/pkg/workflows/ocrquality/package.go
+      Note: Quality-pass profile/discovery wiring for Step 4
     - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/analysis/01-final-ocr-quality-report.md
       Note: Source for follow-up tasks
     - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/OCR-QUALITY-WORKERS-001--port-ocr-qa-and-cleanup-scripts-to-go-workflow-workers/experiments/001-go-quality-pass-embedded-figures/notes.md
@@ -34,6 +40,7 @@ LastUpdated: 2026-05-24T20:40:00-04:00
 WhatFor: Use this to understand what changed while porting OCR quality scripts to Go and adding context-aware OCR inputs.
 WhenToUse: Read before continuing OCR quality worker implementation or debugging the quality-pass workflow.
 ---
+
 
 
 
@@ -391,4 +398,150 @@ New figure links observed in the output:
 ```markdown
 ![Full-page diagram showing The Representation Shift Model](figures/page_015_figure_01.png)
 ![Full-page diagram showing The Primitive Presentation System (PPS) Model](figures/page_017_figure_01.png)
+```
+
+## Step 4: Add stable book profiles, machine discovery, and reviewable profile patches
+
+I updated the generic OCR design around an important workflow rule: the YAML profile should evolve as the system learns about a book, but the canonical `book.profile.yaml` must not be silently mutated by OCR workers. Instead, the system now has a three-layer model: a stable human-curated profile, a machine-updated discovery state, and a proposed profile patch that an operator can review and promote.
+
+I then implemented the first Go slice of that design. The new `bookprofile` package defines profile, discovery, and patch types, ships a built-in Report 794 profile, loads/saves YAML, and lets `ocr-mvp quality-pass` use profile defaults while writing discovery and patch artifacts.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, update the design guide for this. 
+
+Then add tasks and phases (detailed) to the ticket, and then implement them one by one, committing at appropriate intervals, keeping a detaield diary.
+
+Feel free to do real smoke tests whenever you want."
+
+**Assistant interpretation:** Update the guide to capture stable-profile vs discovery-state behavior, add phased tasks, then start implementing the profile/discovery design with commits and smoke tests.
+
+**Inferred user intent:** The user wants the genericization design to become real code, while keeping the implementation auditable and avoiding unreviewed profile mutation.
+
+**Commit (code):** `c6e5bc2a03a990ee3131b5243110a1fdca95606a` — "Add book profile discovery layer"
+
+### What I did
+
+- Added five detailed phase tasks to `OCR-QUALITY-WORKERS-001`.
+- Updated `design-doc/02-generic-book-ocr-system-analysis-and-implementation-guide.md` with the stable profile / discovery / patch model.
+- Added `scraper/pkg/workflows/bookprofile` with:
+  - `Profile` and policy structs.
+  - book-family and page-type enums.
+  - built-in `Report794()` profile.
+  - YAML `Load` and `Save` helpers.
+  - `DiscoveryState` and observation structs.
+  - `ProfilePatch` and patch proposal structs.
+  - `BuildPatch` for converting discoveries into reviewable proposals.
+- Added profile tests.
+- Wired `ocrquality.RunInput` with `BookProfilePath`, `DiscoveryPath`, and `ProfilePatchPath`.
+- Updated `ocrquality.normalizeRunInput` so quality-pass defaults can come from the built-in or YAML profile.
+- Added `ocr-quality/write-discovery` executor.
+- Added `ocr-mvp quality-pass` flags:
+  - `--book-profile`
+  - `--discovery`
+  - `--profile-patch`
+- Ran a real quality-pass smoke test against the Report 794 Experiment 007 raw markdown.
+
+### Why
+
+- OCR and QA learn useful facts during processing: inferred page types, extracted figures, QA findings, recurring vocabulary, and future profile candidates.
+- Those facts should be persisted, but not automatically promoted into stable policy.
+- A stable/discovery/patch split lets the system improve over time while preserving human review and provenance.
+
+### What worked
+
+- Unit tests passed for `bookprofile`, `ocrquality`, and `cmd/ocr-mvp` during development.
+- The full pre-commit hook passed Go tests, web unit tests, golangci-lint, gosec, and govulncheck.
+- Smoke test succeeded:
+  - run ID: `ocr-quality-71bcabdc-b064-4759-a210-3c47cd6874fa`
+  - output dir: `/tmp/ocr-quality-profile-smoke/out`
+- The smoke test wrote:
+  - `/tmp/ocr-quality-profile-smoke/out/book.discovery.yaml`
+  - `/tmp/ocr-quality-profile-smoke/out/book.profile.patch.yaml`
+  - `/tmp/ocr-quality-profile-smoke/out/embedded-figures.md`
+- Discovery recorded four diagram pages and four embedded figures.
+- The canonical built-in Report 794 profile was not mutated.
+
+### What didn't work
+
+- The first patch proposal is intentionally sparse because the built-in Report 794 profile already knows pages 13, 15, 17, and 21 are diagrams and expects four figures.
+- The first discovery writer records figure-derived observations only; it does not yet infer table pages, frontmatter pages, vocabulary candidates, or suspicious crop warnings.
+
+### What I learned
+
+- The profile/discovery split maps cleanly onto the workflow system: profile fields provide defaults, while discovery files are regular workflow artifacts.
+- It is useful for `quality-pass` to write discovery artifacts even when no patch changes are proposed, because the discovery file is still run evidence.
+- Built-in profiles are a good bridge: existing Report 794 behavior can become data without requiring an external YAML file immediately.
+
+### What was tricky to build
+
+- The workflow executor has to read dependency results from `embed-figures` and `qa-after` to create discovery state. This makes step IDs part of the internal quality workflow contract.
+- The patch builder must avoid proposing changes that are already present in the stable profile.
+- The CLI default for `--expected-pages` had to change from `30` to `0` so profile defaults can actually apply.
+
+### What warrants a second pair of eyes
+
+- Whether `BookProfilePath` should become `ProfileID` plus `ProfilePath` instead of one path field.
+- Whether `bookprofile` should live under `pkg/workflows` or a more general package once other workflows use it.
+- Whether discovery should be a separate workflow package or remain a quality-pass step.
+- Whether patch proposals should include empty sections or omit them entirely when there is nothing to promote.
+
+### What should be done in the future
+
+- Add profile-driven prompt rendering for OCR runs, not just quality-pass defaults.
+- Add richer discovery inference for page types and vocabulary candidates.
+- Add figure QA warnings and crop sidecar metadata to discovery.
+- Add an operator command to apply profile patches after review.
+- Add built-in starter profiles for textbook, novel, manual, math, and historical-scan book families.
+
+### Code review instructions
+
+- Start with:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/bookprofile/profile.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/bookprofile/discovery.go`
+- Then review quality-pass wiring:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrquality/types.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrquality/package.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/cmd/ocr-mvp/main.go`
+- Validate with:
+  - `cd /home/manuel/workspaces/2026-05-20/book-ocr/scraper && go test ./pkg/workflows/bookprofile ./pkg/workflows/ocrquality ./cmd/ocr-mvp -count=1`
+
+### Technical details
+
+Smoke command:
+
+```bash
+go run ./cmd/ocr-mvp quality-pass \
+  --markdown /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/experiments/007-quality-v4-mini-pages-001-030/outputs/01-final-quality-v4-mini-pages-001-030.md \
+  --output-dir /tmp/ocr-quality-profile-smoke/out \
+  --work-dir /tmp/ocr-quality-profile-smoke/work \
+  --book-id report-794 \
+  --image-dir /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages \
+  --embed-figures
+```
+
+Discovery output excerpt:
+
+```yaml
+book_id: report-794
+source_profile: report-794
+run_id: ocr-quality-71bcabdc-b064-4759-a210-3c47cd6874fa
+observed_pages:
+  - page: 13
+    inferred_type: diagram
+  - page: 15
+    inferred_type: diagram
+  - page: 17
+    inferred_type: diagram
+  - page: 21
+    inferred_type: diagram
+figures:
+  - page: 13
+    marker_source: explicit
+  - page: 15
+    marker_source: synthesized-or-explicit
+  - page: 17
+    marker_source: synthesized-or-explicit
+  - page: 21
+    marker_source: explicit
 ```

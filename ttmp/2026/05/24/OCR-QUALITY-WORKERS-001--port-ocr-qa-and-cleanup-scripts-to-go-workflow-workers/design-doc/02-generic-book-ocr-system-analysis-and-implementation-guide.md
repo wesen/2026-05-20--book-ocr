@@ -14,6 +14,10 @@ Owners: []
 RelatedFiles:
     - Path: ../../../../../../../scraper/cmd/ocr-mvp/main.go
       Note: CLI/operator surface for run and quality-pass
+    - Path: ../../../../../../../scraper/pkg/workflows/bookprofile/discovery.go
+      Note: Implements discovery and patch proposal layer
+    - Path: ../../../../../../../scraper/pkg/workflows/bookprofile/profile.go
+      Note: Implements proposed BookProfile layer
     - Path: ../../../../../../../scraper/pkg/workflows/ocrmvp/prompt.go
       Note: Prompt versions and current Report 794 specificity
     - Path: ../../../../../../../scraper/pkg/workflows/ocrmvp/types.go
@@ -30,6 +34,7 @@ LastUpdated: 2026-05-24T21:39:41.068715274-04:00
 WhatFor: Use this as the intern-facing technical guide for understanding, genericizing, and extending the OCR workflow and quality-pass system.
 WhenToUse: Read before changing prompt policies, adding book profiles, porting the workflow to a new book type, or implementing generic figure/QA/continuity features.
 ---
+
 
 
 # Generic Book OCR System Analysis and Implementation Guide
@@ -774,6 +779,163 @@ figures:
   synthesize_missing_markers: true
   segmentation_strategy: ink-band-v1
 ```
+
+## Stable Profile, Discovery State, and Patch Proposals
+
+The proposed YAML profile should not be treated as a single mutable file that the OCR workflow rewrites in place. The OCR process does learn more about a book as it runs: it discovers page types, figure pages, recurring OCR errors, vocabulary candidates, list-page ranges, table-heavy sections, and pages that need retry or human review. That information should be captured, but it should not silently mutate the curated source-of-truth profile.
+
+Use three layers instead:
+
+```text
+book.profile.yaml          # human-curated stable policy
+book.discovery.yaml        # machine-updated observations from OCR/QA runs
+book.profile.patch.yaml    # machine-proposed profile changes for operator review
+```
+
+The separation is important because book profiles are policy, while discovery files are evidence. A profile says what the system should believe and how it should behave. A discovery file says what the system observed in a particular run. A patch proposal says which observations might be worth promoting into policy.
+
+```mermaid
+flowchart TD
+    A[book.profile.yaml curated policy] --> D[OCR run]
+    B[page images] --> D
+    D --> E[raw markdown]
+    E --> F[quality-pass]
+    F --> G[book.discovery.yaml machine observations]
+    F --> H[book.profile.patch.yaml proposed changes]
+    H --> I{operator review}
+    I -- accept --> A
+    I -- reject/edit --> J[discard or revise patch]
+
+    style A fill:#eef,stroke:#447
+    style G fill:#ffd,stroke:#aa7
+    style H fill:#efe,stroke:#484
+    style I fill:#fdf,stroke:#848
+```
+
+### `book.profile.yaml`: stable source of truth
+
+The stable profile is curated and versioned. It should change only when a human or an explicit operator action promotes a discovery into policy.
+
+It contains:
+
+- book identity and family;
+- source image naming policy;
+- stable vocabulary and protected terms;
+- page-type rules known before the run;
+- prompt policy;
+- QA policy;
+- normalization policy;
+- figure extraction policy;
+- context-window policy.
+
+It should not contain every transient QA warning from every run. It should contain the durable rules that future runs should use.
+
+### `book.discovery.yaml`: machine-updated observations
+
+The discovery file is updated by OCR and quality workers. It is allowed to change during a run because it is not the policy source of truth.
+
+It should contain:
+
+```yaml
+book_id: report-794
+source_profile: report-794
+run_id: ocr-quality-f29626cb-d734-4c0b-8ab1-e3874ad1fc8c
+updated: 2026-05-24T21:33:55-04:00
+
+observed_pages:
+  - page: 15
+    inferred_type: diagram
+    confidence: 0.82
+    evidence:
+      - standalone Figure caption
+      - diagram arrow lines
+      - sparse short labels
+
+figures:
+  - page: 15
+    caption: "Figure 1-2: The Representation Shift Model"
+    marker_source: synthesized
+    image_path: figures/page_015_figure_01.png
+    warnings: []
+
+vocabulary_candidates:
+  - term: PPSCalc
+    pages: [30]
+    reason: repeated protected-looking mixed-case acronym
+
+qa_findings:
+  - code: known_bad_term
+    page: 0
+    message: "No known bad terms found"
+```
+
+Discovery files can be noisy. They are useful because they create a persistent memory of what the workflow learned without making that learning authoritative too early.
+
+### `book.profile.patch.yaml`: proposed promotions
+
+The patch file is a review artifact. It should be small and explain why each proposed profile change exists.
+
+Example:
+
+```yaml
+source_profile: report-794
+source_discovery: book.discovery.yaml
+proposals:
+  page_types:
+    add:
+      15: diagram
+      17: diagram
+  qa:
+    expected_figure_count: 4
+  vocabulary:
+    protected_terms:
+      add:
+        - Representation Shift Model
+        - Primitive Presentation System
+reasons:
+  - "Figure 1-2 and Figure 1-3 were recovered as full-page diagrams from caption-only OCR output."
+  - "Vision validation confirmed the crops contain complete diagrams and no footer page numbers."
+```
+
+A future operator command can apply these patches:
+
+```bash
+ocr-mvp profile apply-patch \
+  --profile book.profile.yaml \
+  --patch book.profile.patch.yaml \
+  --out book.profile.updated.yaml
+```
+
+Do not auto-apply patches during `ocr-mvp run` or `ocr-mvp quality-pass`. The safe default is to emit discoveries and proposed changes, then require review.
+
+### Implementation rule
+
+Every worker that learns something should write to discovery state rather than editing the profile directly.
+
+Pseudocode:
+
+```go
+func RecordFigureDiscovery(state *DiscoveryState, fig FigureExtraction) {
+    state.Figures = append(state.Figures, DiscoveredFigure{
+        Page: fig.PageNumber,
+        Description: fig.Description,
+        ImagePath: fig.ImagePath,
+        MarkerSource: fig.MarkerSource,
+    })
+}
+
+func BuildProfilePatch(profile BookProfile, state DiscoveryState) ProfilePatch {
+    patch := ProfilePatch{SourceProfile: profile.ID}
+    for _, fig := range state.Figures {
+        if fig.MarkerSource == "synthesized" {
+            patch.PageTypes.Add[fig.Page] = PageDiagram
+        }
+    }
+    return patch
+}
+```
+
+This gives the OCR system memory and learning behavior while preserving auditability.
 
 ## Generic Book-Type Defaults
 
