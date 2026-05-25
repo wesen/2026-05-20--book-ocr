@@ -44,3 +44,13 @@ Moved OCR workflows, quality workers, book profile code, and OCR CLI into 2026-0
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrquality/package.go — External quality workflow
 - /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflow/runtime.go — Remaining generic runtime
 
+
+## 2026-05-25
+
+Refreshed reMarkable upload after implementation status updates and Obsidian article sync.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-EXTERNALIZE-001--move-book-specific-ocr-policy-out-of-scraper-into-book-ocr-repository/design-doc/01-externalizing-book-ocr-policy-from-scraper-design-and-implementation-guide.md — Updated implemented extraction status
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-EXTERNALIZE-001--move-book-specific-ocr-policy-out-of-scraper-into-book-ocr-repository/reference/01-diary.md — Implementation diary
+
