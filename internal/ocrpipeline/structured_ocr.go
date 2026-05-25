@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/go-go-golems/book-ocr/internal/ocrvalidation"
 	"github.com/go-go-golems/geppetto/pkg/turns"
 	"github.com/go-go-golems/geppetto/pkg/turns/serde"
+	jsonsanitize "github.com/go-go-golems/sanitize/pkg/json"
 )
 
 type StructuredPageRunResult struct {
@@ -77,12 +79,18 @@ func FakeStructuredPage(bookID string, pageNumber int) StructuredPageOCR {
 }
 
 func ParseStructuredOCRResponse(raw string) (StructuredPageOCR, error) {
-	trimmed := strings.TrimSpace(raw)
-	if trimmed == "" {
+	jsonText := normalizeStructuredJSONText(raw)
+	if jsonText == "" {
 		return StructuredPageOCR{}, fmt.Errorf("empty structured OCR response")
 	}
-	var page StructuredPageOCR
-	if err := json.Unmarshal([]byte(trimmed), &page); err != nil {
+	page, err := decodeStructuredPage(jsonText)
+	if err != nil {
+		sanitized := jsonsanitize.Sanitize(jsonText)
+		if sanitized.StrictParseClean && strings.TrimSpace(sanitized.Sanitized) != "" {
+			page, err = decodeStructuredPage(sanitized.Sanitized)
+		}
+	}
+	if err != nil {
 		return StructuredPageOCR{}, fmt.Errorf("parse structured OCR JSON: %w", err)
 	}
 	if page.SchemaVersion == "" {
@@ -91,7 +99,74 @@ func ParseStructuredOCRResponse(raw string) (StructuredPageOCR, error) {
 	if page.PageNumber <= 0 {
 		return StructuredPageOCR{}, fmt.Errorf("structured OCR response missing positive page_number")
 	}
+	repairStructuredPage(&page)
 	return page, nil
+}
+
+func decodeStructuredPage(jsonText string) (StructuredPageOCR, error) {
+	jsonText = fixLeadingZeroJSONNumbers(jsonText)
+	var page StructuredPageOCR
+	if err := json.Unmarshal([]byte(jsonText), &page); err != nil {
+		return StructuredPageOCR{}, err
+	}
+	return page, nil
+}
+
+func normalizeStructuredJSONText(raw string) string {
+	trimmed := strings.TrimSpace(raw)
+	trimmed = strings.TrimPrefix(trimmed, "```json")
+	trimmed = strings.TrimPrefix(trimmed, "```JSON")
+	trimmed = strings.TrimPrefix(trimmed, "```")
+	trimmed = strings.TrimSuffix(trimmed, "```")
+	trimmed = strings.TrimSpace(trimmed)
+	if start := strings.IndexByte(trimmed, '{'); start >= 0 {
+		depth := 0
+		inString := false
+		escaped := false
+		for i := start; i < len(trimmed); i++ {
+			ch := trimmed[i]
+			if inString {
+				if escaped {
+					escaped = false
+					continue
+				}
+				if ch == '\\' {
+					escaped = true
+					continue
+				}
+				if ch == '"' {
+					inString = false
+				}
+				continue
+			}
+			switch ch {
+			case '"':
+				inString = true
+			case '{':
+				depth++
+			case '}':
+				depth--
+				if depth == 0 {
+					return strings.TrimSpace(trimmed[start : i+1])
+				}
+			}
+		}
+	}
+	return trimmed
+}
+
+var leadingZeroJSONNumberRE = regexp.MustCompile(`(:\s*)0+(\d+)`)
+
+func fixLeadingZeroJSONNumbers(jsonText string) string {
+	return leadingZeroJSONNumberRE.ReplaceAllString(jsonText, `${1}${2}`)
+}
+
+func repairStructuredPage(page *StructuredPageOCR) {
+	for i := range page.Blocks {
+		if strings.TrimSpace(page.Blocks[i].ID) == "" {
+			page.Blocks[i].ID = fmt.Sprintf("p%03d-b%03d", page.PageNumber, i+1)
+		}
+	}
 }
 
 func RunStructuredPage(ctx context.Context, input StructuredOCRInput, client StructuredOCRClient) (StructuredPageRunResult, error) {
@@ -114,6 +189,20 @@ func RunStructuredPage(ctx context.Context, input StructuredOCRInput, client Str
 	}
 	defer closeFn()
 
+	pageDir := filepath.Join(input.WorkDir, "pages", fmt.Sprintf("page_%03d", input.PageNumber))
+	if err := os.MkdirAll(pageDir, 0o755); err != nil {
+		return StructuredPageRunResult{}, err
+	}
+	paths := map[string]string{
+		"input":      filepath.Join(pageDir, "01-turn-input.yaml"),
+		"final":      filepath.Join(pageDir, "02-turn-final.yaml"),
+		"raw":        filepath.Join(pageDir, "03-raw-response.json"),
+		"structured": filepath.Join(pageDir, "04-structured.json"),
+		"rendered":   filepath.Join(pageDir, "05-rendered.md"),
+		"validation": filepath.Join(pageDir, "06-validation.json"),
+		"error":      filepath.Join(pageDir, "07-error.txt"),
+	}
+
 	result, err := client.OCRPage(ctx, input, imageBytes)
 	if err != nil {
 		return StructuredPageRunResult{}, err
@@ -129,28 +218,6 @@ func RunStructuredPage(ctx context.Context, input StructuredOCRInput, client Str
 	if err := turnStore.Save(ctx, sessionID, turnID, "final", result.FinalTurn); err != nil {
 		return StructuredPageRunResult{}, err
 	}
-	parsed, err := ParseStructuredOCRResponse(result.RawResponse)
-	if err != nil {
-		return StructuredPageRunResult{}, err
-	}
-	if parsed.PageNumber != input.PageNumber {
-		return StructuredPageRunResult{}, fmt.Errorf("structured OCR page mismatch: input page %03d response page %03d", input.PageNumber, parsed.PageNumber)
-	}
-	rendered := RenderPageMarkdown(parsed, nil, DefaultRenderOptions())
-	validation := ValidateStructuredPage(parsed, rendered)
-
-	pageDir := filepath.Join(input.WorkDir, "pages", fmt.Sprintf("page_%03d", input.PageNumber))
-	if err := os.MkdirAll(pageDir, 0o755); err != nil {
-		return StructuredPageRunResult{}, err
-	}
-	paths := map[string]string{
-		"input":      filepath.Join(pageDir, "01-turn-input.yaml"),
-		"final":      filepath.Join(pageDir, "02-turn-final.yaml"),
-		"raw":        filepath.Join(pageDir, "03-raw-response.json"),
-		"structured": filepath.Join(pageDir, "04-structured.json"),
-		"rendered":   filepath.Join(pageDir, "05-rendered.md"),
-		"validation": filepath.Join(pageDir, "06-validation.json"),
-	}
 	if err := writeTurnYAML(paths["input"], result.InputTurn); err != nil {
 		return StructuredPageRunResult{}, err
 	}
@@ -160,6 +227,19 @@ func RunStructuredPage(ctx context.Context, input StructuredOCRInput, client Str
 	if err := os.WriteFile(paths["raw"], []byte(result.RawResponse+"\n"), 0o644); err != nil {
 		return StructuredPageRunResult{}, err
 	}
+
+	parsed, err := ParseStructuredOCRResponse(result.RawResponse)
+	if err != nil {
+		_ = os.WriteFile(paths["error"], []byte(err.Error()+"\n"), 0o644)
+		return StructuredPageRunResult{PageNumber: input.PageNumber, PageDir: pageDir, RawResponse: paths["raw"], TurnsDSN: turnStore.DSN()}, err
+	}
+	if parsed.PageNumber != input.PageNumber {
+		err := fmt.Errorf("structured OCR page mismatch: input page %03d response page %03d", input.PageNumber, parsed.PageNumber)
+		_ = os.WriteFile(paths["error"], []byte(err.Error()+"\n"), 0o644)
+		return StructuredPageRunResult{PageNumber: input.PageNumber, PageDir: pageDir, RawResponse: paths["raw"], StructuredJSON: paths["structured"], TurnsDSN: turnStore.DSN()}, err
+	}
+	rendered := RenderPageMarkdown(parsed, nil, DefaultRenderOptions())
+	validation := ValidateStructuredPage(parsed, rendered)
 	structuredJSON, err := json.MarshalIndent(parsed, "", "  ")
 	if err != nil {
 		return StructuredPageRunResult{}, err

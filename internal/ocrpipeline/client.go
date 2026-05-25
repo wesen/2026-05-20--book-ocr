@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/go-go-golems/geppetto/pkg/turns"
+	"github.com/go-go-golems/pinocchio/pkg/cmds/profilebootstrap"
 )
 
 type StructuredOCRInput struct {
@@ -32,6 +33,46 @@ type StructuredOCRResult struct {
 
 type StructuredOCRClient interface {
 	OCRPage(ctx context.Context, input StructuredOCRInput, imageBytes []byte) (StructuredOCRResult, error)
+}
+
+type GeppettoStructuredOCRClient struct{}
+
+func NewGeppettoStructuredOCRClient() *GeppettoStructuredOCRClient {
+	return &GeppettoStructuredOCRClient{}
+}
+
+func (c *GeppettoStructuredOCRClient) OCRPage(ctx context.Context, input StructuredOCRInput, imageBytes []byte) (StructuredOCRResult, error) {
+	inputTurn, err := BuildStructuredOCRInputTurn(input, imageBytes)
+	if err != nil {
+		return StructuredOCRResult{}, err
+	}
+	parsed, err := profilebootstrap.NewCLISelectionValues(profilebootstrap.CLISelectionInput{
+		Profile:           input.Profile,
+		ProfileRegistries: append([]string(nil), input.ProfileRegistries...),
+	})
+	if err != nil {
+		return StructuredOCRResult{}, fmt.Errorf("build pinocchio profile selection: %w", err)
+	}
+	resolved, err := profilebootstrap.ResolveCLIEngineSettings(ctx, parsed)
+	if err != nil {
+		return StructuredOCRResult{}, fmt.Errorf("resolve pinocchio profile-backed engine settings: %w", err)
+	}
+	if resolved.Close != nil {
+		defer resolved.Close()
+	}
+	eng, err := profilebootstrap.NewEngineFromResolvedCLIEngineSettings(resolved)
+	if err != nil {
+		return StructuredOCRResult{}, fmt.Errorf("build geppetto engine from pinocchio profile: %w", err)
+	}
+	finalTurn, err := eng.RunInference(ctx, inputTurn)
+	if err != nil {
+		return StructuredOCRResult{}, fmt.Errorf("run structured OCR inference: %w", err)
+	}
+	raw, err := lastLLMText(finalTurn)
+	if err != nil {
+		return StructuredOCRResult{}, err
+	}
+	return StructuredOCRResult{RawResponse: raw, InputTurn: inputTurn, FinalTurn: finalTurn}, nil
 }
 
 func BuildStructuredOCRInputTurn(input StructuredOCRInput, imageBytes []byte) (*turns.Turn, error) {
@@ -105,4 +146,20 @@ func countImagesInValue(value any) int {
 	default:
 		return 0
 	}
+}
+
+func lastLLMText(turn *turns.Turn) (string, error) {
+	if turn == nil {
+		return "", fmt.Errorf("nil geppetto turn")
+	}
+	blocks := turns.FindLastBlocksByKind(*turn, turns.BlockKindLLMText)
+	if len(blocks) == 0 {
+		return "", fmt.Errorf("structured OCR response did not include an LLM text block")
+	}
+	text, _ := blocks[len(blocks)-1].Payload[turns.PayloadKeyText].(string)
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return "", fmt.Errorf("structured OCR response was empty")
+	}
+	return text, nil
 }

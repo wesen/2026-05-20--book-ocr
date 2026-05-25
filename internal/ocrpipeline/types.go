@@ -1,5 +1,11 @@
 package ocrpipeline
 
+import (
+	"encoding/json"
+	"fmt"
+	"strings"
+)
+
 // StructuredPageOCR is the canonical page-level OCR representation used by
 // the structured pipeline before deterministic Markdown rendering.
 type StructuredPageOCR struct {
@@ -9,6 +15,36 @@ type StructuredPageOCR struct {
 	PageType      PageType   `json:"page_type"`
 	Blocks        []OCRBlock `json:"blocks"`
 	Warnings      []Warning  `json:"warnings,omitempty"`
+}
+
+func (p *StructuredPageOCR) UnmarshalJSON(data []byte) error {
+	type alias StructuredPageOCR
+	var raw struct {
+		alias
+		PageNumber any `json:"page_number"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	*p = StructuredPageOCR(raw.alias)
+	switch v := raw.PageNumber.(type) {
+	case nil:
+	case float64:
+		p.PageNumber = int(v)
+	case string:
+		var n int
+		if _, err := fmt.Sscanf(strings.TrimSpace(v), "%d", &n); err != nil {
+			return fmt.Errorf("parse page_number %q: %w", v, err)
+		}
+		p.PageNumber = n
+	default:
+		var n int
+		if _, err := fmt.Sscanf(fmt.Sprint(v), "%d", &n); err != nil {
+			return fmt.Errorf("parse page_number %v: %w", v, err)
+		}
+		p.PageNumber = n
+	}
+	return nil
 }
 
 type PageType string
@@ -50,6 +86,39 @@ type OCRBlock struct {
 	DiagramText []string    `json:"diagram_text,omitempty"`
 	Confidence  string      `json:"confidence,omitempty"`
 	Warnings    []Warning   `json:"warnings,omitempty"`
+}
+
+func (b *OCRBlock) UnmarshalJSON(data []byte) error {
+	type alias OCRBlock
+	var raw struct {
+		alias
+		DiagramText any `json:"diagram_text,omitempty"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	*b = OCRBlock(raw.alias)
+	switch v := raw.DiagramText.(type) {
+	case nil:
+	case string:
+		for _, line := range strings.Split(v, "\n") {
+			line = strings.TrimSpace(line)
+			if line != "" {
+				b.DiagramText = append(b.DiagramText, line)
+			}
+		}
+	case []any:
+		for _, item := range v {
+			if s := strings.TrimSpace(fmt.Sprint(item)); s != "" {
+				b.DiagramText = append(b.DiagramText, s)
+			}
+		}
+	default:
+		if s := strings.TrimSpace(fmt.Sprint(v)); s != "" {
+			b.DiagramText = []string{s}
+		}
+	}
+	return nil
 }
 
 type ListItem struct {

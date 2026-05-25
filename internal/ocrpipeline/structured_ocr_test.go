@@ -61,3 +61,24 @@ func TestParseStructuredOCRResponseValidatesRequiredFields(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 32, page.PageNumber)
 }
+
+func TestParseStructuredOCRResponseRepairsCommonLiveShape(t *testing.T) {
+	raw := `{
+  "schema_version": "structured-ocr/v1",
+  "book_id": "report-794",
+  "page_number": "032",
+  "page_type": "content",
+  "blocks": [
+    {
+      "type": "figure",
+      "caption": "Figure 2-2: PPSCalc -- Formula Display",
+      "diagram_text": "Columns: A | B | C\nRow 1: A1 = 100"
+    }
+  ]
+}`
+	page, err := ParseStructuredOCRResponse(raw)
+	require.NoError(t, err)
+	require.Equal(t, 32, page.PageNumber)
+	require.Equal(t, "p032-b001", page.Blocks[0].ID)
+	require.Equal(t, []string{"Columns: A | B | C", "Row 1: A1 = 100"}, page.Blocks[0].DiagramText)
+}

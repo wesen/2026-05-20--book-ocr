@@ -209,10 +209,14 @@ func runStructuredPage(args []string) error {
 	turnsDB := fs.String("turns-db", "", "Optional explicit SQLite turns DB path; defaults to <work-dir>/turns.db")
 	turnsDSN := fs.String("turns-dsn", "", "Optional explicit turns DB DSN")
 	runID := fs.String("run-id", "structured-page", "Run identifier used in turn conv_id")
-	profile := fs.String("profile", "", "Optional Pinocchio profile slug for future live structured OCR")
-	dryRun := fs.Bool("dry-run", true, "Use deterministic dry-run structured OCR; live provider support is added in a later phase")
+	profile := fs.String("profile", "", "Optional Pinocchio profile slug for live structured OCR")
+	logLevel := fs.String("log-level", "info", "zerolog level: trace, debug, info, warn, error, disabled")
+	dryRun := fs.Bool("dry-run", true, "Use deterministic dry-run structured OCR")
 	fs.Var(&registries, "profile-registries", "Pinocchio profile registry source (repeatable or comma-separated)")
 	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if err := configureLogLevel(*logLevel); err != nil {
 		return err
 	}
 	if strings.TrimSpace(*bookID) == "" {
@@ -224,9 +228,6 @@ func runStructuredPage(args []string) error {
 	if strings.TrimSpace(*imagePath) == "" {
 		return fmt.Errorf("--image is required")
 	}
-	if !*dryRun {
-		return fmt.Errorf("live structured-page is not implemented yet; rerun with --dry-run=true")
-	}
 	absImage, err := filepath.Abs(*imagePath)
 	if err != nil {
 		return err
@@ -237,6 +238,10 @@ func runStructuredPage(args []string) error {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	client := ocrpipeline.StructuredOCRClient(ocrpipeline.NewGeppettoStructuredOCRClient())
+	if *dryRun {
+		client = ocrpipeline.DryRunStructuredOCRClient{}
+	}
 	result, err := ocrpipeline.RunStructuredPage(ctx, ocrpipeline.StructuredOCRInput{
 		BookID:            *bookID,
 		RunID:             *runID,
@@ -248,7 +253,7 @@ func runStructuredPage(args []string) error {
 		Profile:           *profile,
 		ProfileRegistries: append([]string(nil), registries...),
 		DryRun:            *dryRun,
-	}, ocrpipeline.DryRunStructuredOCRClient{})
+	}, client)
 	if err != nil {
 		return err
 	}
