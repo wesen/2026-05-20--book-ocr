@@ -26,6 +26,7 @@ RelatedFiles:
       Note: |-
         Structured OCR JSON prompt contract (commit cab6b6f)
         Table-block prompt hardening for live page 32 (commit 8053bb7)
+        Figure caption prompt hardening (commit 913ccd7)
     - Path: internal/ocrpipeline/renderer.go
       Note: Deterministic Markdown renderer
     - Path: internal/ocrpipeline/session.go
@@ -34,8 +35,11 @@ RelatedFiles:
       Note: |-
         Dry-run structured-page orchestration and artifact writing (commit cab6b6f)
         Parse repair and parse-failure artifact persistence (commit 8053bb7)
+        Figure/table validation warnings (commit 913ccd7)
     - Path: internal/ocrpipeline/structured_ocr_test.go
-      Note: Phase 1 dry-run tests (commit cab6b6f)
+      Note: |-
+        Phase 1 dry-run tests (commit cab6b6f)
+        Missing-caption validation test (commit 913ccd7)
     - Path: internal/ocrpipeline/types.go
       Note: |-
         Structured OCR data contracts
@@ -63,6 +67,7 @@ LastUpdated: 2026-05-25T00:00:00-04:00
 WhatFor: Use this diary to understand why the structured, target-page-only, turn-persisted OCR redesign ticket was created and what documentation was produced.
 WhenToUse: Read before implementing the redesigned pipeline or continuing the ticket.
 ---
+
 
 
 
@@ -1072,4 +1077,127 @@ Artifact paths:
 /tmp/book-ocr-structured-page-032-live-4/pages/page_032/05-rendered.md
 /tmp/book-ocr-structured-page-032-live-4/pages/page_032/06-validation.json
 /tmp/book-ocr-structured-page-032-live-4/turns.db
+```
+
+## Step 11: Run Phase 3 figure-boundary live smoke and add caption warnings
+
+I added a first structured validation warning for figure blocks with missing captions, then ran the figure-boundary live smoke set across pages 12, 13, 42, 43, 115, and 116. This tested the original context-bleed failure mode with target-page-only structured OCR: prose-only neighbor pages should not get page-local figure blocks.
+
+The page-local boundary behavior was good: pages 12, 43, and 116 produced no figure blocks, while pages 13, 42, and 115 produced one figure block each. The remaining issue is caption extraction: the live model still emitted empty-caption figure blocks for the actual figure pages, so the new `figure_missing_caption` warning correctly flags the issue for prompt/schema hardening.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 9)
+
+**Assistant interpretation:** Continue implementing the structured OCR phases, validating each with tests/live smoke where appropriate and documenting results.
+
+**Inferred user intent:** The user wants the pipeline to become production-ready by incrementally proving the key invariants that failed in the freeform full-book run.
+
+**Commit (code):** `913ccd7212fda87868175e20125945972490f7aa` — "Add structured OCR figure validation warnings"
+
+### What I did
+
+- Strengthened the structured prompt's figure rules:
+  - visible figure captions must be copied exactly into `figure.caption`,
+  - empty figure blocks are invalid when a visible caption exists.
+- Added validation warnings in `ValidateStructuredPage`:
+  - `figure_missing_caption`,
+  - `table_missing_payload`.
+- Added a unit test for `figure_missing_caption`.
+- Ran live structured-page smoke tests for:
+  - page 012,
+  - page 013,
+  - page 042,
+  - page 043,
+  - page 115,
+  - page 116.
+
+### Why
+
+- The full-book regression was caused by page-boundary confusion and neighboring-page visual bleed.
+- These page pairs directly exercise false figure-block risks: prose references on neighbor pages must not become figure blocks.
+
+### What worked
+
+- Full tests passed:
+  - `go test ./... -count=1`
+- Every input turn in the boundary smoke contained exactly one image.
+- Boundary results:
+  - page 012: `0` figure blocks, `0` warnings.
+  - page 013: `1` figure block, `figure_missing_caption` warning.
+  - page 042: `1` figure block, `figure_missing_caption` warning.
+  - page 043: `0` figure blocks, `0` warnings.
+  - page 115: `1` figure block, `figure_missing_caption` warning.
+  - page 116: `0` figure blocks, `0` warnings.
+- This means the structured target-page-only live path did not reproduce the false page 12/13, 42/43, or 115/116 figure duplication behavior.
+
+### What didn't work
+
+- Actual figure pages still had empty captions in this live run:
+  - page 013: `figure_missing_caption`
+  - page 042: `figure_missing_caption`
+  - page 115: `figure_missing_caption`
+- The prompt says captions are required, but the model did not comply reliably.
+
+### What I learned
+
+- Target-page-only structured OCR is doing the most important boundary thing correctly: neighbor prose pages did not create false figure blocks.
+- Caption extraction needs a stronger output schema or a targeted repair/QA step. Prompt text alone was not enough in this live sample.
+- Validation warnings are useful because they distinguish “wrong page boundary” from “right page boundary but incomplete figure metadata.”
+
+### What was tricky to build
+
+- The tricky part is interpreting partial success correctly. Empty captions are a real issue, but they are not the same class of failure as context bleed. The page-local figure-block invariant passed; the figure metadata completeness invariant did not.
+
+### What warrants a second pair of eyes
+
+- Review the live rendered outputs and structured JSON under:
+  - `/tmp/book-ocr-structured-boundary-live/`
+- Decide whether missing captions should block Phase 4, or whether Phase 4 can proceed with validation warnings while caption repair is handled in production hardening.
+
+### What should be done in the future
+
+- Add either provider-native JSON schema guidance or a post-parse figure caption repair pass from nearby OCR text/table context.
+- Consider a second prompt iteration where figure blocks must include a `caption_visible` boolean and `caption` is required when `caption_visible=true`.
+- Add a structured QA summary command so boundary checks do not rely on ad hoc `jq` commands.
+
+### Code review instructions
+
+- Review validation additions:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/structured_ocr.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/structured_ocr_test.go`
+- Review prompt additions:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/prompts.go`
+- Validate with:
+  - `go test ./... -count=1`
+
+### Technical details
+
+Live boundary loop used:
+
+```bash
+for p in 12 13 42 43 115 116; do
+  printf -v pp "%03d" "$p"
+  go run ./cmd/book-ocr structured-page \
+    --book-id report-794 \
+    --page "$p" \
+    --image "/home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages/page_${pp}.png" \
+    --work-dir "/tmp/book-ocr-structured-boundary-live/page_${pp}" \
+    --profile gpt-5-mini-low \
+    --profile-registries /tmp/book-ocr-hq-001/profiles-clean.yaml \
+    --dry-run=false \
+    --log-level warn
+
+done
+```
+
+Summary commands:
+
+```bash
+for p in 012 013 042 043 115 116; do
+  base=/tmp/book-ocr-structured-boundary-live/page_${p}/pages/page_${p}
+  rg -c 'media_type:' "$base/01-turn-input.yaml"
+  jq '[.blocks[] | select(.type=="figure")] | length' "$base/04-structured.json"
+  jq '[.blocks[] | select(.type=="figure" and (.caption // "") != "")] | length' "$base/04-structured.json"
+done
 ```

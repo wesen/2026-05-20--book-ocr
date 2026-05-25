@@ -113,3 +113,14 @@ Phase 2: added live structured-page client, parser hardening, parse-failure arti
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/structured_ocr.go — Artifact and parser behavior
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-PIPELINE-REDESIGN-001--redesign-book-ocr-pipeline-after-full-book-context-bleed/reference/01-diary.md — Phase 2 diary
 
+
+## 2026-05-25
+
+Phase 3: added structured figure/table validation warnings and ran live boundary smoke on pages 12,13,42,43,115,116; page-local figure-block behavior passed but figure captions still need hardening (commit 913ccd7).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/prompts.go — Caption prompt rule
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/structured_ocr.go — Validation warning implementation
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-PIPELINE-REDESIGN-001--redesign-book-ocr-pipeline-after-full-book-context-bleed/reference/01-diary.md — Boundary smoke diary
+
