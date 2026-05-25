@@ -13,23 +13,33 @@ Intent: long-term
 Owners: []
 RelatedFiles:
     - Path: cmd/book-ocr/main.go
-      Note: structured-page CLI wiring (commit cab6b6f)
+      Note: |-
+        structured-page CLI wiring (commit cab6b6f)
+        Live structured-page CLI and log-level flag (commit 8053bb7)
     - Path: internal/ocrmvp/geppetto_ocr.go
       Note: Context-image root cause reference
     - Path: internal/ocrpipeline/client.go
-      Note: Target-page-only turn construction and client interface (commit cab6b6f)
+      Note: |-
+        Target-page-only turn construction and client interface (commit cab6b6f)
+        Live Geppetto structured OCR client and one-image turn invariant (commit 8053bb7)
     - Path: internal/ocrpipeline/prompts.go
-      Note: Structured OCR JSON prompt contract (commit cab6b6f)
+      Note: |-
+        Structured OCR JSON prompt contract (commit cab6b6f)
+        Table-block prompt hardening for live page 32 (commit 8053bb7)
     - Path: internal/ocrpipeline/renderer.go
       Note: Deterministic Markdown renderer
     - Path: internal/ocrpipeline/session.go
       Note: Pinocchio turn store wrapper
     - Path: internal/ocrpipeline/structured_ocr.go
-      Note: Dry-run structured-page orchestration and artifact writing (commit cab6b6f)
+      Note: |-
+        Dry-run structured-page orchestration and artifact writing (commit cab6b6f)
+        Parse repair and parse-failure artifact persistence (commit 8053bb7)
     - Path: internal/ocrpipeline/structured_ocr_test.go
       Note: Phase 1 dry-run tests (commit cab6b6f)
     - Path: internal/ocrpipeline/types.go
-      Note: Structured OCR data contracts
+      Note: |-
+        Structured OCR data contracts
+        Flexible structured JSON unmarshalling for live response drift (commit 8053bb7)
     - Path: internal/ocrvalidation/adjacent.go
       Note: Adjacent caption validation
     - Path: internal/ocrvalidation/anchors.go
@@ -53,6 +63,7 @@ LastUpdated: 2026-05-25T00:00:00-04:00
 WhatFor: Use this diary to understand why the structured, target-page-only, turn-persisted OCR redesign ticket was created and what documentation was produced.
 WhenToUse: Read before implementing the redesigned pipeline or continuing the ticket.
 ---
+
 
 
 
@@ -928,4 +939,137 @@ Table check:
 
 ```bash
 rg -n '^\|' /tmp/book-ocr-structured-page-032-dry/pages/page_032/05-rendered.md
+```
+
+## Step 10: Add and validate the live structured-page client on page 32
+
+I implemented the live Geppetto-backed structured-page client and ran the first page 32 smoke test with `gpt-5-mini-low`. The command now supports both dry-run and live provider execution, still using the same target-page-only turn construction path as Phase 1.
+
+The live smoke met the main Phase 2 goal: it produced structured table blocks and deterministic Markdown tables from a real page image. It also exposed the next quality issue: the successful live run produced two table blocks but omitted visible figure captions from the adjacent figure blocks, so Phase 3/next prompt iteration should harden caption requirements and validation warnings.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 9)
+
+**Assistant interpretation:** Continue implementing the structured OCR plan one phase at a time and record each phase with commands, failures, and commits.
+
+**Inferred user intent:** The user wants incremental implementation with enough detail to resume or review each phase independently.
+
+**Commit (code):** `8053bb7899049c6caddf367a669b1b1fb57629bf` — "Add live structured page OCR client"
+
+### What I did
+
+- Added `GeppettoStructuredOCRClient` in `internal/ocrpipeline/client.go`.
+- Reused Pinocchio profile resolution via `profilebootstrap`.
+- Kept live and dry-run clients on the same `BuildStructuredOCRInputTurn` path.
+- Added `--log-level` to `book-ocr structured-page` so live provider delta traces can be suppressed.
+- Hardened structured JSON parsing for common live response drift:
+  - fenced JSON extraction,
+  - leading-zero JSON numbers such as `032`,
+  - string page numbers such as `"032"`,
+  - `diagram_text` as either string or array,
+  - missing block IDs repaired as `pNNN-bMMM`.
+- Changed orchestration so turn YAML and raw response artifacts are written before parsing. Parse failures now leave replayable artifacts and a `07-error.txt` file.
+- Ran live page 32 smoke tests.
+
+### Why
+
+- Phase 2 requires a real provider-backed `structured-page` smoke test before building a multi-page structured workflow.
+- Page 32 is the best early target because it exercises the user-requested table behavior.
+
+### What worked
+
+- Full tests passed:
+  - `go test ./... -count=1`
+- Live command succeeded after parser and prompt hardening:
+  - `/tmp/book-ocr-structured-page-032-live-4`
+- The input turn contains exactly one image:
+  - `rg -c 'media_type:' 01-turn-input.yaml` returned `1`.
+- The live structured output contains:
+  - `8` blocks,
+  - `2` table blocks.
+- The rendered Markdown contains proper Markdown table rows:
+  - `|  | A | B | C |`
+  - `| 1 | 100 | 20 | A1*B1 |`
+  - `| 3 |  |  | C1+C2 |`
+  - `| 1 | 100 | 20 | 2000 |`
+  - `| 3 |  |  | 2375 |`
+- Turn DB phase check showed both input and final phases:
+  - `input|4`
+  - `final|4`
+
+### What didn't work
+
+- First live attempt failed strict parsing because the model emitted invalid JSON:
+  - `"page_number": 032`
+  - exact error: `parse structured OCR JSON: invalid character '3' after object key:value pair`
+- The raw response was still saved at:
+  - `/tmp/book-ocr-structured-page-032-live/pages/page_032/03-raw-response.json`
+- Another live attempt emitted:
+  - `"page_number": "032"`
+  - exact error before parser repair: `json: cannot unmarshal string into Go struct field StructuredPageOCR.page_number of type int`
+- The final successful live run produced table blocks but omitted captions on the figure blocks:
+  - `figure captions: 0`
+
+### What I learned
+
+- The prompt needs examples to make the model emit table blocks for spreadsheet-like figures. After adding an explicit example, the model emitted two table blocks for page 32.
+- Provider JSON drift is normal even under a strict JSON prompt. The structured parser needs limited, explainable repair for syntax/schema variants while preserving raw responses.
+- The renderer did exactly what it should: once table blocks existed, Markdown tables were deterministic.
+
+### What was tricky to build
+
+- The live client originally parsed inside the client, which meant parse errors could prevent artifact persistence. I moved parsing to the orchestration layer and wrote turn/raw artifacts before parsing so failed live observations remain inspectable.
+- The model can satisfy one part of the contract while weakening another. The table prompt improvement caused correct table blocks, but the successful run omitted figure captions. This means validation must check not just parseability but required semantic fields for page-local figures.
+
+### What warrants a second pair of eyes
+
+- Review whether repairing leading-zero JSON numbers with a regex is acceptable or should be replaced with a more conservative sanitizer/decoder path.
+- Review whether `PageType` should be validated/normalized; the live model emitted values such as `content` and `page`, which are not in the current constants but are harmless as strings.
+- Review whether missing figure captions should be a hard Phase 2 failure or a Phase 3 validation/prompt-hardening task.
+
+### What should be done in the future
+
+- Add validation warnings for figure blocks with empty captions when the page has table/figure context.
+- Strengthen the prompt: visible figure captions must be copied into figure blocks before table blocks.
+- Start Phase 3 with pages 12, 13, 42, 43, 115, and 116 and verify page-local figure behavior.
+
+### Code review instructions
+
+- Start with live client code:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/client.go`
+- Review parser/artifact behavior:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/structured_ocr.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/types.go`
+- Review command wiring:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/cmd/book-ocr/main.go`
+- Validate with:
+  - `go test ./... -count=1`
+
+### Technical details
+
+Successful live command:
+
+```bash
+go run ./cmd/book-ocr structured-page \
+  --book-id report-794 \
+  --page 32 \
+  --image /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages/page_032.png \
+  --work-dir /tmp/book-ocr-structured-page-032-live-4 \
+  --profile gpt-5-mini-low \
+  --profile-registries /tmp/book-ocr-hq-001/profiles-clean.yaml \
+  --dry-run=false \
+  --log-level warn
+```
+
+Artifact paths:
+
+```text
+/tmp/book-ocr-structured-page-032-live-4/pages/page_032/01-turn-input.yaml
+/tmp/book-ocr-structured-page-032-live-4/pages/page_032/02-turn-final.yaml
+/tmp/book-ocr-structured-page-032-live-4/pages/page_032/03-raw-response.json
+/tmp/book-ocr-structured-page-032-live-4/pages/page_032/04-structured.json
+/tmp/book-ocr-structured-page-032-live-4/pages/page_032/05-rendered.md
+/tmp/book-ocr-structured-page-032-live-4/pages/page_032/06-validation.json
+/tmp/book-ocr-structured-page-032-live-4/turns.db
 ```

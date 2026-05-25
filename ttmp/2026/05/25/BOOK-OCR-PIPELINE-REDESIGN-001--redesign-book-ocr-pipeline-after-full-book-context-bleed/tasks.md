@@ -9,7 +9,7 @@
 - [x] Write intern-facing implementation guide with file/API references, diagrams, pseudocode, and validation plan
 - [x] Upload guide bundle to reMarkable
 - [x] Phase 1 structured-page dry-run: add structured OCR prompt, fake client, single-page command, JSON artifacts, rendered Markdown, validation output, and turn input/final persistence
-- [ ] Phase 2 live structured-page smoke: run page 32 with gpt-5-mini-low, verify one-image input turn, table blocks, rendered Markdown tables, and saved raw/parsed outputs
+- [x] Phase 2 live structured-page smoke: run page 32 with gpt-5-mini-low, verify one-image input turn, table blocks, rendered Markdown tables, and saved raw/parsed outputs
 - [ ] Phase 3 figure boundary smoke: run pages 12,13,42,43 structured-page/live or controlled fake fixtures and verify page-local figure blocks and adjacent-caption validation
 - [ ] Phase 4 structured-run dry-run workflow: add multi-page workflow package/CLI, per-page artifacts, assembled Markdown, validation report, and turns DB
 - [ ] Phase 5 structured first-50 live run: compare against target-only freeform rerun, inspect Markdown tables/figures, and open final artifact with md-view
