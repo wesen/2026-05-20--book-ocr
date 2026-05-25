@@ -15,6 +15,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/go-go-golems/book-ocr/internal/ocrmvp"
+	"github.com/go-go-golems/book-ocr/internal/ocrpipeline"
 	"github.com/go-go-golems/book-ocr/internal/ocrquality"
 	"github.com/go-go-golems/book-ocr/internal/vlmseparation"
 	"github.com/go-go-golems/scraper/pkg/engine/model"
@@ -63,6 +64,8 @@ func run(args []string) error {
 		return listPages(subArgs)
 	case "quality-pass":
 		return runQualityPass(subArgs)
+	case "structured-page":
+		return runStructuredPage(subArgs)
 	case "vlm-separation":
 		return vlmseparation.ExecuteRoot(context.Background(), subArgs)
 	case "help", "-h", "--help":
@@ -84,6 +87,7 @@ func printUsage() {
   ocr-mvp cancel --work-dir DIR --run-id RUN_ID
   ocr-mvp pages --work-dir DIR --book-id BOOK_ID [--status STATUS]
   ocr-mvp quality-pass --markdown PATH --output-dir DIR [--expected-pages N]
+  ocr-mvp structured-page --book-id BOOK --page N --image PATH --work-dir DIR --dry-run
   ocr-mvp vlm-separation benchmark [flags]
 
 Run flags include --book-id, --image-dir, --work-dir, --profile, --profile-registries, --prompt-version, --context-window, --log-level, --dry-run, and --max-workers.
@@ -193,6 +197,66 @@ func runWorkflow(args []string) error {
 		case <-time.After(*pollInterval):
 		}
 	}
+}
+
+func runStructuredPage(args []string) error {
+	fs := flag.NewFlagSet("structured-page", flag.ContinueOnError)
+	var registries registryFlags
+	bookID := fs.String("book-id", "", "Book identifier for structured OCR metadata")
+	pageNumber := fs.Int("page", 0, "Target page number")
+	imagePath := fs.String("image", "", "Target page image path")
+	workDir := fs.String("work-dir", ".structured-ocr", "Directory for structured OCR artifacts and turns DB")
+	turnsDB := fs.String("turns-db", "", "Optional explicit SQLite turns DB path; defaults to <work-dir>/turns.db")
+	turnsDSN := fs.String("turns-dsn", "", "Optional explicit turns DB DSN")
+	runID := fs.String("run-id", "structured-page", "Run identifier used in turn conv_id")
+	profile := fs.String("profile", "", "Optional Pinocchio profile slug for future live structured OCR")
+	dryRun := fs.Bool("dry-run", true, "Use deterministic dry-run structured OCR; live provider support is added in a later phase")
+	fs.Var(&registries, "profile-registries", "Pinocchio profile registry source (repeatable or comma-separated)")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if strings.TrimSpace(*bookID) == "" {
+		return fmt.Errorf("--book-id is required")
+	}
+	if *pageNumber <= 0 {
+		return fmt.Errorf("--page must be positive")
+	}
+	if strings.TrimSpace(*imagePath) == "" {
+		return fmt.Errorf("--image is required")
+	}
+	if !*dryRun {
+		return fmt.Errorf("live structured-page is not implemented yet; rerun with --dry-run=true")
+	}
+	absImage, err := filepath.Abs(*imagePath)
+	if err != nil {
+		return err
+	}
+	absWorkDir, err := filepath.Abs(*workDir)
+	if err != nil {
+		return err
+	}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	result, err := ocrpipeline.RunStructuredPage(ctx, ocrpipeline.StructuredOCRInput{
+		BookID:            *bookID,
+		RunID:             *runID,
+		PageNumber:        *pageNumber,
+		ImagePath:         absImage,
+		WorkDir:           absWorkDir,
+		TurnsDB:           *turnsDB,
+		TurnsDSN:          *turnsDSN,
+		Profile:           *profile,
+		ProfileRegistries: append([]string(nil), registries...),
+		DryRun:            *dryRun,
+	}, ocrpipeline.DryRunStructuredOCRClient{})
+	if err != nil {
+		return err
+	}
+	fmt.Printf("structured page %03d written to %s\n", result.PageNumber, result.PageDir)
+	fmt.Printf("structured json: %s\n", result.StructuredJSON)
+	fmt.Printf("rendered markdown: %s\n", result.RenderedMD)
+	fmt.Printf("validation: %s\n", result.ValidationJSON)
+	return nil
 }
 
 func runQualityPass(args []string) error {
