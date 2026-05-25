@@ -33,7 +33,7 @@ RelatedFiles:
         Main intern-facing redesign guide
         Benchmark-informed redesign update
         Updated implementation progress
-    - Path: ttmp/2026/05/25/BOOK-OCR-PIPELINE-REDESIGN-001--redesign-book-ocr-pipeline-after-full-book-context-bleed/experiments/001-report794-50-target-only-v5/summary.md
+    - Path: ttmp/2026/05/25/BOOK-OCR-PIPELINE-REDESIGN-001--redesign-book-ocr-pipeline-after-full-book-context-bleed/experiments/001-report794-50-target-only-v5/01-summary.md
       Note: First-50 live target-only OCR evidence
     - Path: ttmp/2026/05/25/BOOK-OCR-PIPELINE-REDESIGN-001--redesign-book-ocr-pipeline-after-full-book-context-bleed/reference/01-diary.md
       Note: Live rerun diary
@@ -534,7 +534,7 @@ The run completed successfully, the quality pass embedded figures, and I opened 
 - Opened the final embedded artifact with:
   - `md-view view /tmp/book-ocr-report794-50-target-only/outputs/quality-pass/embedded-figures.md`
 - Wrote an experiment summary at:
-  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-PIPELINE-REDESIGN-001--redesign-book-ocr-pipeline-after-full-book-context-bleed/experiments/001-report794-50-target-only-v5/summary.md`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-PIPELINE-REDESIGN-001--redesign-book-ocr-pipeline-after-full-book-context-bleed/experiments/001-report794-50-target-only-v5/01-summary.md`
 
 ### Why
 
@@ -592,7 +592,7 @@ The run completed successfully, the quality pass embedded figures, and I opened 
 ### Code review instructions
 
 - Review experiment summary:
-  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-PIPELINE-REDESIGN-001--redesign-book-ocr-pipeline-after-full-book-context-bleed/experiments/001-report794-50-target-only-v5/summary.md`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-PIPELINE-REDESIGN-001--redesign-book-ocr-pipeline-after-full-book-context-bleed/experiments/001-report794-50-target-only-v5/01-summary.md`
 - Review live artifacts while they exist:
   - `/tmp/book-ocr-report794-50-target-only/outputs/quality-pass/embedded-figures.md`
   - `/tmp/book-ocr-report794-50-target-only/outputs/quality-pass/figures/`
