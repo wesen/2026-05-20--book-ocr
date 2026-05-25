@@ -12,6 +12,10 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: ../../../../../../../scraper/pkg/workflows/ocrmvp/prompt.go
+      Note: Figure-aware OCR prompt version for Step 3
+    - Path: ../../../../../../../scraper/pkg/workflows/ocrquality/figures.go
+      Note: Caption-only diagram marker recovery for Step 3
     - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/analysis/01-final-ocr-quality-report.md
       Note: Source for follow-up tasks
     - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/OCR-QUALITY-WORKERS-001--port-ocr-qa-and-cleanup-scripts-to-go-workflow-workers/experiments/001-go-quality-pass-embedded-figures/notes.md
@@ -22,12 +26,15 @@ RelatedFiles:
       Note: Figure worker implementation for Step 2
     - Path: scraper/pkg/workflows/ocrquality/package.go
       Note: Main implementation for Step 1
+    - Path: ttmp/2026/05/24/OCR-QUALITY-WORKERS-001--port-ocr-qa-and-cleanup-scripts-to-go-workflow-workers/experiments/002-figure-aware-marker-recovery/notes.md
+      Note: Figure-aware recovery experiment notes
 ExternalSources: []
 Summary: Diary for porting OCR QA and cleanup scripts to Go workflow workers.
 LastUpdated: 2026-05-24T20:40:00-04:00
 WhatFor: Use this to understand what changed while porting OCR quality scripts to Go and adding context-aware OCR inputs.
 WhenToUse: Read before continuing OCR quality worker implementation or debugging the quality-pass workflow.
 ---
+
 
 
 
@@ -275,4 +282,113 @@ go run ./cmd/ocr-mvp quality-pass \
   --expected-pages 30 \
   --image-dir /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages \
   --embed-figures
+```
+
+## Step 3: Recover full-page diagram figures and add a figure-aware OCR prompt
+
+I started the next self-optimization round from a concrete user observation: Figure 1-2 and Figure 1-3 are graphical full-page diagrams, but the current embedded artifact only linked Figure 1-1 and Figure 1-4 as images. The missing piece was the OCR contract. The v4 prompt told the model to mark figures, but it did not strongly state that a full-page flowchart/diagram still needs a `[FIGURE: ...]` marker even if the model transcribes all visible labels.
+
+I fixed this in two layers. First, I added a new `ocr-quality-v5-figure-aware` prompt version for future OCR runs. Second, I made the figure embedding worker more robust for existing artifacts by synthesizing missing figure markers for caption-only diagram pages. This recovered Figure 1-2 and Figure 1-3 without rerunning the model.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Ok, let's do the next round of self optimization, as before. Keep a detailed diary as you work so we can fully retrace your steps."
+
+**Assistant interpretation:** Continue the OCR quality-improvement loop, implement the next fixes rather than just describing them, and keep a retraceable diary entry.
+
+**Inferred user intent:** The user wants the system to iterate toward higher-quality OCR artifacts with explicit provenance, especially after noticing missing embedded full-page diagrams.
+
+**Commit (code):** `aea38ef8f52a0354b4ef73acb045bdd1f998d825` — "Improve OCR figure detection"
+
+### What I did
+
+- Confirmed the current embedded artifact had Markdown image links for Figure 1-1 and Figure 1-4 only.
+- Confirmed Figure 1-2 and Figure 1-3 were present as plain transcribed diagram text, not `[FIGURE: ...]` markers.
+- Added prompt version `ocr-quality-v5-figure-aware` in `scraper/pkg/workflows/ocrmvp/prompt.go`.
+- Added explicit prompt rules requiring `[FIGURE: ...]` markers for graphical pages, full-page diagrams, flowcharts, models, and architecture charts.
+- Added figure-worker fallback detection for caption-only diagram pages in `scraper/pkg/workflows/ocrquality/figures.go`.
+- Added tests for synthesized full-page diagram extraction and for not synthesizing markers from Table of Figures list rows.
+- Ran the quality pass again against Experiment 007 raw OCR output.
+- Preserved outputs under `experiments/002-figure-aware-marker-recovery`.
+- Used the vision tool to validate the newly recovered Figure 1-2 and Figure 1-3 crops.
+
+### Why
+
+- The embedding worker uses `[FIGURE: ...]` as the extraction cue.
+- The previous prompt did not consistently signal that a full-page diagram should emit that cue.
+- Existing best OCR output should be salvageable without paying for a model rerun when the page already contains enough caption/diagram structure to infer a missing marker.
+
+### What worked
+
+- `go test ./pkg/workflows/ocrquality ./pkg/workflows/ocrmvp -count=1` passed during development.
+- `go test ./cmd/ocr-mvp ./pkg/workflows/ocrquality ./pkg/workflows/ocrmvp -count=1` passed before commit.
+- The pre-commit hook passed full tests, web unit tests, lint, gosec, and govulncheck.
+- The rerun quality pass succeeded with run ID `ocr-quality-f29626cb-d734-4c0b-8ab1-e3874ad1fc8c`.
+- The new embedded artifact now contains four figure images:
+  - `page_013_figure_01.png` — Figure 1-1
+  - `page_015_figure_01.png` — Figure 1-2
+  - `page_017_figure_01.png` — Figure 1-3
+  - `page_021_figure_01.png` — Figure 1-4
+- Vision validation said Figure 1-2 and Figure 1-3 include the full title/diagram/labels and avoid visible page numbers/footers.
+
+### What didn't work
+
+- The original v4 OCR output had no `[FIGURE: ...]` markers for Figure 1-2 and Figure 1-3.
+- This meant the first embedded-figure pass silently missed graphical pages that looked like text to the prompt.
+- Figure 1-3's crop has noticeable background speckling/noise, although the crop is complete.
+
+### What I learned
+
+- Figure detection needs both a model-side contract and a deterministic fallback.
+- Full-page diagrams are easy for a multimodal model to transcribe as labels, but downstream extraction needs an explicit machine-readable image marker.
+- Table of Figures pages are a trap for naive caption matching; rows such as `Figure 1-2: ... 13` must not become extraction markers.
+
+### What was tricky to build
+
+- The fallback must distinguish actual figure pages from Table of Figures list entries.
+- The heuristic therefore ignores caption lines containing dot leaders and requires diagram-like page structure: arrows, short label lines, mostly uppercase labels, or sparse non-prose layout.
+- The fallback must not insert markers into pages that already have `[FIGURE: ...]` or Markdown image links.
+
+### What warrants a second pair of eyes
+
+- Whether the synthesized descriptions are good enough as alt text, e.g. `Full-page diagram showing The Representation Shift Model`.
+- Whether the diagram-page heuristic is too permissive for later chapters with short prose fragments.
+- Whether Figure 1-3 should get an immediate deterministic denoise/contrast enhancement pass.
+
+### What should be done in the future
+
+- Add figure QA counts: detected figure captions, markers, extracted images, and mismatches.
+- Add sidecar JSON with crop rectangles and detection method.
+- Add debug overlay PNGs for candidate regions and selected crop rectangles.
+- Add optional raw/enhanced crop output with contrast/denoise.
+- Run a targeted live OCR test using `ocr-quality-v5-figure-aware` on pages 13, 15, 17, and 21 to verify markers are emitted by the model without fallback synthesis.
+
+### Code review instructions
+
+- Start with `scraper/pkg/workflows/ocrmvp/prompt.go` and review `PromptVersionQualityV5FigureAware`.
+- Then review `scraper/pkg/workflows/ocrquality/figures.go`, especially `synthesizeMissingFigureMarkers`, `addMissingFigureMarkerToPage`, and `looksLikeDiagramPage`.
+- Review tests in `scraper/pkg/workflows/ocrquality/figures_test.go`.
+- Inspect the new artifact:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/OCR-QUALITY-WORKERS-001--port-ocr-qa-and-cleanup-scripts-to-go-workflow-workers/experiments/002-figure-aware-marker-recovery/outputs/02-embedded-figures.md`
+
+### Technical details
+
+Quality-pass command:
+
+```bash
+go run ./cmd/ocr-mvp quality-pass \
+  --markdown /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/experiments/007-quality-v4-mini-pages-001-030/outputs/01-final-quality-v4-mini-pages-001-030.md \
+  --output-dir /tmp/ocr-quality-go-figures-v2/out \
+  --work-dir /tmp/ocr-quality-go-figures-v2/work \
+  --book-id presentation-based-uis-hq-007-v4-mini-30 \
+  --expected-pages 30 \
+  --image-dir /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages \
+  --embed-figures
+```
+
+New figure links observed in the output:
+
+```markdown
+![Full-page diagram showing The Representation Shift Model](figures/page_015_figure_01.png)
+![Full-page diagram showing The Primitive Presentation System (PPS) Model](figures/page_017_figure_01.png)
 ```

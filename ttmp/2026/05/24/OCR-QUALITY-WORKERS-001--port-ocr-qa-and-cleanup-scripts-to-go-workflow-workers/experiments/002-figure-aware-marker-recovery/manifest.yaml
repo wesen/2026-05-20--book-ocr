@@ -1,0 +1,15 @@
+experiment_id: 002-figure-aware-marker-recovery
+source_experiment: BOOK-OCR-HQ-001/007-quality-v4-mini-pages-001-030
+previous_experiment: OCR-QUALITY-WORKERS-001/001-go-quality-pass-embedded-figures
+strategy:
+  kind: go_workflow_quality_pass_with_caption_only_diagram_recovery
+  workflow_package: ocr-quality
+  command: ocr-mvp quality-pass --embed-figures
+  improvements:
+    - prompt_version_ocr-quality-v5-figure-aware_added
+    - figure_worker_synthesizes_missing_markers_for_caption_only_diagram_pages
+    - recovers_figure_1_2_and_figure_1_3_without_rerunning_model
+outputs:
+  work_dir: /tmp/ocr-quality-go-figures-v2/work
+  output_dir: /tmp/ocr-quality-go-figures-v2/out
+  run_id: ocr-quality-f29626cb-d734-4c0b-8ab1-e3874ad1fc8c

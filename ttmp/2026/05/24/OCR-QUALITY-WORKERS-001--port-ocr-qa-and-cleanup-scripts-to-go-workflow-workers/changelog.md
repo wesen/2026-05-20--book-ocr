@@ -34,3 +34,14 @@ Added frontmatter to generated OCR quality reports so workflow report artifacts 
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/OCR-QUALITY-WORKERS-001--port-ocr-qa-and-cleanup-scripts-to-go-workflow-workers/experiments/001-go-quality-pass-embedded-figures/outputs/06-quality-report.md — Docmgr-valid generated report artifact
 - /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrquality/package.go — Quality report frontmatter generation
 
+
+## 2026-05-24
+
+Added figure-aware prompt contract and marker-recovery fallback for caption-only full-page diagrams, recovering embedded Figure 1-2 and Figure 1-3 (code commit aea38ef8f52a0354b4ef73acb045bdd1f998d825).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/OCR-QUALITY-WORKERS-001--port-ocr-qa-and-cleanup-scripts-to-go-workflow-workers/experiments/002-figure-aware-marker-recovery/outputs/02-embedded-figures.md — Four-figure artifact
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrmvp/prompt.go — Prompt v5
+- /home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrquality/figures.go — Marker recovery
+

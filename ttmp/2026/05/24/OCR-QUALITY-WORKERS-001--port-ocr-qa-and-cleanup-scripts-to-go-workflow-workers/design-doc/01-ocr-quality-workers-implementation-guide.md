@@ -12,6 +12,8 @@ DocType: design-doc
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: ../../../../../../../scraper/pkg/workflows/ocrmvp/prompt.go
+      Note: Defines ocr-quality-v5-figure-aware prompt contract
     - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/OCR-QUALITY-WORKERS-001--port-ocr-qa-and-cleanup-scripts-to-go-workflow-workers/experiments/001-go-quality-pass-embedded-figures/outputs/02-embedded-figures.md
       Note: Best current embedded-figure review artifact
     - Path: scraper/cmd/ocr-mvp/main.go
@@ -28,12 +30,15 @@ RelatedFiles:
       Note: Workflow-native OCR quality pass package and executors
     - Path: scraper/pkg/workflows/ocrquality/qa.go
       Note: Go port of OCR markdown QA checks
+    - Path: ttmp/2026/05/24/OCR-QUALITY-WORKERS-001--port-ocr-qa-and-cleanup-scripts-to-go-workflow-workers/experiments/002-figure-aware-marker-recovery/outputs/02-embedded-figures.md
+      Note: Recovered four-figure embedded artifact
 ExternalSources: []
 Summary: Implementation guide for porting OCR quality Python scripts into workflow-native Go workers and extending OCR with context-aware page inputs.
 LastUpdated: 2026-05-24T20:40:00-04:00
 WhatFor: Use this to understand the Go OCR quality worker package, CLI entry point, context-window OCR option, validation strategy, and next steps toward impeccable book OCR.
 WhenToUse: Read before modifying pkg/workflows/ocrquality, adding QA projections, adding embedded figure extraction, or running context-aware OCR experiments.
 ---
+
 
 
 
@@ -461,3 +466,37 @@ experiments/001-go-quality-pass-embedded-figures/outputs/02-embedded-figures.md
 experiments/001-go-quality-pass-embedded-figures/outputs/figures/page_013_figure_01.png
 experiments/001-go-quality-pass-embedded-figures/outputs/figures/page_021_figure_01.png
 ```
+
+## Figure-Aware Prompt and Marker-Recovery Addendum
+
+A later optimization round found that Figure 1-2 and Figure 1-3 were graphical full-page diagrams but were not embedded because the v4 OCR output transcribed them as plain diagram text without `[FIGURE: ...]` markers.
+
+The fix has two parts:
+
+1. **Future OCR runs:** use prompt version `ocr-quality-v5-figure-aware`, which extends the v4 Report 794 prompt with an explicit graphical-page contract. Full-page diagrams, flowcharts, models, and architecture charts must emit a `[FIGURE: ...]` marker immediately after the caption/title even when all visible labels are also transcribed.
+2. **Existing OCR artifacts:** the figure worker now synthesizes missing markers for caption-only diagram pages. It detects pages that start with a standalone `Figure N-M: ...` caption and have diagram-like structure, while avoiding Table of Figures rows that contain dot leaders/page numbers.
+
+The recovered artifact is:
+
+```text
+experiments/002-figure-aware-marker-recovery/outputs/02-embedded-figures.md
+```
+
+It links four figure images:
+
+```text
+figures/page_013_figure_01.png
+figures/page_015_figure_01.png
+figures/page_017_figure_01.png
+figures/page_021_figure_01.png
+```
+
+The key invariant is now:
+
+```text
+OCR emits or post-processing synthesizes a machine-readable figure marker
+  -> figure worker extracts the page image crop
+  -> final markdown embeds ![...](figures/page_NNN_figure_MM.png)
+```
+
+This still does not replace proper segmentation. It is a marker-recovery pass for diagram pages whose content is already visibly structured enough to identify as a figure.
