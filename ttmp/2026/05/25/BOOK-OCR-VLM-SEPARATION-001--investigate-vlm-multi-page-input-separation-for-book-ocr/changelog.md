@@ -36,3 +36,13 @@ Implemented the Glazed VLM separation benchmark command with dry-run trials, fil
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/sqlite.go — Results DB
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/turns.go — Turns DB wrapper
 
+
+## 2026-05-25
+
+Completed dry-run smoke validation: go test ./... passes and vlm-separation benchmark writes files, results.sqlite, and turns.db under /tmp/book-ocr-vlm-separation-dry.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/command.go — Smoke-tested command
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/runner_test.go — Dry-run persistence regression test
+

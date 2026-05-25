@@ -8,4 +8,4 @@
 - [x] Upload guide and diary bundle to reMarkable
 - [x] Implement Glazed benchmark command for prompt/block-layout scenarios
 - [x] Persist benchmark runs to files, SQLite, and Pinocchio turns DB
-- [ ] Run smoke tests with dry-run/fake mode and document usage
+- [x] Run smoke tests with dry-run/fake mode and document usage
