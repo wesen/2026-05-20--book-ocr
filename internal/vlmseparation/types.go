@@ -99,6 +99,9 @@ type BenchmarkResponse struct {
 
 type TrialMetrics struct {
 	JSONParseOK          bool    `json:"json_parse_ok"`
+	JSONSanitized        bool    `json:"json_sanitized,omitempty"`
+	SchemaRepaired       bool    `json:"schema_repaired,omitempty"`
+	ParseStrategy        string  `json:"parse_strategy,omitempty"`
 	ExpectedPhraseHits   int     `json:"expected_phrase_hits"`
 	ExpectedPhraseTotal  int     `json:"expected_phrase_total"`
 	ForbiddenPhraseHits  int     `json:"forbidden_phrase_hits"`

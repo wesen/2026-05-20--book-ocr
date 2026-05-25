@@ -164,15 +164,25 @@ func (r *Runner) RunTrial(ctx context.Context, trial Trial) (TrialResult, error)
 	if err != nil {
 		return TrialResult{}, err
 	}
-	parsed, parseErr := ParseBenchmarkResponse(raw)
-	metrics := ScoreTrial(raw, parsed, input.Oracle, parseErr)
+	parseResult := ParseBenchmarkResponseDetailed(raw)
+	if parseResult.Response != nil && parseResult.Response.TargetPage == 0 {
+		parseResult.Response.TargetPage = input.TargetPage
+		parseResult.SchemaRepaired = true
+		if parseResult.Strategy == "strict-json" {
+			parseResult.Strategy = "schema-repair"
+		}
+	}
+	metrics := ScoreTrial(raw, parseResult.Response, input.Oracle, parseResult.Error)
+	metrics.JSONSanitized = parseResult.Sanitized
+	metrics.SchemaRepaired = parseResult.SchemaRepaired
+	metrics.ParseStrategy = parseResult.Strategy
 	status := "succeeded"
-	if parseErr != nil {
+	if parseResult.Error != nil {
 		status = "parse_failed"
 	}
-	result := TrialResult{ID: trial.ID, RunID: trial.RunID, Scenario: trial.Scenario.Name, TargetPage: trial.TargetPage, PreviousPage: trial.PreviousPage, NextPage: trial.NextPage, Status: status, RequestPath: requestPath, TurnSessionID: input.SessionID, TurnID: input.TurnID, StartedAt: started, CompletedAt: time.Now().UTC(), LatencyMS: latency.Milliseconds(), RawResponse: raw, Parsed: parsed, Metrics: metrics}
-	if parseErr != nil {
-		result.Error = parseErr.Error()
+	result := TrialResult{ID: trial.ID, RunID: trial.RunID, Scenario: trial.Scenario.Name, TargetPage: trial.TargetPage, PreviousPage: trial.PreviousPage, NextPage: trial.NextPage, Status: status, RequestPath: requestPath, TurnSessionID: input.SessionID, TurnID: input.TurnID, StartedAt: started, CompletedAt: time.Now().UTC(), LatencyMS: latency.Milliseconds(), RawResponse: raw, Parsed: parseResult.Response, Metrics: metrics}
+	if parseResult.Error != nil {
+		result.Error = parseResult.Error.Error()
 	}
 	if err := r.Files.WriteTrialArtifacts(&result); err != nil {
 		return TrialResult{}, err

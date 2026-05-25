@@ -21,3 +21,42 @@ func TestScoreTrialFlagsForbiddenCaptionBleed(t *testing.T) {
 	require.True(t, metrics.SuspectedBleed)
 	require.Equal(t, 1, metrics.ForbiddenCaptionHits)
 }
+
+func TestParseBenchmarkResponseRepairsLiveStringAndArrayVariants(t *testing.T) {
+	raw := `{
+		"target_page": "012",
+		"transcribed_page_identity": "Page 10 (scanned page)",
+		"content_markers": ["A Rudimentary User Interface.", "Representation Shift."],
+		"transcription": "A Rudimentary User Interface. Representation Shift.",
+		"suspected_context_copy": "model note, not a boolean"
+	}`
+	result := ParseBenchmarkResponseDetailed(raw)
+	require.NoError(t, result.Error)
+	require.True(t, result.SchemaRepaired)
+	require.Equal(t, "schema-repair", result.Strategy)
+	require.Equal(t, 12, result.Response.TargetPage)
+	require.Contains(t, result.Response.TranscribedPageIdentity.TitleOrCaptionLines, "Page 10 (scanned page)")
+	require.Contains(t, result.Response.ContentMarkers.UniquePhrases, "A Rudimentary User Interface.")
+	require.False(t, result.Response.SuspectedContextCopy)
+	require.NotEmpty(t, result.Response.Notes)
+}
+
+func TestParseBenchmarkResponseRepairsTextFieldVariant(t *testing.T) {
+	raw := `{"page_number":13,"text":"Figure 1-1: A Rudimentary User Interface\nApplication Data Base"}`
+	result := ParseBenchmarkResponseDetailed(raw)
+	require.NoError(t, result.Error)
+	require.True(t, result.SchemaRepaired)
+	require.Equal(t, 13, result.Response.TargetPage)
+	require.Contains(t, result.Response.Transcription, "Figure 1-1")
+	metrics := ScoreTrial(raw, result.Response, PageOracle{TargetPage: 13, ExpectedCaptions: []string{"Figure 1-1: A Rudimentary User Interface"}}, result.Error)
+	require.True(t, metrics.JSONParseOK)
+	require.Equal(t, 1, metrics.ExpectedPhraseHits)
+}
+
+func TestParseBenchmarkResponseExtractsFencedJSONObject(t *testing.T) {
+	raw := "Here is the requested JSON:\n```json\n{\"target_page\":12,\"transcription\":\"A Rudimentary User Interface\"}\n```\nDone."
+	result := ParseBenchmarkResponseDetailed(raw)
+	require.NoError(t, result.Error)
+	require.Equal(t, "strict-json", result.Strategy)
+	require.Equal(t, 12, result.Response.TargetPage)
+}

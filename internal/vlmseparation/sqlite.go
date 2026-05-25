@@ -75,6 +75,9 @@ func (r *ResultDB) migrate() error {
 		`CREATE TABLE IF NOT EXISTS trial_metrics (
 			trial_id TEXT PRIMARY KEY,
 			json_parse_ok INTEGER NOT NULL,
+			json_sanitized INTEGER NOT NULL DEFAULT 0,
+			schema_repaired INTEGER NOT NULL DEFAULT 0,
+			parse_strategy TEXT NOT NULL DEFAULT '',
 			expected_phrase_hits INTEGER NOT NULL,
 			expected_phrase_total INTEGER NOT NULL,
 			forbidden_phrase_hits INTEGER NOT NULL,
@@ -90,7 +93,45 @@ func (r *ResultDB) migrate() error {
 			return err
 		}
 	}
+	for _, column := range []struct {
+		name string
+		ddl  string
+	}{
+		{name: "json_sanitized", ddl: `ALTER TABLE trial_metrics ADD COLUMN json_sanitized INTEGER NOT NULL DEFAULT 0`},
+		{name: "schema_repaired", ddl: `ALTER TABLE trial_metrics ADD COLUMN schema_repaired INTEGER NOT NULL DEFAULT 0`},
+		{name: "parse_strategy", ddl: `ALTER TABLE trial_metrics ADD COLUMN parse_strategy TEXT NOT NULL DEFAULT ''`},
+	} {
+		if err := r.addColumnIfMissing("trial_metrics", column.name, column.ddl); err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+func (r *ResultDB) addColumnIfMissing(table, column, ddl string) error {
+	rows, err := r.db.Query(fmt.Sprintf("PRAGMA table_info(%s)", table))
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var cid int
+		var name, typ string
+		var notNull int
+		var defaultValue any
+		var pk int
+		if err := rows.Scan(&cid, &name, &typ, &notNull, &defaultValue, &pk); err != nil {
+			return err
+		}
+		if name == column {
+			return nil
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	_, err = r.db.Exec(ddl)
+	return err
 }
 
 func (r *ResultDB) InsertRun(ctx context.Context, manifest RunManifest) error {
@@ -116,7 +157,7 @@ func (r *ResultDB) InsertTrial(ctx context.Context, result TrialResult) error {
 	if err != nil {
 		return err
 	}
-	_, err = r.db.ExecContext(ctx, `INSERT OR REPLACE INTO trial_metrics(trial_id, json_parse_ok, expected_phrase_hits, expected_phrase_total, forbidden_phrase_hits, forbidden_caption_hits, suspected_bleed, target_only_score, raw_json) VALUES(?,?,?,?,?,?,?,?,?)`, result.ID, boolInt(result.Metrics.JSONParseOK), result.Metrics.ExpectedPhraseHits, result.Metrics.ExpectedPhraseTotal, result.Metrics.ForbiddenPhraseHits, result.Metrics.ForbiddenCaptionHits, boolInt(result.Metrics.SuspectedBleed), result.Metrics.TargetOnlyScore, string(raw))
+	_, err = r.db.ExecContext(ctx, `INSERT OR REPLACE INTO trial_metrics(trial_id, json_parse_ok, json_sanitized, schema_repaired, parse_strategy, expected_phrase_hits, expected_phrase_total, forbidden_phrase_hits, forbidden_caption_hits, suspected_bleed, target_only_score, raw_json) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`, result.ID, boolInt(result.Metrics.JSONParseOK), boolInt(result.Metrics.JSONSanitized), boolInt(result.Metrics.SchemaRepaired), result.Metrics.ParseStrategy, result.Metrics.ExpectedPhraseHits, result.Metrics.ExpectedPhraseTotal, result.Metrics.ForbiddenPhraseHits, result.Metrics.ForbiddenCaptionHits, boolInt(result.Metrics.SuspectedBleed), result.Metrics.TargetOnlyScore, string(raw))
 	return err
 }
 
