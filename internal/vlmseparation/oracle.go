@@ -106,7 +106,7 @@ func OracleForPage(page int) PageOracle {
 		32:  {TargetPage: 32, ExpectedCaptions: []string{"Figure 2-2: PPSCalc -- Formula Display", "Figure 2-3: PPSCalc -- Value Display"}, ExpectedPhrases: []string{"A1*B1", "C1+C2", "2375"}, ForbiddenCaptions: []string{"Figure 2-1: The Primitive Presentation System (PPS) Model"}},
 		42:  {TargetPage: 42, ExpectedCaptions: []string{"Figure 2-9: Presenter Parts"}, ExpectedPhrases: []string{"Domain Collector", "Recognizer", "Presentation Editor"}},
 		43:  {TargetPage: 43, ExpectedPhrases: []string{"domain collector", "semantic presenter", "application data base"}, ForbiddenCaptions: []string{"Figure 2-9: Presenter Parts"}},
-		59:  {TargetPage: 59, ExpectedCaptions: []string{"Figure 3-2: Extension with Both Planning and Immediate Changes"}, ExpectedPhrases: []string{"planned changes", "immediate changes"}, ForbiddenCaptions: []string{"Figure 3-3: Command Data Base Extension"}},
+		59:  {TargetPage: 59, ExpectedCaptions: []string{"Figure 3-2: Extension with Both Planning and Immediate Changes"}, ExpectedPhrases: []string{"Presentation Data Base", "Application Data Base", "Future Data Base"}, ForbiddenCaptions: []string{"Figure 3-3: Command Data Base Extension"}},
 		60:  {TargetPage: 60, ExpectedPhrases: []string{"Adding a Data Base of Commands", "direct manipulation", "command"}, ForbiddenCaptions: []string{"Figure 3-2: Extension with Both Planning and Immediate Changes", "Figure 3-3: Command Data Base Extension"}},
 		87:  {TargetPage: 87, ExpectedPhrases: []string{"property sheet", "Chapter 7", "delete command"}, ForbiddenCaptions: []string{"Figure 4-6: Xerox Star -- Property Sheet"}},
 		88:  {TargetPage: 88, ExpectedCaptions: []string{"Figure 4-6: Xerox Star -- Property Sheet"}, ExpectedPhrases: []string{"DOCUMENT PROPERTIES", "Chapter 7", "COVER SHEET"}, ForbiddenCaptions: []string{"Figure 4-7: Xerox Star -- Delete Confirmation", "Figure 4-8: Xerox Star Model"}},
@@ -115,7 +115,7 @@ func OracleForPage(page int) PageOracle {
 		112: {TargetPage: 112, ExpectedCaptions: []string{"Figure 5-6: Command Description Support"}, ExpectedPhrases: []string{"Domain Object", "Command Application", "Parameter Type"}},
 		113: {TargetPage: 113, ExpectedPhrases: []string{"Lisp functions", "command application", "parameter descriptions"}, ForbiddenCaptions: []string{"Figure 5-6: Command Description Support"}},
 		115: {TargetPage: 115, ExpectedCaptions: []string{"Figure 5-7: Reference Resolution"}, ExpectedPhrases: []string{"Resolve to property's value", "Resolve to property's owner", "presented domain object"}},
-		116: {TargetPage: 116, ExpectedPhrases: []string{"Graphics Redisplay", "presentation editor functions", "history-keeping"}, ForbiddenCaptions: []string{"Figure 5-7: Reference Resolution"}},
+		116: {TargetPage: 116, ExpectedPhrases: []string{"Graphics Redisplay", "PSBase", "presentation data base"}, ForbiddenCaptions: []string{"Figure 5-7: Reference Resolution"}},
 	}
 	if o, ok := oracles[page]; ok {
 		return o
