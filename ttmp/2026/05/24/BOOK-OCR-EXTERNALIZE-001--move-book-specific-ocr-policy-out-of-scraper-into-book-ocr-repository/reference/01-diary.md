@@ -150,3 +150,87 @@ ocr-mvp quality-pass \
   --image-dir /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages \
   --embed-figures
 ```
+
+## Step 2: Correct the scope from policy externalization to full OCR extraction
+
+The user corrected the architectural direction. The goal is not merely to move Report 794-specific profile data and prompt constants out of `scraper`. The goal is to move all OCR and book-OCR functionality out of `scraper`, leaving `scraper` as the workflow management, execution, job queue, artifact, projection, retry, and operator-control runtime.
+
+I updated both the ticket design guide and the Obsidian project report to reflect this stronger boundary. The corrected design says that `2026-05-20--book-ocr` should become a Go workflow application that imports `scraper/pkg/workflow`, registers OCR workflow packages from outside `scraper`, and owns the OCR CLI, page OCR workflow, quality workflow, book profiles, prompt rendering, Geppetto client, figure extraction, sidecars, discovery files, and experiments.
+
+### Prompt Context
+
+**User prompt (verbatim):** "no, i wwant to move all the book-ocr functionality / all th eocr functionality out of scraper, and leave just the workflow management execution / job queue mechanisms there. All the book ocr functionality that we added should be in this separate repo. Update the document"
+
+**Assistant interpretation:** Correct the externalization design to extract all OCR-related packages and commands from `scraper`, not only Report 794-specific policy.
+
+**Inferred user intent:** The user wants `scraper` to remain a generic workflow/job runtime and wants Book OCR to become a separate workflow application repository.
+
+**Commit (code):** N/A — documentation correction only.
+
+### What I did
+
+- Rewrote the `BOOK-OCR-EXTERNALIZE-001` design guide around the corrected boundary.
+- Renamed and rewrote the Obsidian project report to focus on extracting OCR from `scraper`.
+- Clarified that these current `scraper` paths should move to `2026-05-20--book-ocr`:
+  - `scraper/pkg/workflows/ocrmvp`
+  - `scraper/pkg/workflows/ocrquality`
+  - `scraper/pkg/workflows/bookprofile`
+  - `scraper/cmd/ocr-mvp`
+- Clarified that `scraper` should keep `pkg/workflow` and runtime/job mechanisms only.
+- Added an implementation plan where `2026-05-20--book-ocr` becomes a Go module importing `scraper/pkg/workflow`.
+
+### Why
+
+- Keeping generic OCR workflows in `scraper` still makes `scraper` an OCR framework.
+- OCR is a workload that uses the runtime; it is not part of the runtime itself.
+- A separate `book-ocr` application can evolve rapidly without adding OCR-specific concerns to the workflow engine.
+
+### What worked
+
+- The corrected boundary is simpler and cleaner than the previous design.
+- The existing workflow API is already close to supporting external packages.
+- The migration can proceed package-by-package without changing OCR behavior first.
+
+### What didn't work
+
+- The previous design guide and article framed the target too narrowly.
+- No code has been moved yet; the current implementation still has OCR packages inside `scraper`.
+
+### What I learned
+
+- The important distinction is not Report 794-specific versus generic OCR. The important distinction is runtime versus workflow application.
+- Book OCR should import the workflow runtime. The workflow runtime should not contain Book OCR.
+
+### What was tricky to build
+
+- The design has to preserve the educational value of the OCR pipeline as an example of the Scraper job system while still removing the example from the runtime repo.
+- The plan must avoid a hard module dependency in the wrong direction. The only correct direction is `book-ocr -> scraper/pkg/workflow`.
+
+### What warrants a second pair of eyes
+
+- Whether `scraper/pkg/workflow` exports enough runtime construction and operator APIs for an external CLI.
+- Whether any OCR code currently depends on `scraper` internals outside `pkg/workflow`.
+- Whether the package names should become `internal/ocr/workflow` or exported `pkg/ocr` packages in the book OCR repo.
+
+### What should be done in the future
+
+- Create `go.mod` in `2026-05-20--book-ocr`.
+- Move `ocrmvp` first with minimal behavior changes.
+- Move Geppetto client, quality workers, bookprofile, and CLI in separate commits.
+- Delete OCR packages from `scraper` after external smoke tests pass.
+
+### Code review instructions
+
+- Review the updated design doc:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-EXTERNALIZE-001--move-book-specific-ocr-policy-out-of-scraper-into-book-ocr-repository/design-doc/01-externalizing-book-ocr-policy-from-scraper-design-and-implementation-guide.md`
+- Review the updated Obsidian article:
+  - `/home/manuel/code/wesen/go-go-golems/go-go-parc/Projects/2026/05/24/ARTICLE - Extracting Book OCR from Scraper - Workflow Runtime and External OCR Pipelines.md`
+
+### Technical details
+
+Corrected target:
+
+```text
+scraper/                  workflow runtime and job queue mechanisms
+2026-05-20--book-ocr/     OCR application, profiles, prompts, QA, figures, experiments
+```
