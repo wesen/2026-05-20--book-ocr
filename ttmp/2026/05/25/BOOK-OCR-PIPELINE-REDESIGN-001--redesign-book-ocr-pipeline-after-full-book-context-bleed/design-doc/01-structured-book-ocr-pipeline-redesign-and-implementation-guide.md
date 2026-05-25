@@ -1584,6 +1584,278 @@ go test ./... -count=1
 
 This slice changes the next implementation step. The project no longer needs to start by designing contracts; those contracts exist. The next PR should add the target-page-only structured OCR client behind fake/dry-run tests and persist its input/final turns through `OCRTurnStore`.
 
+
+## Fresh-Start Implementation Plan for Tomorrow
+
+This section is the restart checklist for the next session. The repository already contains the deterministic foundation:
+
+```text
+internal/ocrpipeline/types.go
+internal/ocrpipeline/renderer.go
+internal/ocrpipeline/session.go
+internal/ocrvalidation/anchors.go
+internal/ocrvalidation/adjacent.go
+```
+
+Do not rebuild those pieces first. Start by reading the tests that define their behavior:
+
+```bash
+go test ./internal/ocrpipeline ./internal/ocrvalidation -count=1
+```
+
+Then inspect the current freeform OCR command for profile resolution and image payload construction:
+
+```text
+internal/ocrmvp/geppetto_ocr.go
+internal/ocrmvp/prompt.go
+cmd/book-ocr/main.go
+```
+
+The next goal is to make one page flow through the structured pipeline:
+
+```text
+page PNG
+  -> one-image Geppetto turn
+  -> StructuredPageOCR JSON
+  -> deterministic Markdown
+  -> validation report
+  -> input/final turn snapshots
+```
+
+### Phase 1: Structured single-page dry-run command
+
+This is the first task for tomorrow. It should not call a live provider by default.
+
+Add files:
+
+```text
+internal/ocrpipeline/prompts.go
+internal/ocrpipeline/client.go
+internal/ocrpipeline/structured_ocr.go
+internal/ocrpipeline/structured_ocr_test.go
+```
+
+Add CLI wiring in:
+
+```text
+cmd/book-ocr/main.go
+```
+
+Command shape:
+
+```bash
+go run ./cmd/book-ocr structured-page \
+  --book-id report-794 \
+  --page 32 \
+  --image /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages/page_032.png \
+  --work-dir /tmp/book-ocr-structured-page-032 \
+  --dry-run
+```
+
+Required output files:
+
+```text
+<work-dir>/pages/page_032/01-turn-input.yaml
+<work-dir>/pages/page_032/02-turn-final.yaml
+<work-dir>/pages/page_032/03-raw-response.json
+<work-dir>/pages/page_032/04-structured.json
+<work-dir>/pages/page_032/05-rendered.md
+<work-dir>/pages/page_032/06-validation.json
+<work-dir>/turns.db
+```
+
+Dry-run fake response should include a real table block for page 32:
+
+```json
+{
+  "schema_version": "structured-ocr/v1",
+  "book_id": "report-794",
+  "page_number": 32,
+  "page_type": "figure",
+  "blocks": [
+    {
+      "id": "p032-f001",
+      "type": "figure",
+      "caption": "Figure 2-2: PPSCalc -- Formula Display",
+      "description": "PPSCalc formula display table",
+      "table": {
+        "headers": ["", "A", "B", "C"],
+        "rows": [
+          ["1", "100", "20", "A1*B1"],
+          ["2", "75", "5", "A2*B2"],
+          ["3", "", "", "C1+C2"]
+        ]
+      }
+    }
+  ]
+}
+```
+
+If the existing `OCRBlock` shape is awkward for a figure that contains a table, either:
+
+1. allow `BlockFigure` to carry `Table`, or
+2. emit adjacent `figure` and `table` blocks with related IDs.
+
+Prefer the second if it keeps rendering simpler:
+
+```text
+figure block: caption + image/description metadata
+table block: extracted table contents
+```
+
+Acceptance checks:
+
+```bash
+go test ./internal/ocrpipeline ./internal/ocrvalidation ./cmd/book-ocr -count=1
+go run ./cmd/book-ocr structured-page ... --dry-run
+sqlite3 /tmp/book-ocr-structured-page-032/turns.db \
+  "select phase, count(*) from turn_block_membership group by phase;"
+rg -n '^\|' /tmp/book-ocr-structured-page-032/pages/page_032/05-rendered.md
+```
+
+The rendered Markdown must contain a Markdown table, not aligned plain text.
+
+### Phase 2: Live structured-page smoke on page 32
+
+Only after Phase 1 dry-run works, run a live single-page OCR test for the table-heavy page 32.
+
+Command shape:
+
+```bash
+go run ./cmd/book-ocr structured-page \
+  --book-id report-794 \
+  --page 32 \
+  --image /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages/page_032.png \
+  --work-dir /tmp/book-ocr-structured-page-032-live \
+  --profile gpt-5-mini-low \
+  --profile-registries /tmp/book-ocr-hq-001/profiles-clean.yaml \
+  --dry-run=false
+```
+
+Acceptance checks:
+
+- `01-turn-input.yaml` contains exactly one image payload.
+- `04-structured.json` parses into `StructuredPageOCR`.
+- `05-rendered.md` contains Markdown tables for PPSCalc formula/value displays.
+- `turns.db` has input/final phase snapshots.
+- If parsing fails, save the raw response and parse error without losing the turn.
+
+### Phase 3: Figure boundary smoke
+
+Run pages that exercise the original bleed problem:
+
+```text
+12, 13, 42, 43, 115, 116
+```
+
+Expected behavior:
+
+| Page | Expected structured behavior |
+|---:|---|
+| 12 | Prose may mention Figure 1-1, but no Figure 1-1 figure block. |
+| 13 | Figure 1-1 figure block allowed. |
+| 42 | Figure 2-9 figure block allowed. |
+| 43 | Prose only; no Figure 2-9 figure block. |
+| 115 | Figure 5-7 figure block allowed. |
+| 116 | Prose may mention Figure 5-7, but no Figure 5-7 figure block. |
+
+Acceptance checks:
+
+- No neighboring page images in primary OCR input turns.
+- `ocrvalidation.DetectAdjacentDuplicateFigureCaptions` does not warn for rendered outputs unless both pages intentionally render the same caption.
+- Figure blocks match page-local visual content.
+
+### Phase 4: Structured-run dry-run workflow
+
+After single-page behavior is stable, add a multi-page structured workflow command.
+
+Command shape:
+
+```bash
+go run ./cmd/book-ocr structured-run \
+  --book-id report-794 \
+  --image-dir /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages \
+  --start-page 1 \
+  --end-page 50 \
+  --work-dir /tmp/book-ocr-structured-50-dry \
+  --dry-run
+```
+
+Required outputs:
+
+```text
+<work-dir>/pages/page_NNN/04-structured.json
+<work-dir>/pages/page_NNN/05-rendered.md
+<work-dir>/pages/page_NNN/06-validation.json
+<work-dir>/assembled.md
+<work-dir>/validation-report.json
+<work-dir>/turns.db
+```
+
+Acceptance checks:
+
+- 50 page markers in `assembled.md`.
+- Page 32 Markdown tables render correctly.
+- Page 12/13 and 115/116 figure boundary checks pass.
+- Validation report separates bleed, coverage, parse, and provider classes.
+
+### Phase 5: Live structured first-50 run
+
+After dry-run workflow passes, run first 50 pages live.
+
+Command shape:
+
+```bash
+go run ./cmd/book-ocr structured-run \
+  --book-id report-794-structured-50-v1 \
+  --image-dir /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages \
+  --start-page 1 \
+  --end-page 50 \
+  --work-dir /tmp/book-ocr-report794-structured-50-v1 \
+  --profile gpt-5-mini-low \
+  --profile-registries /tmp/book-ocr-hq-001/profiles-clean.yaml \
+  --max-vision-workers 1 \
+  --dry-run=false
+```
+
+Acceptance checks:
+
+- Open final Markdown with `md-view view <assembled.md>`.
+- Compare against the current improved freeform artifact:
+  - `/tmp/book-ocr-report794-50-target-only/outputs/quality-pass/embedded-figures.md`
+- Page 32 tables should be proper Markdown tables.
+- Figure pages should not include long diagram ASCII unless explicitly enabled.
+- No adjacent duplicate figure captions.
+
+### Phase 6: Production hardening
+
+After the first-50 live structured run:
+
+- Add figure QA for pages with figure blocks.
+- Add text-only normalization as a separate call.
+- Add a structured validation report command.
+- Add full-book acceptance gates.
+- Run full 202-page structured OCR only after first-50 output is acceptable.
+
+### Tomorrow's first commit target
+
+The first commit tomorrow should be small:
+
+```text
+Add structured OCR dry-run client and structured-page command
+```
+
+It should include:
+
+- prompt contract,
+- fake client,
+- single-page CLI,
+- page 32 dry-run fixture,
+- turn persistence,
+- rendered Markdown table assertion.
+
+Do not include live provider changes in that first commit.
+
 ## File Reference Index
 
 Current Book OCR code:

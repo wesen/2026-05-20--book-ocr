@@ -629,3 +629,88 @@ go run ./cmd/book-ocr quality-pass \
   --embed-figures \
   --max-workers 2
 ```
+
+## Step 7: Add restart-ready phases and task list for structured OCR implementation
+
+I turned the structured OCR redesign into a restart-ready implementation plan for tomorrow. The ticket now has explicit phase tasks, and the design guide has a detailed fresh-start checklist that explains what already exists, what to read first, what to implement first, and which commands/acceptance checks to run.
+
+The key clarification is that the full structured pipeline is not complete yet. The deterministic foundation exists, but the next step is the `structured-page` dry-run command and fake client. The plan now makes that explicit so tomorrow's session can start without reconstructing context from memory.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Ok, add phases and tasks if necessary, in detail, because we will start fresh tomorrow and will have to remember all the things to get started."
+
+**Assistant interpretation:** Add explicit docmgr tasks and detailed implementation phases to the existing redesign ticket so a future session can resume cleanly.
+
+**Inferred user intent:** The user wants tomorrow's work to begin from an actionable plan, not from a vague memory of the current state.
+
+**Commit (code):** N/A — planning/documentation update only.
+
+### What I did
+
+- Checked off the stale reMarkable-upload task because that upload had already been completed earlier.
+- Added six new docmgr tasks for:
+  - structured-page dry-run,
+  - live structured-page smoke,
+  - figure boundary smoke,
+  - structured-run dry-run workflow,
+  - structured first-50 live run,
+  - production hardening.
+- Added a `Fresh-Start Implementation Plan for Tomorrow` section to the redesign guide.
+- Included exact file targets, command shapes, required output files, acceptance checks, and first-commit guidance.
+
+### Why
+
+- Tomorrow's session should not need to infer the next phase from scattered diary entries and implementation notes.
+- The structured OCR pipeline has a foundation but not the full client/CLI/workflow, so the plan needs to separate completed and missing work clearly.
+
+### What worked
+
+- The task list now shows completed planning tasks and the next six implementation tasks.
+- The design guide now starts the next engineer on `structured-page --dry-run`, not on live OCR.
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- The implementation plan needs to name both commands and output files. Otherwise it is too easy to implement a client without making its artifacts reviewable.
+
+### What was tricky to build
+
+- The main subtlety was keeping the phases small enough. The next commit should not try to build the whole workflow. It should only add the structured prompt, fake client, single-page CLI, artifacts, and tests.
+
+### What warrants a second pair of eyes
+
+- Review whether the Phase 1 required output files are too many for the first commit, or whether that artifact contract is useful enough to keep.
+- Review whether table-containing figures should be represented as one figure block with a table, or adjacent figure/table blocks with related IDs.
+
+### What should be done in the future
+
+- Start with Phase 1 exactly as written: dry-run only, page 32 table fixture, no live provider in the first commit.
+
+### Code review instructions
+
+- Review the task list:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-PIPELINE-REDESIGN-001--redesign-book-ocr-pipeline-after-full-book-context-bleed/tasks.md`
+- Review the new `Fresh-Start Implementation Plan for Tomorrow` section in:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-PIPELINE-REDESIGN-001--redesign-book-ocr-pipeline-after-full-book-context-bleed/design-doc/01-structured-book-ocr-pipeline-redesign-and-implementation-guide.md`
+
+### Technical details
+
+Tomorrow's first commit target:
+
+```text
+Add structured OCR dry-run client and structured-page command
+```
+
+It should include:
+
+```text
+internal/ocrpipeline/prompts.go
+internal/ocrpipeline/client.go
+internal/ocrpipeline/structured_ocr.go
+internal/ocrpipeline/structured_ocr_test.go
+cmd/book-ocr/main.go structured-page wiring
+```
