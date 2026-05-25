@@ -12,12 +12,22 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: cmd/book-ocr/main.go
+      Note: structured-page CLI wiring (commit cab6b6f)
     - Path: internal/ocrmvp/geppetto_ocr.go
       Note: Context-image root cause reference
+    - Path: internal/ocrpipeline/client.go
+      Note: Target-page-only turn construction and client interface (commit cab6b6f)
+    - Path: internal/ocrpipeline/prompts.go
+      Note: Structured OCR JSON prompt contract (commit cab6b6f)
     - Path: internal/ocrpipeline/renderer.go
       Note: Deterministic Markdown renderer
     - Path: internal/ocrpipeline/session.go
       Note: Pinocchio turn store wrapper
+    - Path: internal/ocrpipeline/structured_ocr.go
+      Note: Dry-run structured-page orchestration and artifact writing (commit cab6b6f)
+    - Path: internal/ocrpipeline/structured_ocr_test.go
+      Note: Phase 1 dry-run tests (commit cab6b6f)
     - Path: internal/ocrpipeline/types.go
       Note: Structured OCR data contracts
     - Path: internal/ocrvalidation/adjacent.go
@@ -43,6 +53,7 @@ LastUpdated: 2026-05-25T00:00:00-04:00
 WhatFor: Use this diary to understand why the structured, target-page-only, turn-persisted OCR redesign ticket was created and what documentation was produced.
 WhenToUse: Read before implementing the redesigned pipeline or continuing the ticket.
 ---
+
 
 
 
@@ -781,4 +792,140 @@ remarquee upload bundle \
   --toc-depth 2 \
   --force \
   --non-interactive
+```
+
+## Step 9: Build Phase 1 structured-page dry-run command
+
+I implemented the first structured OCR pipeline phase: a dry-run single-page command that exercises the full local write boundary without calling a live provider. The new command builds a target-page-only Geppetto turn, persists input/final phases through the Pinocchio turn store wrapper, writes raw/structured/rendered/validation artifacts, and proves that page 32 table blocks render as Markdown tables.
+
+This deliberately stops before live OCR. The provider-backed structured client remains Phase 2; Phase 1's purpose is to make the artifact contract, prompt contract, rendering contract, and turn persistence testable with deterministic fake data.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Ok, go ahead and build it task by task, keeping a detailed diary as you work, committing at appropriate intervals."
+
+**Assistant interpretation:** Start implementing the structured OCR plan one phase at a time, documenting and committing coherent slices as work completes.
+
+**Inferred user intent:** The user wants the structured OCR pipeline to move from planning to implementation while preserving a restartable audit trail.
+
+**Commit (code):** `cab6b6fae92fd24c94c19a7a9a64e66a08c0b49d` — "Add structured OCR dry-run page command"
+
+### What I did
+
+- Added `internal/ocrpipeline/prompts.go`:
+  - `StructuredOCRSchemaVersion`
+  - `StructuredOCRSystemPrompt`
+  - `RenderStructuredOCRPrompt`
+- Added `internal/ocrpipeline/client.go`:
+  - `StructuredOCRInput`
+  - `StructuredOCRResult`
+  - `StructuredOCRClient`
+  - `BuildStructuredOCRInputTurn`
+  - `CountTurnImages`
+- Added `internal/ocrpipeline/structured_ocr.go`:
+  - `DryRunStructuredOCRClient`
+  - `FakeStructuredPage`
+  - `ParseStructuredOCRResponse`
+  - `RunStructuredPage`
+  - `ValidateStructuredPage`
+- Added `internal/ocrpipeline/structured_ocr_test.go` covering:
+  - exactly one target image in the input turn,
+  - page 32 fake table rendering,
+  - artifact creation,
+  - input/final turn persistence,
+  - strict structured response parsing.
+- Added `book-ocr structured-page` wiring in `cmd/book-ocr/main.go`.
+- Ran a real dry-run command against the real page 32 PNG.
+
+### Why
+
+- This creates the smallest useful structured OCR implementation slice.
+- It proves the renderer can produce Markdown tables from structured table blocks before we add live model variability.
+- It enforces the central invariant: primary structured OCR input turns contain exactly one target page image.
+
+### What worked
+
+- Unit/package validation passed:
+  - `go test ./internal/ocrpipeline ./internal/ocrvalidation ./cmd/book-ocr -count=1`
+  - `go test ./... -count=1`
+- Dry-run command succeeded:
+  - output dir `/tmp/book-ocr-structured-page-032-dry/pages/page_032`
+- Required artifacts were written:
+  - `01-turn-input.yaml`
+  - `02-turn-final.yaml`
+  - `03-raw-response.json`
+  - `04-structured.json`
+  - `05-rendered.md`
+  - `06-validation.json`
+  - `/tmp/book-ocr-structured-page-032-dry/turns.db`
+- SQLite turn phase check showed both phases:
+  - `input|2`
+  - `final|3`
+- Rendered Markdown contains real Markdown table rows, including:
+  - `|  | A | B | C |`
+  - `| 1 | 100 | 20 | A1*B1 |`
+  - `| 3 |  |  | 2375 |`
+
+### What didn't work
+
+- N/A. Phase 1 intentionally rejects live provider execution with a clear error: `live structured-page is not implemented yet; rerun with --dry-run=true`.
+
+### What I learned
+
+- The existing `RenderPageMarkdown` table path is sufficient for page 32-style table blocks once the OCR output is structured.
+- The first practical structured pipeline artifact should be a page directory, not only stdout, because tomorrow's live debugging will need raw response, parsed JSON, rendered Markdown, validation, and turn snapshots side by side.
+
+### What was tricky to build
+
+- The important invariant was not just “call the fake client”; it was making the fake client use the same target-page-only turn construction path that the live client will use later. That keeps Phase 1 meaningful: if the input turn image-count assertion fails, both dry-run and future live structured OCR are invalid.
+- Turn persistence stores one logical row in `turns` for the `(conv_id, session_id, turn_id)` key while input/final snapshots appear as phase memberships. The dry-run validation therefore checks both the `turns` count and the distinct membership phases.
+
+### What warrants a second pair of eyes
+
+- Review `CountTurnImages`; it is a defensive test helper for Geppetto turn payloads, but provider payload shape changes could require refinement.
+- Review whether fake page 32 should represent table-containing figures as adjacent `figure` + `table` blocks or a single richer figure block. I used adjacent blocks to keep rendering deterministic and simple.
+- Review whether the command should print the turns DB path directly in addition to artifact paths.
+
+### What should be done in the future
+
+- Phase 2: implement the live structured OCR client using the same `BuildStructuredOCRInputTurn` function.
+- Phase 2 should run page 32 with `gpt-5-mini-low`, parse strict JSON, and save parse errors without losing raw/final turn artifacts.
+- Add stronger validation reports once multiple pages are assembled.
+
+### Code review instructions
+
+- Start with:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/structured_ocr.go`
+- Then review:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/client.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/prompts.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/cmd/book-ocr/main.go`
+- Validate with:
+  - `go test ./... -count=1`
+  - the dry-run command in the technical details below.
+
+### Technical details
+
+Dry-run command used:
+
+```bash
+go run ./cmd/book-ocr structured-page \
+  --book-id report-794 \
+  --page 32 \
+  --image /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages/page_032.png \
+  --work-dir /tmp/book-ocr-structured-page-032-dry \
+  --dry-run
+```
+
+Turn phase check:
+
+```bash
+sqlite3 /tmp/book-ocr-structured-page-032-dry/turns.db \
+  "select phase, count(*) from turn_block_membership group by phase;"
+```
+
+Table check:
+
+```bash
+rg -n '^\|' /tmp/book-ocr-structured-page-032-dry/pages/page_032/05-rendered.md
 ```
