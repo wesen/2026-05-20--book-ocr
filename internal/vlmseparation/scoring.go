@@ -369,16 +369,21 @@ func ScoreTrial(raw string, parsed *BenchmarkResponse, oracle PageOracle, parseE
 
 func countPhraseHits(text string, phrases []string) int {
 	count := 0
+	normalizedText := normalizePhraseText(text)
 	for _, phrase := range phrases {
-		phrase = strings.TrimSpace(strings.ToLower(phrase))
+		phrase = normalizePhraseText(phrase)
 		if phrase == "" {
 			continue
 		}
-		if strings.Contains(text, phrase) {
+		if strings.Contains(normalizedText, phrase) {
 			count++
 		}
 	}
 	return count
+}
+
+func normalizePhraseText(s string) string {
+	return strings.Join(strings.Fields(strings.ToLower(s)), " ")
 }
 
 func Summarize(runID string, trials []TrialResult) Summary {

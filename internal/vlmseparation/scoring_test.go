@@ -23,6 +23,10 @@ func TestFigureAdjacentPresetHasSpecializedOracles(t *testing.T) {
 	}
 }
 
+func TestCountPhraseHitsNormalizesLineBreaks(t *testing.T) {
+	require.Equal(t, 1, countPhraseHits("Application\nData\nBase", []string{"Application Data Base"}))
+}
+
 func TestScoreTrialFlagsForbiddenCaptionBleed(t *testing.T) {
 	raw := `{"target_page":12,"transcribed_page_identity":{"title_or_caption_lines":["Figure 1-1: A Rudimentary User Interface"]},"content_markers":{"figure_captions":["Figure 1-1: A Rudimentary User Interface"]},"transcription":"A Rudimentary User Interface\nFigure 1-1: A Rudimentary User Interface","suspected_context_copy":false}`
 	parsed, err := ParseBenchmarkResponse(raw)
