@@ -610,3 +610,69 @@ select trial_id,
 from trial_metrics
 order by trial_id;
 ```
+
+## Step 6: Update the Obsidian report with the repaired-parser interpretation
+
+After implementing schema repair, the first live benchmark needed a corrected written interpretation. I appended an update section to the Obsidian article instead of rewriting the historical report body, preserving the original result table while adding the repaired-parser re-score and the changed conclusion.
+
+The corrected interpretation is that the first live run does not show forbidden-caption bleed for pages 12 and 13 under the current oracle. The earlier poor `single-block-target-first` score was mainly a schema artifact because the model placed useful text under `text` rather than the canonical `transcription` field.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 5)
+
+**Assistant interpretation:** Keep the project report accurate after adding sanitize-backed response repair.
+
+**Inferred user intent:** The user wants durable documentation that reflects the benchmark's actual evidence, not stale parser-noise conclusions.
+
+**Commit (code):** N/A — documentation-only vault update. Obsidian commit: `0ff992fdd26cfa5c5badbec8fe8b28d5b730ffc2` — "Article: update VLM benchmark parsing interpretation"
+
+### What I did
+
+- Appended an `Update: schema repair changed the interpretation of the first live run` section to:
+  - `/home/manuel/code/wesen/go-go-golems/go-go-parc/Projects/2026/05/25/ARTICLE - VLM Separation Benchmark for Book OCR - Prompt Block Layouts and Turn Persistence.md`
+- Committed and pushed the Obsidian vault update.
+
+### Why
+
+- The benchmark implementation changed the scoring interpretation of existing saved live responses.
+- The durable article needed to capture that schema drift and context bleed are separate failure modes.
+
+### What worked
+
+- The vault commit was created and pushed:
+  - `0ff992fdd26cfa5c5badbec8fe8b28d5b730ffc2`
+- The article now includes the repaired-parser rescore table and the corrected conclusion.
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- Append-only report updates are useful when an experiment's interpretation changes after better tooling, because they preserve the reasoning history.
+
+### What was tricky to build
+
+- The article had already been pushed, so I avoided rewriting the original narrative and instead appended a dated correction-style update that explains why the interpretation changed.
+
+### What warrants a second pair of eyes
+
+- Review the updated article to ensure the original conclusion and corrected conclusion are not confusing when read together.
+
+### What should be done in the future
+
+- If the benchmark gets a `rescore` command, update the article with command-based evidence rather than temporary-test evidence.
+
+### Code review instructions
+
+- Review the appended update section in the Obsidian article.
+- Confirm the vault commit is pushed.
+
+### Technical details
+
+Vault commit:
+
+```text
+0ff992fdd26cfa5c5badbec8fe8b28d5b730ffc2 Article: update VLM benchmark parsing interpretation
+```
