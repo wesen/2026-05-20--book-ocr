@@ -19,6 +19,10 @@ topics:
       description: Book processing, OCR, transcription, and document conversion workflows
     - slug: experiments
       description: Experiment tracking, evaluation, and iterative research workflows
+    - slug: geppetto
+      description: Geppetto inference engine, turns, blocks, and provider abstraction
+    - slug: pinocchio
+      description: Pinocchio profile registry, CLI helpers, and turn persistence
 docTypes:
     - slug: design-doc
       description: Structured rationale and architecture notes
