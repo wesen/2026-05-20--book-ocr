@@ -13,8 +13,20 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: cmd/book-ocr/main.go
+      Note: Registers vlm-separation benchmark subcommand
     - Path: internal/ocrmvp/geppetto_ocr.go
       Note: Root cause code path for multi-image OCR context
+    - Path: internal/vlmseparation/command.go
+      Note: Glazed benchmark command implementation
+    - Path: internal/vlmseparation/runner.go
+      Note: Benchmark orchestration and dry-run/live execution
+    - Path: internal/vlmseparation/scenarios.go
+      Note: Scenario-specific Geppetto turn/block layouts
+    - Path: internal/vlmseparation/sqlite.go
+      Note: Benchmark run/trial/metric SQLite persistence
+    - Path: internal/vlmseparation/turns.go
+      Note: Pinocchio turns DB wrapper
     - Path: ttmp/2026/05/25/BOOK-OCR-VLM-SEPARATION-001--investigate-vlm-multi-page-input-separation-for-book-ocr/design-doc/01-vlm-multi-page-separation-benchmark-design-and-implementation-guide.md
       Note: Main investigation design guide
 ExternalSources: []
@@ -23,6 +35,7 @@ LastUpdated: 2026-05-25T00:00:00-04:00
 WhatFor: Use this diary to understand the investigation setup before implementing the Glazed benchmark command.
 WhenToUse: Read before continuing BOOK-OCR-VLM-SEPARATION-001 or changing the benchmark design.
 ---
+
 
 
 # Diary
@@ -216,4 +229,144 @@ remarquee upload bundle DESIGN.md DIARY.md \
   --remote-dir "/ai/2026/05/25/BOOK-OCR-VLM-SEPARATION-001" \
   --toc-depth 2 \
   --non-interactive
+```
+
+## Step 3: Implement the dry-run VLM separation benchmark command
+
+I implemented the first version of the benchmark tool as a Glazed command under `book-ocr vlm-separation benchmark`. The command can run dry-run scenario/page trials, emit Glazed rows, write a file tree with manifests and per-trial artifacts, write benchmark metrics to SQLite, and persist exact input/final Geppetto turns into a Pinocchio-compatible turns DB.
+
+This implementation deliberately starts with deterministic dry-run behavior. Live provider benchmarking is now possible through the same command shape by passing `--dry-run=false`, but the normal test path does not call external models. This gives us the persistence, scoring, and block-layout machinery before spending provider tokens.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** After creating the ticket/guide/diary/upload, continue by implementing the benchmark tool with Glazed, files, SQLite, and turns DB persistence.
+
+**Inferred user intent:** The user wants a practical measurement harness that can test whether prompt/block-layout choices make multi-page VLM input safe enough for OCR context.
+
+**Commit (code):** `07db987bd8a6ce7f8908b469a1ff13482b1e3229` — "Add VLM separation benchmark command"
+
+### What I did
+
+- Added `internal/vlmseparation` with:
+  - `types.go` for run/trial/scenario/metric/result contracts,
+  - `oracle.go` for page presets and conservative page oracles,
+  - `scoring.go` for JSON parsing and bleed scoring,
+  - `scenarios.go` for Geppetto turn construction under different image/text block layouts,
+  - `files.go` for manifest/trial/summary file outputs,
+  - `sqlite.go` for benchmark run/trial/metric tables,
+  - `turns.go` for a wrapper around Pinocchio `chatstore.SQLiteTurnStore`,
+  - `runner.go` for benchmark orchestration and fake/live execution path,
+  - `command.go` for the Glazed command.
+- Added tests:
+  - `scoring_test.go`,
+  - `scenarios_test.go`,
+  - `runner_test.go`.
+- Registered the command in `cmd/book-ocr/main.go` under:
+  - `vlm-separation benchmark`.
+- Ran:
+  - `go test ./internal/vlmseparation -count=1`
+  - `go test ./... -count=1`
+- Ran a dry-run command against Report 794 page images:
+  - pages 12 and 13,
+  - scenarios `target-only`, `single-block-target-first`, `multi-block-labeled`,
+  - output directory `/tmp/book-ocr-vlm-separation-dry`.
+
+### Why
+
+- We need evidence before deciding whether neighboring page images are always unsafe or whether better block layout can make them safe.
+- The benchmark needs exact turn snapshots because block layout is the variable under test.
+- The benchmark also exercises the planned turns-db plumbing for future structured OCR work.
+
+### What worked
+
+- The Glazed command emits one row per benchmark trial.
+- Dry-run wrote:
+  - `/tmp/book-ocr-vlm-separation-dry/manifest.json`,
+  - `/tmp/book-ocr-vlm-separation-dry/scenarios.json`,
+  - `/tmp/book-ocr-vlm-separation-dry/summary.json`,
+  - `/tmp/book-ocr-vlm-separation-dry/results.sqlite`,
+  - `/tmp/book-ocr-vlm-separation-dry/turns.db`,
+  - per-trial `turn-input.yaml`, `turn-final.yaml`, `response.txt`, `response.json`, `metrics.json`, and `trial.json`.
+- SQLite dry-run counts:
+  - `benchmark_trials`: 6 rows,
+  - turns DB `turns`: 6 rows,
+  - turns DB `blocks`: 28 rows,
+  - turns DB `turn_block_membership`: 50 rows.
+- `go test ./... -count=1` passes.
+
+### What didn't work
+
+- No live provider benchmark has been run yet. The implementation is validated in dry-run mode only.
+- The page oracles are intentionally conservative and need manual review before relying on live scores.
+- The benchmark results DB and turns DB are separate files for now. That avoids coupling benchmark analytics tables to Pinocchio's canonical turn-store schema, but it means users inspect two SQLite files.
+
+### What I learned
+
+- The existing Geppetto turn model can represent the scenarios we need:
+  - one multimodal block with all images,
+  - multiple user blocks separated by text,
+  - target image plus text-only context.
+- Pinocchio's turn store works as-is for benchmark input/final turn snapshots.
+- Glazed can be integrated incrementally into the existing manual `book-ocr` CLI without rewriting all current subcommands.
+
+### What was tricky to build
+
+- The current `book-ocr` CLI is not a fully Glazed root; it is mostly manual `flag` parsing. I avoided a risky root rewrite by adding only a `vlm-separation` subcommand whose `benchmark` child is built from a Glazed command.
+- The same turn is saved with different phases (`input`, `final`) in the Pinocchio store. The canonical `turns` table has one row per `(conv_id, session_id, turn_id)`, while phase-specific block membership is recorded in `turn_block_membership`.
+- The file logger and SQLite logger need to cooperate: file paths are written after trial artifacts are emitted, then the final `TrialResult` is inserted into SQLite.
+
+### What warrants a second pair of eyes
+
+- Review the scenario block layouts in `internal/vlmseparation/scenarios.go` and confirm they match the intended experiment.
+- Review whether `single-block-labeled-images` is meaningfully different from `single-block-target-first` for the active providers, given that provider adapters may ignore custom image metadata.
+- Review the page oracles in `internal/vlmseparation/oracle.go`, especially page 12 forbidden captions.
+- Decide whether benchmark tables should optionally live in the same SQLite file as the turns DB.
+
+### What should be done in the future
+
+- Add an `inspect` command for reading benchmark result SQLite and turns DB summaries.
+- Add more curated oracles for known duplicate-caption pages.
+- Run a small opt-in live benchmark with `gpt-5-mini-low` on pages 12/13 and two scenarios.
+- Compare live outputs before changing the production OCR context strategy.
+
+### Code review instructions
+
+- Start at:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/command.go`
+- Then review:
+  - `scenarios.go` for block layout construction,
+  - `runner.go` for persistence flow,
+  - `turns.go` for Pinocchio store reuse,
+  - `sqlite.go` for benchmark tables,
+  - tests in `internal/vlmseparation/*_test.go`.
+- Validate with:
+  - `go test ./internal/vlmseparation -count=1`
+  - `go test ./... -count=1`
+  - dry-run command from the technical details below.
+
+### Technical details
+
+Dry-run command used:
+
+```bash
+go run ./cmd/book-ocr vlm-separation benchmark \
+  --book-id report-794 \
+  --image-dir /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages \
+  --target-pages 12,13 \
+  --scenarios target-only,single-block-target-first,multi-block-labeled \
+  --out-dir /tmp/book-ocr-vlm-separation-dry \
+  --dry-run \
+  --output json
+```
+
+SQLite checks used:
+
+```bash
+sqlite3 /tmp/book-ocr-vlm-separation-dry/results.sqlite \
+  "select count(*) from benchmark_trials;"
+
+sqlite3 /tmp/book-ocr-vlm-separation-dry/turns.db \
+  "select count(*) from turns; select count(*) from blocks; select count(*) from turn_block_membership;"
 ```

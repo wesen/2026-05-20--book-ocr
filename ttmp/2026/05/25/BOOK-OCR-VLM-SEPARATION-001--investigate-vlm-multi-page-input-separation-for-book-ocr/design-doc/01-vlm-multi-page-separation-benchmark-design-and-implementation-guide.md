@@ -27,12 +27,19 @@ RelatedFiles:
       Note: Current multi-image Geppetto OCR path and context-image packaging
     - Path: internal/ocrmvp/prompt.go
       Note: Current prompt contracts whose separation behavior needs benchmarking
+    - Path: internal/vlmseparation/command.go
+      Note: Implemented Glazed benchmark command
+    - Path: internal/vlmseparation/scenarios.go
+      Note: Implemented scenario turn construction
+    - Path: internal/vlmseparation/turns.go
+      Note: Implemented turns DB persistence wrapper
 ExternalSources: []
 Summary: Design and implementation guide for a Glazed benchmark tool that tests whether VLMs can keep target-page OCR separate from neighboring page images under different prompt and turn/block layouts.
 LastUpdated: 2026-05-25T00:00:00-04:00
 WhatFor: Use this guide to implement and run a benchmark before redesigning Book OCR around assumptions about multimodal page separation.
 WhenToUse: Read before implementing or running the VLM multi-page separation benchmark, adding turns-db support, or changing OCR prompt/context strategy.
 ---
+
 
 
 # VLM Multi-Page Separation Benchmark Design and Implementation Guide

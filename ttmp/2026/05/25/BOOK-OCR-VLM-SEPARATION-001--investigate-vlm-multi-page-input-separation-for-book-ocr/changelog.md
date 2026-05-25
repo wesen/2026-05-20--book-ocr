@@ -24,3 +24,15 @@ Uploaded the VLM separation benchmark guide and diary to reMarkable at /ai/2026/
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-VLM-SEPARATION-001--investigate-vlm-multi-page-input-separation-for-book-ocr/design-doc/01-vlm-multi-page-separation-benchmark-design-and-implementation-guide.md — Uploaded guide source
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-VLM-SEPARATION-001--investigate-vlm-multi-page-input-separation-for-book-ocr/reference/01-diary.md — Uploaded diary source
 
+
+## 2026-05-25
+
+Implemented the Glazed VLM separation benchmark command with dry-run trials, file outputs, benchmark SQLite tables, and Pinocchio turns DB snapshots (commit 07db987).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/command.go — Glazed command
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/runner.go — Benchmark runner
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/sqlite.go — Results DB
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/turns.go — Turns DB wrapper
+
