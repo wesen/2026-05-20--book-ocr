@@ -33,12 +33,17 @@ RelatedFiles:
         Main intern-facing redesign guide
         Benchmark-informed redesign update
         Updated implementation progress
+    - Path: ttmp/2026/05/25/BOOK-OCR-PIPELINE-REDESIGN-001--redesign-book-ocr-pipeline-after-full-book-context-bleed/experiments/001-report794-50-target-only-v5/summary.md
+      Note: First-50 live target-only OCR evidence
+    - Path: ttmp/2026/05/25/BOOK-OCR-PIPELINE-REDESIGN-001--redesign-book-ocr-pipeline-after-full-book-context-bleed/reference/01-diary.md
+      Note: Live rerun diary
 ExternalSources: []
 Summary: Diary for the Book OCR pipeline redesign after the full-book context-image bleed regression.
 LastUpdated: 2026-05-25T00:00:00-04:00
 WhatFor: Use this diary to understand why the structured, target-page-only, turn-persisted OCR redesign ticket was created and what documentation was produced.
 WhenToUse: Read before implementing the redesigned pipeline or continuing the ticket.
 ---
+
 
 
 
@@ -498,4 +503,129 @@ Vault commit:
 
 ```text
 54c97ee160fe55a8a9a7812f908bb7b52de42713 Article: update OCR benchmark and redesign progress
+```
+
+## Step 6: Rerun the first 50 Report 794 pages with target-page-only OCR
+
+I ran the current Book OCR workflow over the first 50 Report 794 page images using the figure-aware prompt and `--context-window 0`. This is not the new structured OCR client yet; it is a practical validation run of the safer target-page-only policy using the existing workflow.
+
+The run completed successfully, the quality pass embedded figures, and I opened the final embedded Markdown in `md-view`. The spot checks are encouraging for the specific context-bleed failure: page 12 references Figure 1-1 in prose but does not get a figure link, while page 13 contains and links Figure 1-1.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Now let's rerun the OCR on 50 pages of the real book, to see how things have improved. When done, open the resulting OCR'd markdown with `md-view view ...`"
+
+**Assistant interpretation:** Run a live OCR conversion over the first 50 real source pages, use the safer improved settings, then open the resulting Markdown in the local Markdown viewer.
+
+**Inferred user intent:** The user wants concrete visual evidence that the target-page-only policy improves the full-book context-bleed problem before continuing implementation.
+
+**Commit (code):** N/A — live run and documentation only. Summary commit: `742bfde4ef2081e55bf07b47cb8cd28f5928fa34` — "Docs: add Report 794 first-50 OCR rerun summary"
+
+### What I did
+
+- Ran `book-ocr run` on pages 1-50 with:
+  - profile `gpt-5-mini-low`,
+  - prompt `ocr-quality-v5-figure-aware`,
+  - `--context-window 0`,
+  - `--max-workers 2`.
+- Copied the assembled raw Markdown to:
+  - `/tmp/book-ocr-report794-50-target-only/outputs/01-raw.md`
+- Ran `quality-pass` with `--embed-figures` and `--expected-pages 50`.
+- Opened the final embedded artifact with:
+  - `md-view view /tmp/book-ocr-report794-50-target-only/outputs/quality-pass/embedded-figures.md`
+- Wrote an experiment summary at:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-PIPELINE-REDESIGN-001--redesign-book-ocr-pipeline-after-full-book-context-bleed/experiments/001-report794-50-target-only-v5/summary.md`
+
+### Why
+
+- The VLM benchmark and redesign both point to target-page-only primary OCR as the safer production policy.
+- Running 50 real pages gives a more concrete review artifact than only benchmark tables.
+
+### What worked
+
+- OCR workflow succeeded:
+  - run ID `ocr-mvp-d8701e29-d511-4d6a-9860-a44b75be1b20`
+  - page count `50`
+  - raw character count `85873`
+- Quality pass succeeded:
+  - normalized output: `/tmp/book-ocr-report794-50-target-only/outputs/quality-pass/normalized.md`
+  - embedded output: `/tmp/book-ocr-report794-50-target-only/outputs/quality-pass/embedded-figures.md`
+- Final counts:
+  - raw Markdown: 50 page markers, 85,873 bytes
+  - normalized Markdown: 50 page markers, 81,130 bytes
+  - embedded Markdown: 50 page markers, 81,555 bytes, 17 Markdown image links
+- Spot checks:
+  - page 12: no Figure 1-1 image link
+  - page 13: Figure 1-1 image link exists
+  - page 42: Figure 2-9 image link exists
+  - page 43: no Figure 2-9 image link
+- Quick adjacent duplicate rendered-caption scan found no adjacent duplicate figure captions in pages 1-50.
+- `md-view` opened the final artifact at:
+  - `http://localhost:38789/render?file=/tmp/book-ocr-report794-50-target-only/outputs/quality-pass/embedded-figures.md`
+
+### What didn't work
+
+- I initially piped the OCR command through `tee /tmp/book-ocr-report794-50-target-only/run.log` before creating `/tmp/book-ocr-report794-50-target-only`. `tee` failed with:
+  - `tee: /tmp/book-ocr-report794-50-target-only/run.log: No such file or directory`
+- Because of the failed `tee`, the shell command returned a non-zero exit code even though the OCR workflow itself succeeded and printed the assemble result.
+
+### What I learned
+
+- Target-page-only OCR appears to fix the specific false Figure 1-1/page 12 behavior in the first 50 pages.
+- The older freeform workflow still renders diagram label text after image links. That confirms the structured renderer remains necessary even if target-page-only OCR solves the worst context-bleed symptom.
+
+### What was tricky to build
+
+- The command succeeded at the workflow layer while failing at the shell pipeline layer because `tee` could not create its output file. The correct interpretation required reading the workflow's terminal result and copying the artifact from the artifact store manually.
+
+### What warrants a second pair of eyes
+
+- Review the `md-view` output for figure pages where both image links and diagram text appear, especially pages 13, 31, 32, and 42.
+- Review whether the quality-pass figure crop count should be 17 for the first 50 pages or whether any sidecar/debug files indicate suspicious crops.
+
+### What should be done in the future
+
+- Run the same first-50 subset through the new structured OCR client once it exists.
+- Add a deterministic QA command for adjacent duplicate captions and page-local figure links instead of using an ad hoc Python scan.
+- Consider preserving selected generated artifacts outside `/tmp` if this run needs long-term review beyond the summary.
+
+### Code review instructions
+
+- Review experiment summary:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-PIPELINE-REDESIGN-001--redesign-book-ocr-pipeline-after-full-book-context-bleed/experiments/001-report794-50-target-only-v5/summary.md`
+- Review live artifacts while they exist:
+  - `/tmp/book-ocr-report794-50-target-only/outputs/quality-pass/embedded-figures.md`
+  - `/tmp/book-ocr-report794-50-target-only/outputs/quality-pass/figures/`
+
+### Technical details
+
+OCR command:
+
+```bash
+go run ./cmd/book-ocr run \
+  --book-id report-794-50-target-only-v5 \
+  --image-dir /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages \
+  --start-page 1 \
+  --end-page 50 \
+  --work-dir /tmp/book-ocr-report794-50-target-only/work \
+  --profile gpt-5-mini-low \
+  --profile-registries /tmp/book-ocr-hq-001/profiles-clean.yaml \
+  --prompt-version ocr-quality-v5-figure-aware \
+  --context-window 0 \
+  --max-workers 2 \
+  --log-level warn
+```
+
+Quality command:
+
+```bash
+go run ./cmd/book-ocr quality-pass \
+  --markdown /tmp/book-ocr-report794-50-target-only/outputs/01-raw.md \
+  --output-dir /tmp/book-ocr-report794-50-target-only/outputs/quality-pass \
+  --work-dir /tmp/book-ocr-report794-50-target-only/quality-work \
+  --book-id report-794-50-target-only-v5 \
+  --expected-pages 50 \
+  --image-dir /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages \
+  --embed-figures \
+  --max-workers 2
 ```

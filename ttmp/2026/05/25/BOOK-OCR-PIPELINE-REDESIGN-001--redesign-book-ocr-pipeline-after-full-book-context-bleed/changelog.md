@@ -57,3 +57,13 @@ Updated and pushed the Obsidian project report with refined benchmark oracle res
 - /home/manuel/code/wesen/go-go-golems/go-go-parc/Projects/2026/05/25/ARTICLE - VLM Separation Benchmark for Book OCR - Prompt Block Layouts and Turn Persistence.md — Updated vault report
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-PIPELINE-REDESIGN-001--redesign-book-ocr-pipeline-after-full-book-context-bleed/reference/01-diary.md — Vault update diary
 
+
+## 2026-05-25
+
+Ran a live first-50 Report 794 target-page-only OCR rerun, quality pass, and md-view review; recorded the experiment summary (run ocr-mvp-d8701e29-d511-4d6a-9860-a44b75be1b20, summary commit 742bfde).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-PIPELINE-REDESIGN-001--redesign-book-ocr-pipeline-after-full-book-context-bleed/experiments/001-report794-50-target-only-v5/summary.md — Experiment summary
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-PIPELINE-REDESIGN-001--redesign-book-ocr-pipeline-after-full-book-context-bleed/reference/01-diary.md — Rerun diary
+
