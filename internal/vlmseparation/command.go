@@ -25,6 +25,10 @@ type RescoreCommand struct {
 	*cmds.CommandDescription
 }
 
+type ReportCommand struct {
+	*cmds.CommandDescription
+}
+
 type BenchmarkSettings struct {
 	BookID            string   `glazed:"book-id"`
 	ImageDir          string   `glazed:"image-dir"`
@@ -46,6 +50,14 @@ type RescoreSettings struct {
 	OutDir     string `glazed:"out-dir"`
 	SQLitePath string `glazed:"sqlite"`
 	Write      bool   `glazed:"write"`
+}
+
+type ReportSettings struct {
+	OutDirs      []string `glazed:"out-dir"`
+	ReportDir    string   `glazed:"report-dir"`
+	MarkdownPath string   `glazed:"markdown"`
+	JSONPath     string   `glazed:"json-path"`
+	Write        bool     `glazed:"write"`
 }
 
 func NewBenchmarkCommand() (*BenchmarkCommand, error) {
@@ -119,6 +131,40 @@ Examples:
 		cmds.WithSections(glazedSection, commandSettingsSection),
 	)
 	return &RescoreCommand{CommandDescription: desc}, nil
+}
+
+func NewReportCommand() (*ReportCommand, error) {
+	glazedSection, err := settings.NewGlazedSchema()
+	if err != nil {
+		return nil, err
+	}
+	commandSettingsSection, err := cli.NewCommandSettingsSection()
+	if err != nil {
+		return nil, err
+	}
+	desc := cmds.NewCommandDescription(
+		"report",
+		cmds.WithShort("Build a grouped Markdown/JSON report from VLM separation benchmark runs"),
+		cmds.WithLong(`Build a grouped report from one or more saved benchmark output directories.
+
+The command reads saved trial artifacts, applies the current parser/scorer, merges duplicate
+logical cells by target page and scenario, and writes report.md/report.json by default. Passing
+multiple --out-dir values lets retry runs replace failed cells from a larger run.
+
+Examples:
+  book-ocr vlm-separation report --out-dir /tmp/main-run --output table
+  book-ocr vlm-separation report --out-dir /tmp/main-run --out-dir /tmp/retry-run --report-dir /tmp/main-run --output table
+`),
+		cmds.WithFlags(
+			fields.New("out-dir", fields.TypeStringList, fields.WithHelp("Benchmark output directory; repeat for retry/replacement runs")),
+			fields.New("report-dir", fields.TypeString, fields.WithDefault(""), fields.WithHelp("Directory for report.md/report.json; defaults to first out-dir")),
+			fields.New("markdown", fields.TypeString, fields.WithDefault(""), fields.WithHelp("Explicit Markdown report path")),
+			fields.New("json-path", fields.TypeString, fields.WithDefault(""), fields.WithHelp("Explicit JSON report path")),
+			fields.New("write", fields.TypeBool, fields.WithDefault(true), fields.WithHelp("Write report.md and report.json")),
+		),
+		cmds.WithSections(glazedSection, commandSettingsSection),
+	)
+	return &ReportCommand{CommandDescription: desc}, nil
 }
 
 func (c *BenchmarkCommand) RunIntoGlazeProcessor(ctx context.Context, vals *values.Values, gp middlewares.Processor) error {
@@ -214,6 +260,52 @@ func (c *RescoreCommand) RunIntoGlazeProcessor(ctx context.Context, vals *values
 	return nil
 }
 
+func (c *ReportCommand) RunIntoGlazeProcessor(ctx context.Context, vals *values.Values, gp middlewares.Processor) error {
+	s := &ReportSettings{}
+	if err := vals.DecodeSectionInto(schema.DefaultSlug, s); err != nil {
+		return err
+	}
+	result, err := BuildReport(ctx, ReportConfig{OutDirs: s.OutDirs, ReportDir: s.ReportDir, MarkdownPath: s.MarkdownPath, JSONPath: s.JSONPath, Write: s.Write})
+	if err != nil {
+		return err
+	}
+	for _, agg := range result.ByScenario {
+		row := types.NewRow(
+			types.MRP("kind", "scenario"),
+			types.MRP("name", agg.Scenario),
+			types.MRP("trials", agg.Trials),
+			types.MRP("succeeded", agg.Succeeded),
+			types.MRP("parse_ok", agg.ParseOK),
+			types.MRP("schema_repaired", agg.SchemaRepaired),
+			types.MRP("suspected_bleed", agg.SuspectedBleed),
+			types.MRP("forbidden_hits", agg.ForbiddenHits),
+			types.MRP("average_score", agg.AverageScore),
+			types.MRP("minimum_score", agg.MinimumScore),
+		)
+		if err := gp.AddRow(ctx, row); err != nil {
+			return err
+		}
+	}
+	for _, agg := range result.ByPage {
+		row := types.NewRow(
+			types.MRP("kind", "page"),
+			types.MRP("name", fmt.Sprintf("%03d", agg.TargetPage)),
+			types.MRP("trials", agg.Trials),
+			types.MRP("succeeded", agg.Succeeded),
+			types.MRP("parse_ok", agg.ParseOK),
+			types.MRP("schema_repaired", ""),
+			types.MRP("suspected_bleed", agg.SuspectedBleed),
+			types.MRP("forbidden_hits", agg.ForbiddenHits),
+			types.MRP("average_score", agg.AverageScore),
+			types.MRP("minimum_score", agg.MinimumScore),
+		)
+		if err := gp.AddRow(ctx, row); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func NewRootCommand() (*cobra.Command, error) {
 	root := &cobra.Command{
 		Use:   "vlm-separation",
@@ -241,7 +333,15 @@ func NewRootCommand() (*cobra.Command, error) {
 	if err != nil {
 		return nil, err
 	}
-	root.AddCommand(cobraBenchmark, cobraRescore)
+	report, err := NewReportCommand()
+	if err != nil {
+		return nil, err
+	}
+	cobraReport, err := buildGlazedCobraCommand(report)
+	if err != nil {
+		return nil, err
+	}
+	root.AddCommand(cobraBenchmark, cobraRescore, cobraReport)
 	return root, nil
 }
 

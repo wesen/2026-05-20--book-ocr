@@ -3,6 +3,7 @@ package vlmseparation
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -81,4 +82,39 @@ func TestRescoreOutputDirRepairsSavedResponseAndUpdatesSQLite(t *testing.T) {
 	require.NoError(t, resultsDB.QueryRow(`select schema_repaired, parse_strategy from trial_metrics where trial_id='trial-0001'`).Scan(&schemaRepaired, &parseStrategy))
 	require.Equal(t, 1, schemaRepaired)
 	require.Equal(t, "schema-repair", parseStrategy)
+}
+
+func TestBuildReportMergesRetryRunByLogicalPageScenario(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	mainDir := filepath.Join(dir, "main")
+	retryDir := filepath.Join(dir, "retry")
+	writeReportTrial := func(outDir, trialID, status, response string) {
+		t.Helper()
+		trialDir := filepath.Join(outDir, "trials", trialID)
+		require.NoError(t, os.MkdirAll(trialDir, 0o755))
+		responsePath := filepath.Join(trialDir, "response.txt")
+		require.NoError(t, os.WriteFile(responsePath, []byte(response), 0o644))
+		result := TrialResult{ID: trialID, RunID: "run", Scenario: ScenarioTargetOnly, TargetPage: 13, Status: status, ResponsePath: responsePath}
+		if response == "" {
+			result.Error = "provider failed"
+		}
+		body, err := json.Marshal(result)
+		require.NoError(t, err)
+		require.NoError(t, os.WriteFile(filepath.Join(trialDir, "trial.json"), body, 0o644))
+	}
+	writeReportTrial(mainDir, "trial-0001", "failed", "")
+	writeReportTrial(retryDir, "trial-0001", "succeeded", `{"page":13,"ocr":"Figure 1-1: A Rudimentary User Interface\nApplication Data Base\nobservables\nqueries"}`)
+
+	report, err := BuildReport(ctx, ReportConfig{OutDirs: []string{mainDir, retryDir}, ReportDir: mainDir, Write: true})
+	require.NoError(t, err)
+	require.Equal(t, 2, report.TrialCount)
+	require.Equal(t, 1, report.LogicalTrialCount)
+	require.Equal(t, 1, report.DuplicateCount)
+	require.Equal(t, 1, report.ReplacementCount)
+	require.Equal(t, 1, report.Succeeded)
+	require.Equal(t, 1, report.ParseOK)
+	require.Equal(t, 1.0, report.AverageScore)
+	require.FileExists(t, filepath.Join(mainDir, "report.md"))
+	require.FileExists(t, filepath.Join(mainDir, "report.json"))
 }
