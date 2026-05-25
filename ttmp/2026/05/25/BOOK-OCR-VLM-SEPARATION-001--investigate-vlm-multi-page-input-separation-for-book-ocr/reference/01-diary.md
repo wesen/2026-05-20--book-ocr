@@ -785,3 +785,64 @@ select trial_id,
 from trial_metrics
 order by trial_id;
 ```
+
+## Step 8: Append the rescore workflow to the Obsidian report
+
+I updated the Obsidian article again to record that saved-run rescoring is now a normal CLI workflow. The report now explains that provider outputs are observations and scoring is a replayable projection over those observations.
+
+This matters for future benchmark work because parser/scorer improvements should not require another live provider call. The article now points reviewers to the exact `vlm-separation rescore` command.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 7)
+
+**Assistant interpretation:** Keep the external report aligned with the new reusable rescore workflow.
+
+**Inferred user intent:** The user wants the Obsidian project report to remain accurate as the benchmark implementation becomes more operational.
+
+**Commit (code):** N/A — documentation-only vault update. Obsidian commit: `80f638fdd6b0c8007e276cb62087ab422a034e28` — "Article: add VLM benchmark rescore command"
+
+### What I did
+
+- Appended a `saved-run rescoring` update section to the Obsidian article.
+- Committed and pushed the vault.
+
+### Why
+
+- The rescore command is an important benchmark usage pattern and should be in the long-form report.
+
+### What worked
+
+- Vault commit `80f638fdd6b0c8007e276cb62087ab422a034e28` was pushed.
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- The benchmark report should describe projection/replay workflows, not just provider-call workflows.
+
+### What was tricky to build
+
+- N/A
+
+### What warrants a second pair of eyes
+
+- Review whether the article is becoming too append-heavy and should eventually be consolidated.
+
+### What should be done in the future
+
+- If the broader benchmark is run, append a separate results section instead of rewriting earlier sections.
+
+### Code review instructions
+
+- Review the final update section in the Obsidian article.
+
+### Technical details
+
+Vault commit:
+
+```text
+80f638fdd6b0c8007e276cb62087ab422a034e28 Article: add VLM benchmark rescore command
+```
