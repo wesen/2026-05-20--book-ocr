@@ -52,6 +52,8 @@ func run(args []string) error {
 		return runWorkflow(subArgs)
 	case "retry":
 		return retryStep(subArgs)
+	case "resume":
+		return resumeRun(subArgs)
 	case "cancel":
 		return cancelRun(subArgs)
 	case "status":
@@ -75,6 +77,7 @@ func printUsage() {
   ocr-mvp [run flags]              # backwards-compatible shorthand for run
   ocr-mvp status --work-dir DIR --run-id RUN_ID
   ocr-mvp retry --work-dir DIR --run-id RUN_ID --step-id STEP_ID
+  ocr-mvp resume --work-dir DIR --run-id RUN_ID
   ocr-mvp cancel --work-dir DIR --run-id RUN_ID
   ocr-mvp pages --work-dir DIR --book-id BOOK_ID [--status STATUS]
   ocr-mvp quality-pass --markdown PATH --output-dir DIR [--expected-pages N]
@@ -299,6 +302,66 @@ func retryStep(args []string) error {
 	}
 	fmt.Printf("retried step %s in run %s\n", *stepID, *runID)
 	return nil
+}
+
+func resumeRun(args []string) error {
+	fs := flag.NewFlagSet("resume", flag.ContinueOnError)
+	workDir := fs.String("work-dir", defaultWorkDir, "Directory containing engine.db")
+	runID := fs.String("run-id", "", "Workflow run ID")
+	logLevel := fs.String("log-level", "info", "zerolog level: trace, debug, info, warn, error, disabled")
+	maxWorkers := fs.Int("max-workers", 2, "Maximum concurrent workflow workers")
+	pollInterval := fs.Duration("poll-interval", 250*time.Millisecond, "Worker polling interval")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if err := configureLogLevel(*logLevel); err != nil {
+		return err
+	}
+	if strings.TrimSpace(*runID) == "" {
+		return fmt.Errorf("--run-id is required")
+	}
+	paths, err := resolveWorkDir(*workDir, false)
+	if err != nil {
+		return err
+	}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	client := ocrmvp.OCRClient(ocrmvp.NewGeppettoOCRClient())
+	rt, err := newRuntime(ctx, paths, *maxWorkers, *pollInterval)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = rt.Close() }()
+	if err := ocrmvp.Register(rt, ocrmvp.Config{Client: client}); err != nil {
+		return err
+	}
+	fmt.Printf("resuming run %s in %s\n", *runID, paths.root)
+	for {
+		cycle, err := rt.RunOnce(ctx)
+		if err != nil {
+			return err
+		}
+		wf, err := rt.Workflow(ctx, model.WorkflowID(*runID))
+		if err != nil {
+			return err
+		}
+		fmt.Printf("status=%s processed=%d succeeded=%d failed=%d retried=%d\n", wf.Status, cycle.Processed, cycle.Succeeded, cycle.Failed, cycle.Retried)
+		if isTerminal(wf.Status) {
+			if wf.Status != model.WorkflowStatusSucceeded {
+				return fmt.Errorf("workflow finished with status %s", wf.Status)
+			}
+			result, err := rt.Result(ctx, model.WorkflowID(*runID), "assemble-markdown")
+			if err == nil && result != nil {
+				fmt.Printf("assemble result: %s\n", string(result.Data))
+			}
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(*pollInterval):
+		}
+	}
 }
 
 func cancelRun(args []string) error {
