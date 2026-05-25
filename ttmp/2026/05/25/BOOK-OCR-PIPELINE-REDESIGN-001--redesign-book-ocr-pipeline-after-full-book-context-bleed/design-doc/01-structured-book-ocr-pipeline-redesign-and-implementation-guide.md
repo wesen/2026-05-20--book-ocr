@@ -26,9 +26,17 @@ RelatedFiles:
       Note: Current OCR workflow input/result contracts
     - Path: internal/ocrquality/figures.go
       Note: Current marker-to-crop figure embedding worker
+    - Path: internal/vlmseparation/scenarios.go
+      Note: Benchmark scenario construction for target/context image separation
+    - Path: internal/vlmseparation/scoring.go
+      Note: Sanitize-backed response repair and target-isolation scoring
+    - Path: internal/vlmseparation/oracle.go
+      Note: Risky-page expected/forbidden oracle anchors for Report 794
+    - Path: internal/vlmseparation/report.go
+      Note: Multi-run benchmark report generation and retry replacement logic
 ExternalSources: []
 Summary: Intern-facing design and implementation guide for replacing freeform, context-image OCR with a structured, target-page-only, turn-persisted Book OCR pipeline.
-LastUpdated: 2026-05-25T00:00:00-04:00
+LastUpdated: 2026-05-25T17:30:00-04:00
 WhatFor: Use this guide to implement the next Book OCR pipeline after the full-book run exposed context-image bleed, inconsistent markdown, duplicate figure captions, and weak inference observability.
 WhenToUse: Read before changing Book OCR prompts, Geppetto OCR calls, quality workers, figure extraction, turn persistence, or full-book validation.
 ---
@@ -354,6 +362,151 @@ Pinocchio's CLI helpers expose the relevant flags:
 ```
 
 Book OCR should add equivalent flags and store each inference turn.
+
+
+## Benchmark Evidence Update: What the VLM Separation Runs Changed
+
+After this redesign guide was first written, Book OCR gained a dedicated `vlm-separation` benchmark. The benchmark does not replace the redesign; it sharpens it. It showed that the original full-book failure should be treated as a page-boundary validation problem, not only as a prompt problem.
+
+The benchmark tested pages that previously showed duplicated adjacent figure captions in the full-book artifact. It ran four scenarios over a 16-page risky preset:
+
+```text
+target-only
+single-block-target-first
+multi-block-labeled
+target-plus-text-context
+```
+
+The final combined report used a main run plus two retry runs:
+
+```text
+/tmp/book-ocr-vlm-separation-live-risky-pages
+/tmp/book-ocr-vlm-separation-live-risky-pages-retry-43-mbl-2
+/tmp/book-ocr-vlm-separation-live-risky-pages-retry-88-text
+```
+
+The report command combined those runs into 64 logical page/scenario cells:
+
+```text
+Raw trials: 66
+Logical trials: 64
+Duplicate logical cells: 2
+Retry replacements selected: 2
+Successful logical trials: 64
+Parseable logical trials: 64
+Suspected bleed: 0
+Forbidden hits: 0
+Average target-only score: 0.992
+```
+
+The important result is not that image-context prompting is now production-safe. The important result is narrower: with the tested model, pages, scenarios, parser repair, and oracles, the benchmark did not reproduce forbidden adjacent-caption copying. That means the original failure is not an inevitable outcome of every multi-image prompt. It also means we need better validation gates, because a single full-book run can still fail even when a targeted benchmark does not reproduce the failure.
+
+### Revised interpretation of context images
+
+The original redesign rule was simple: never use neighboring PNGs in primary OCR. That remains the production rule. The benchmark adds a second rule:
+
+```text
+Neighboring page images may be used only in diagnostic benchmark calls or explicit QA experiments, never as the source of final page text.
+```
+
+The distinction matters. A diagnostic call can compare layouts, identify failure modes, or validate a hypothesis. It can write benchmark artifacts and warnings. It cannot write final page Markdown directly. The final page transcription must come from a target-page-only primary OCR call, followed by deterministic rendering and text-only normalization.
+
+### Revised validation model
+
+The benchmark also clarifies the validation model. A low OCR score can mean several different things:
+
+| Failure class | Evidence | Pipeline reaction |
+|---|---|---|
+| Context bleed | Forbidden neighboring caption or phrase appears on the target page. | Block publication; require page-level review or rerun target-only. |
+| Coverage miss | Expected target anchors are missing, but no forbidden content appears. | Warn; inspect OCR fidelity or oracle quality. |
+| Provider/schema failure | Missing response, parse failure, or schema repair anomaly. | Retry or rescore; do not treat as OCR content evidence. |
+| Figure false positive | Page references a figure but figure QA cannot find the figure on that page. | Reject figure block or convert to prose reference. |
+
+This classification should be carried into the structured pipeline. The pipeline should not expose a single vague `quality_failed` status when it can report the specific class of failure.
+
+### Revised acceptance criteria
+
+The structured pipeline should now include benchmark-derived gates:
+
+```text
+1. Primary OCR input turn contains exactly one target page image.
+2. Structured page JSON contains page-local blocks only.
+3. Figure blocks with captions duplicated on adjacent pages require target-page figure QA.
+4. Adjacent duplicate captions are warnings unless both pages visibly contain the caption/figure.
+5. Forbidden-caption oracles can be generated for known risky pairs and run as deterministic QA.
+6. Report artifacts must distinguish bleed, coverage miss, parse repair, and provider failure.
+```
+
+These criteria are more useful than a single instruction such as “do not copy context.” They create observable artifacts that can be tested.
+
+## Redesign Revision: Benchmark-Informed Pipeline Shape
+
+The benchmark suggests a clearer separation between production stages and diagnostic stages.
+
+```mermaid
+flowchart TD
+    A[Target page PNG] --> B[Production: structured OCR]
+    B --> C[Structured page JSON]
+    C --> D[Deterministic renderer]
+    D --> E[Page Markdown]
+    C --> F[Production: figure QA on target page]
+    F --> G[Validated figure metadata]
+    E --> H[Production: text-only normalization]
+    H --> I[Validated page artifact]
+
+    A --> J[Diagnostic: VLM separation benchmark]
+    K[Neighbor PNGs] --> J
+    J --> L[Benchmark report / warnings]
+    L -. does not write final OCR .-> I
+
+    style B fill:#e8f5e9,stroke:#2e7d32
+    style F fill:#e8f5e9,stroke:#2e7d32
+    style H fill:#e8f5e9,stroke:#2e7d32
+    style J fill:#fff3e0,stroke:#ef6c00
+    style L fill:#fff3e0,stroke:#ef6c00
+```
+
+The production path has a strict write boundary. Only target-page-only OCR and target-page figure QA can produce page content. Diagnostic benchmarks can influence warnings, policy, and follow-up tasks, but they do not directly overwrite page text.
+
+### New package implication
+
+The existing benchmark code should not be folded into `internal/ocrpipeline` as a normal OCR stage. Keep it as a sibling package:
+
+```text
+internal/ocrpipeline/      production structured OCR pipeline
+internal/vlmseparation/    diagnostic benchmark and reporting package
+internal/ocrquality/       deterministic QA and figure embedding helpers
+```
+
+`internal/ocrpipeline` may import deterministic QA helpers, but it should not depend on live benchmark execution. The dependency direction should be:
+
+```text
+ocrpipeline -> ocrquality helpers
+vlmseparation -> shared page/oracle/report helpers where useful
+```
+
+If common types emerge, move them into a small package such as:
+
+```text
+internal/ocrvalidation
+```
+
+Do not make production OCR depend on a benchmark command package just to reuse one phrase-matching helper.
+
+### New implementation slice
+
+The recommended next implementation PR should change slightly. Instead of starting with only renderer and turn storage, add validation types early:
+
+```text
+internal/ocrpipeline/types.go          StructuredPageOCR and OCRBlock
+internal/ocrpipeline/renderer.go       deterministic Markdown renderer
+internal/ocrpipeline/session.go        Pinocchio turn persistence wrapper
+internal/ocrvalidation/oracle.go       expected/forbidden anchors
+internal/ocrvalidation/adjacent.go     adjacent caption checks
+internal/ocrvalidation/report.go       validation warning summary types
+```
+
+The first PR should still avoid live OCR. It should prove the data contracts, renderer, turn persistence, and deterministic validation gates with fixtures.
 
 ## Proposed Solution
 
@@ -1355,15 +1508,20 @@ Mitigation: add first-class operator support for requeueing canceled downstream 
 
 ## Recommended First PR
 
-The first implementation PR should be small and testable:
+The first implementation PR should be small and testable, but it should now include deterministic validation types in addition to rendering and turn persistence:
 
-1. Add `internal/ocrpipeline/types.go`.
-2. Add `internal/ocrpipeline/renderer.go`.
-3. Add golden renderer tests.
+1. Add `internal/ocrpipeline/types.go` with `StructuredPageOCR`, `OCRBlock`, warnings, and figure block contracts.
+2. Add `internal/ocrpipeline/renderer.go` with deterministic Markdown rendering.
+3. Add golden renderer tests for body, figure, table, blank, and table-of-figures pages.
 4. Add `internal/ocrpipeline/session.go` wrapping `chatstore.TurnStore`.
 5. Add tests proving `input` and `final` turns are saved under the desired conv/session/turn IDs.
+6. Add `internal/ocrvalidation` with deterministic adjacent-caption and expected/forbidden-anchor checks.
+7. Add fixtures for the Report 794 page 12/13 and 115/116 regressions:
+   - page 12 may reference Figure 1-1 in prose but must not produce a Figure 1-1 figure block;
+   - page 13 may produce the Figure 1-1 figure block;
+   - page 116 may reference Figure 5-7 in prose but must not produce a Figure 5-7 figure block.
 
-Do not start with live OCR. The first PR should establish deterministic contracts and persistence.
+Do not start with live OCR. The first PR should establish deterministic contracts, persistence, rendering, and validation gates. A live structured OCR client should come only after those tests exist.
 
 ## File Reference Index
 
