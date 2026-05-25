@@ -36,7 +36,7 @@ RelatedFiles:
       Note: Multi-run benchmark report generation and retry replacement logic
 ExternalSources: []
 Summary: Intern-facing design and implementation guide for replacing freeform, context-image OCR with a structured, target-page-only, turn-persisted Book OCR pipeline.
-LastUpdated: 2026-05-25T17:30:00-04:00
+LastUpdated: 2026-05-25T17:45:00-04:00
 WhatFor: Use this guide to implement the next Book OCR pipeline after the full-book run exposed context-image bleed, inconsistent markdown, duplicate figure captions, and weak inference observability.
 WhenToUse: Read before changing Book OCR prompts, Geppetto OCR calls, quality workers, figure extraction, turn persistence, or full-book validation.
 ---
@@ -1522,6 +1522,67 @@ The first implementation PR should be small and testable, but it should now incl
    - page 116 may reference Figure 5-7 in prose but must not produce a Figure 5-7 figure block.
 
 Do not start with live OCR. The first PR should establish deterministic contracts, persistence, rendering, and validation gates. A live structured OCR client should come only after those tests exist.
+
+
+## Implementation Progress Update: First Deterministic Contracts Landed
+
+The first implementation slice now exists in code. It deliberately avoids live OCR. The goal of this slice is to make the structured pipeline's data contracts, renderer behavior, turn persistence, and deterministic validation gates testable before introducing another model call.
+
+New production-oriented package:
+
+```text
+internal/ocrpipeline/
+  types.go          StructuredPageOCR, OCRBlock, warnings, figure refs
+  renderer.go       deterministic Markdown renderer
+  session.go        Pinocchio turn-store wrapper and ID helpers
+```
+
+New validation package:
+
+```text
+internal/ocrvalidation/
+  anchors.go        expected/forbidden anchor evaluation
+  adjacent.go       adjacent duplicate figure caption detection
+  types.go          warning and oracle contracts
+```
+
+The renderer establishes the final Markdown write contract. It always emits a page marker, renders headings/paragraphs/lists/tables/figures deterministically, omits page footers by default, and suppresses `diagram_text` unless explicitly requested. This supports the design rule that final reader-facing Markdown should not contain both a figure image and a long ad-hoc ASCII diagram unless a debug option asks for it.
+
+The turn-store wrapper establishes the persistence contract for future model calls. It uses Pinocchio's `chatstore.SQLiteTurnStore` and the same identifier shape described earlier:
+
+```text
+convID    = book-ocr:<book-id>:<run-id>
+sessionID = page:<NNN>
+turnID    = page:<NNN>:<index>-<name>
+phase     = input, final, parse-error, qa
+```
+
+One subtlety matters: Pinocchio's `turns` table is keyed by `(conv_id, session_id, turn_id)`, while snapshot phases live in `turn_block_membership`. Saving `input` and `final` for the same turn creates one `turns` row and multiple membership snapshots. Tests now check that both `input` and `final` phases are present in `turn_block_membership`, not that there are two separate turn rows.
+
+The validation package is intentionally independent from `internal/vlmseparation`. Benchmark oracles informed the design, but production validation should not import the benchmark command package. The shared deterministic ideas are now available as small validation functions:
+
+```go
+EvaluateAnchors(text, oracle)
+DetectAdjacentDuplicateFigureCaptions(pages)
+ExtractFigureCaptions(markdown)
+```
+
+Regression tests cover the important page-boundary cases:
+
+- page 12 can mention Figure 1-1 in prose, but rendering a Figure 1-1 caption on page 12 is detected as adjacent duplication when page 13 also renders the caption;
+- page 116 can mention figure 5-7 in prose while still forbidding a rendered `Figure 5-7: Reference Resolution` caption;
+- anchor matching normalizes line breaks so diagram labels such as `Application
+Data
+Base` match `Application Data Base`.
+
+Validation commands:
+
+```bash
+go test ./internal/ocrpipeline ./internal/ocrvalidation -count=1
+go test ./... -count=1
+```
+
+This slice changes the next implementation step. The project no longer needs to start by designing contracts; those contracts exist. The next PR should add the target-page-only structured OCR client behind fake/dry-run tests and persist its input/final turns through `OCRTurnStore`.
 
 ## File Reference Index
 

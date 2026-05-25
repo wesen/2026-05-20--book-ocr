@@ -14,6 +14,16 @@ Owners: []
 RelatedFiles:
     - Path: internal/ocrmvp/geppetto_ocr.go
       Note: Context-image root cause reference
+    - Path: internal/ocrpipeline/renderer.go
+      Note: Deterministic Markdown renderer
+    - Path: internal/ocrpipeline/session.go
+      Note: Pinocchio turn store wrapper
+    - Path: internal/ocrpipeline/types.go
+      Note: Structured OCR data contracts
+    - Path: internal/ocrvalidation/adjacent.go
+      Note: Adjacent caption validation
+    - Path: internal/ocrvalidation/anchors.go
+      Note: Expected/forbidden anchor validation
     - Path: internal/vlmseparation/oracle.go
       Note: Risky-page oracle evidence feeding validation design
     - Path: internal/vlmseparation/report.go
@@ -22,12 +32,14 @@ RelatedFiles:
       Note: |-
         Main intern-facing redesign guide
         Benchmark-informed redesign update
+        Updated implementation progress
 ExternalSources: []
 Summary: Diary for the Book OCR pipeline redesign after the full-book context-image bleed regression.
 LastUpdated: 2026-05-25T00:00:00-04:00
 WhatFor: Use this diary to understand why the structured, target-page-only, turn-persisted OCR redesign ticket was created and what documentation was produced.
 WhenToUse: Read before implementing the redesigned pipeline or continuing the ticket.
 ---
+
 
 
 
@@ -318,3 +330,106 @@ internal/vlmseparation/    diagnostic benchmark and reporting package
 internal/ocrquality/       deterministic QA and figure embedding helpers
 internal/ocrvalidation/    shared validation/oracle helpers, if needed
 ```
+
+## Step 4: Land the first deterministic structured OCR contracts
+
+I implemented the first code slice of the redesign without adding any live OCR calls. This slice creates the structured page contracts, deterministic Markdown renderer, Pinocchio turn-store wrapper, and validation helpers that future structured OCR calls will use.
+
+The purpose of this step is to make the non-model parts of the redesign executable and testable. The next live OCR client should plug into these contracts rather than inventing output shapes inside a prompt.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 3)
+
+**Assistant interpretation:** Continue from the benchmark-informed redesign into the first implementation slice, keeping changes deterministic and committing at a coherent boundary.
+
+**Inferred user intent:** The user wants the redesign to move from documentation into code while preserving the safety constraints learned from the VLM benchmark.
+
+**Commit (code):** `5011269d876b65d5f2f30c791a26280ca87475e2` — "Add structured OCR pipeline contracts"
+
+### What I did
+
+- Added `internal/ocrpipeline/types.go` with:
+  - `StructuredPageOCR`,
+  - `OCRBlock`,
+  - page/block type enums,
+  - list/table/figure/warning contracts.
+- Added `internal/ocrpipeline/renderer.go` with deterministic Markdown rendering for:
+  - page markers,
+  - headings,
+  - paragraphs,
+  - lists,
+  - tables,
+  - figures,
+  - footnotes,
+  - blank pages,
+  - optional page footers.
+- Added `internal/ocrpipeline/session.go` with an OCR-specific wrapper around Pinocchio `chatstore.TurnStore`.
+- Added `internal/ocrvalidation` with:
+  - expected/forbidden anchor evaluation,
+  - adjacent duplicate figure-caption detection,
+  - caption extraction and normalization.
+- Added tests for renderer behavior, turn persistence, ID helpers, anchor matching, adjacent captions, and the page 116 figure-reference case.
+- Updated the redesign guide with an implementation progress section.
+
+### Why
+
+- The pipeline should establish deterministic contracts before adding model calls.
+- The renderer and validation gates are the parts that keep final Markdown stable and page-local.
+- Production validation should not import the diagnostic `vlmseparation` command package.
+
+### What worked
+
+- `go test ./internal/ocrpipeline ./internal/ocrvalidation -count=1` passes.
+- `go test ./... -count=1` passes.
+- The turn-store test verifies that saving `input` and `final` phases records both phases in `turn_block_membership`.
+
+### What didn't work
+
+- My first turn-store test expected two rows in the `turns` table. Pinocchio's schema stores one row per `(conv_id, session_id, turn_id)` and records phase snapshots in `turn_block_membership`. I corrected the test to check membership phases instead.
+
+### What I learned
+
+- The Pinocchio turn store treats phases as snapshots of one turn, not as separate top-level turns.
+- This is a good fit for page pipelines: one page turn ID can have input/final snapshots without duplicating turn identity.
+
+### What was tricky to build
+
+- The renderer must not accidentally reintroduce diagram text into final Markdown when an image link exists. I made `IncludeDiagramText` opt-in.
+- The validation package had to distinguish prose references to a figure from rendered figure captions. `ExtractFigureCaptions` only treats line-start `Figure N-M:` captions as captions.
+
+### What warrants a second pair of eyes
+
+- Review whether `internal/ocrvalidation` should eventually own all Report 794 benchmark oracles or stay generic.
+- Review renderer defaults, especially whether figure descriptions should render as `[FIGURE: ...]` when no crop exists.
+- Review whether the turn ID format should include schema version or model profile.
+
+### What should be done in the future
+
+- Add the target-page-only structured OCR client using these contracts.
+- Add fake client tests before any live OCR test.
+- Wire deterministic validation into the structured workflow package once workflow steps exist.
+
+### Code review instructions
+
+- Start with:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/types.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/renderer.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/session.go`
+- Then review:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrvalidation/anchors.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrvalidation/adjacent.go`
+- Validate with:
+  - `go test ./internal/ocrpipeline ./internal/ocrvalidation -count=1`
+  - `go test ./... -count=1`
+
+### Technical details
+
+Pinocchio phase persistence nuance:
+
+```text
+turns table primary key: conv_id, session_id, turn_id
+phase snapshots:        turn_block_membership.phase
+```
+
+Therefore input/final snapshots for the same page turn should be queried from `turn_block_membership`, not counted as separate `turns` rows.
