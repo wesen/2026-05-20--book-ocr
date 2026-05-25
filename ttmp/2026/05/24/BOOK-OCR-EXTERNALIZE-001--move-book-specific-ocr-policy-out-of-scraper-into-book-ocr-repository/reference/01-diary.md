@@ -11,8 +11,18 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: ../../../../../../../scraper/pkg/workflow/package.go
+      Note: Runtime API used by external OCR packages
     - Path: ../../../../../../../scraper/pkg/workflows/bookprofile/profile.go
       Note: Inspected source for diary analysis
+    - Path: cmd/book-ocr/main.go
+      Note: External OCR CLI moved from scraper
+    - Path: internal/bookprofile/profile.go
+      Note: External book profile package
+    - Path: internal/ocrmvp/package.go
+      Note: External page OCR workflow package
+    - Path: internal/ocrquality/package.go
+      Note: External OCR quality workflow package
     - Path: ttmp/2026/05/24/BOOK-OCR-EXTERNALIZE-001--move-book-specific-ocr-policy-out-of-scraper-into-book-ocr-repository/design-doc/01-externalizing-book-ocr-policy-from-scraper-design-and-implementation-guide.md
       Note: Main design output for Step 1
 ExternalSources: []
@@ -21,6 +31,7 @@ LastUpdated: 2026-05-24T23:31:44-04:00
 WhatFor: Use this to retrace the analysis and design decisions for BOOK-OCR-EXTERNALIZE-001.
 WhenToUse: Read before implementing the external profile/prompt/policy migration.
 ---
+
 
 
 # Diary
@@ -302,4 +313,124 @@ The external application should ultimately run as:
 
 ```bash
 go run ./cmd/book-ocr quality-pass --book-profile ./books/report-794/book.profile.yaml ...
+```
+
+## Step 4: Move OCR packages and CLI into the book-ocr repository, then remove them from scraper
+
+I executed the package move in two repository commits. First I normalized the existing go-template scaffold in `2026-05-20--book-ocr` by replacing `XXX` placeholders with `book-ocr`, setting the module path to `github.com/go-go-golems/book-ocr`, and adding a minimal `cmd/book-ocr` entry point. Then I copied the OCR page workflow, OCR quality workflow, book profile/discovery code, and OCR CLI from `scraper` into the book OCR repository and rewired imports so the external application imports `scraper/pkg/workflow` and `scraper/pkg/engine/model` as runtime dependencies.
+
+After the external application compiled and passed tests, I ran a real quality-pass smoke test against the Report 794 Experiment 007 raw markdown. The smoke test generated the expected embedded figure markdown, four figure image links, crop sidecars, debug overlays, discovery YAML, and profile patch YAML. Only after that parity check did I remove the OCR packages and `cmd/ocr-mvp` from `scraper`. The scraper pre-commit hook then passed full tests, web tests, lint, gosec, and govulncheck with OCR removed.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 3)
+
+**Assistant interpretation:** Continue from the task plan and actually move the OCR implementation into the book OCR repository, committing as stable checkpoints are reached.
+
+**Inferred user intent:** The user wants a real repository boundary: `scraper` should be the workflow/job runtime only, while `2026-05-20--book-ocr` should own the OCR application.
+
+**Commit (code):** `54fa0beeefcd9bb8bcf259bd6afa9f021fe634fa` — "Set up book OCR Go module"
+
+**Commit (code):** `04785a5a66fec3e6110348c9dbc35d304c3a7ad5` — "Move OCR workflows into book OCR repo"
+
+**Commit (code):** `cd019928949f916aab08976b73ffa6a3c4f489cd` — "Move OCR workflows out of scraper"
+
+### What I did
+
+- Updated `2026-05-20--book-ocr/go.mod` to module `github.com/go-go-golems/book-ocr`.
+- Replaced template placeholders in the Go template plumbing.
+- Removed `cmd/XXX` and added `cmd/book-ocr`.
+- Copied these packages into `2026-05-20--book-ocr/internal`:
+  - `internal/ocrmvp`
+  - `internal/ocrquality`
+  - `internal/bookprofile`
+- Copied `scraper/cmd/ocr-mvp/main.go` to `cmd/book-ocr/main.go` and rewired imports.
+- Added `replace github.com/go-go-golems/scraper => ../scraper` so the external app uses the sibling runtime checkout.
+- Ran `go test ./... -count=1` in the book OCR repository.
+- Ran a real external smoke test using `go run ./cmd/book-ocr quality-pass ...`.
+- Removed OCR packages and `cmd/ocr-mvp` from `scraper`.
+- Ran full scraper tests via the pre-commit hook during the scraper removal commit.
+- Re-ran `go test ./... -count=1` in `2026-05-20--book-ocr` after scraper OCR removal to confirm the external app still compiles against the slimmed runtime.
+
+### Why
+
+- OCR is a workflow application, not a workflow runtime feature.
+- Moving OCR into `2026-05-20--book-ocr` proves that `scraper/pkg/workflow` is usable externally.
+- Removing OCR from `scraper` keeps the runtime repository from accumulating workload-specific packages.
+
+### What worked
+
+- The external module compiled successfully.
+- The external OCR packages kept their behavior after import rewiring.
+- The smoke test succeeded with run ID `ocr-quality-845e8d2d-b09d-426f-856b-a2bae56bd1e3`.
+- The external smoke output contained four embedded figure links:
+  - `page_013_figure_01.png`
+  - `page_015_figure_01.png`
+  - `page_017_figure_01.png`
+  - `page_021_figure_01.png`
+- The external smoke output also contained JSON sidecars and debug overlays for each figure.
+- `scraper` tests, web unit tests, lint, gosec, and govulncheck passed after OCR removal.
+- `rg "ocrmvp|ocrquality|bookprofile|ocr-mvp"` in `scraper` found no remaining OCR references other than the unrelated ignored lockfile caveat.
+
+### What didn't work
+
+- This was a mechanical move, not a package renaming cleanup. The moved internal package names are still `ocrmvp`, `ocrquality`, and `bookprofile` for parity.
+- The external command is now `book-ocr`, but some internal strings still say `ocr-mvp` such as package names and worker IDs. These are behavior-preserving leftovers that can be cleaned up in a follow-up commit.
+- The book OCR repository still uses a local `replace` directive to the sibling `scraper` checkout. That is correct for workspace development but should eventually become a versioned dependency.
+
+### What I learned
+
+- `scraper/pkg/workflow` was already strong enough for external package registration and execution.
+- The OCR code did not require hidden scraper internals beyond the exported runtime/workflow APIs and shared model types.
+- The move substantially reduced scraper's dependency surface: Geppetto/Pinocchio OCR dependencies are no longer needed by scraper after `go mod tidy`.
+
+### What was tricky to build
+
+- The move crossed Git repository boundaries. It required committing additions in `2026-05-20--book-ocr` and deletions in `scraper` separately.
+- The unrelated `scraper/web/pnpm-lock.yaml` remained modified throughout, so every scraper commit had to stage only the OCR deletions and `go.mod`/`go.sum` changes.
+- The external smoke test had to run before deleting OCR from scraper to avoid losing the known-good implementation before proving parity.
+
+### What warrants a second pair of eyes
+
+- Whether the external module path `github.com/go-go-golems/book-ocr` is the final desired path.
+- Whether moved packages should be renamed from `ocrmvp` to `pageocr` or `ocrworkflow` now that this is no longer an MVP inside scraper.
+- Whether `scraper/pkg/workflow` should re-export any model types so external applications do not import `scraper/pkg/engine/model` directly.
+- Whether `cmd/book-ocr` should keep the copied flag surface or be converted to Cobra/glazed later.
+
+### What should be done in the future
+
+- Rename internal packages and workflow package names away from `ocr-mvp`.
+- Move Report 794 policy into `books/report-794/` files inside the book OCR repository.
+- Add a real `README.md` for the new book OCR module.
+- Add CI smoke tests for `go run ./cmd/book-ocr quality-pass` using a tiny fixture.
+- Consider tagging/versioning `scraper` so `book-ocr` can depend on a released workflow runtime.
+
+### Code review instructions
+
+- Review the book OCR repository additions first:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/cmd/book-ocr/main.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrmvp`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrquality`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/bookprofile`
+- Then review the scraper removal commit:
+  - removed `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/cmd/ocr-mvp`
+  - removed `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrmvp`
+  - removed `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrquality`
+  - removed `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/bookprofile`
+- Validate with:
+  - `cd /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr && go test ./... -count=1`
+  - `cd /home/manuel/workspaces/2026-05-20/book-ocr/scraper && go test ./... -count=1`
+
+### Technical details
+
+External smoke command:
+
+```bash
+go run ./cmd/book-ocr quality-pass \
+  --markdown /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/experiments/007-quality-v4-mini-pages-001-030/outputs/01-final-quality-v4-mini-pages-001-030.md \
+  --output-dir /tmp/book-ocr-external-smoke/out \
+  --work-dir /tmp/book-ocr-external-smoke/work \
+  --book-id report-794 \
+  --image-dir /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages \
+  --embed-figures
 ```

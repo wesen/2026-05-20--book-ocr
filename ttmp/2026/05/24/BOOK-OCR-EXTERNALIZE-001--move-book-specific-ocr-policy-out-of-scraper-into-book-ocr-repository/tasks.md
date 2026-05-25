@@ -12,6 +12,6 @@
 - [x] Phase 3: copy OCR quality/bookprofile workflow code and the OCR CLI into the book-ocr repository
 - [x] Phase 4: wire module dependencies, replace scraper via local path, and run external book-ocr tests
 - [x] Phase 5: smoke-test external book-ocr quality-pass against Report 794 artifacts
-- [ ] Phase 6: remove OCR packages and ocr-mvp command from scraper after external parity is verified
-- [ ] Phase 7: run scraper tests to verify it is workflow/job-runtime only with OCR removed
-- [ ] Phase 8: update diary/changelog/design guide with implementation results and commits
+- [x] Phase 6: remove OCR packages and ocr-mvp command from scraper after external parity is verified
+- [x] Phase 7: run scraper tests to verify it is workflow/job-runtime only with OCR removed
+- [x] Phase 8: update diary/changelog/design guide with implementation results and commits
