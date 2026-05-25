@@ -12,10 +12,14 @@ DocType: design-doc
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/OCR-QUALITY-WORKERS-001--port-ocr-qa-and-cleanup-scripts-to-go-workflow-workers/experiments/001-go-quality-pass-embedded-figures/outputs/02-embedded-figures.md
+      Note: Best current embedded-figure review artifact
     - Path: scraper/cmd/ocr-mvp/main.go
       Note: quality-pass command and context-window flag
     - Path: scraper/pkg/workflows/ocrmvp/geppetto_ocr.go
       Note: Context images are passed to Geppetto OCR calls
+    - Path: scraper/pkg/workflows/ocrquality/figures.go
+      Note: Embedded figure extraction worker
     - Path: scraper/pkg/workflows/ocrquality/logimport.go
       Note: Go port of OCR log import summary
     - Path: scraper/pkg/workflows/ocrquality/normalize.go
@@ -30,6 +34,7 @@ LastUpdated: 2026-05-24T20:40:00-04:00
 WhatFor: Use this to understand the Go OCR quality worker package, CLI entry point, context-window OCR option, validation strategy, and next steps toward impeccable book OCR.
 WhenToUse: Read before modifying pkg/workflows/ocrquality, adding QA projections, adding embedded figure extraction, or running context-aware OCR experiments.
 ---
+
 
 
 # OCR Quality Workers Implementation Guide
@@ -386,4 +391,73 @@ Run:
 ```bash
 cd /home/manuel/workspaces/2026-05-20/book-ocr/scraper
 go test ./cmd/ocr-mvp ./pkg/workflows/ocrmvp ./pkg/workflows/ocrquality -count=1
+```
+
+## Figure Embedding Worker Addendum
+
+A second implementation step added embedded figure extraction to the Go quality pass.
+
+Code commit:
+
+```text
+509c8f5dd2b55e6cf88cd650f6c39896fede5a6d
+Add OCR figure embedding worker
+```
+
+The worker is implemented in:
+
+```text
+scraper/pkg/workflows/ocrquality/figures.go
+```
+
+and wired through:
+
+```text
+scraper/pkg/workflows/ocrquality/package.go
+scraper/cmd/ocr-mvp/main.go
+```
+
+The CLI flags are:
+
+```bash
+ocr-mvp quality-pass \
+  --markdown RAW.md \
+  --output-dir OUT \
+  --image-dir /path/to/page/images \
+  --embed-figures
+```
+
+The first implementation scans markdown for lines like:
+
+```text
+[FIGURE: Structure of PSBase diagram]
+```
+
+tracks the current `<!-- page:NNN -->` marker, reads `page_NNN.png`, crops the dominant interior figure region, writes a PNG into `figures/`, and replaces the marker with a markdown image link:
+
+```markdown
+![Structure of PSBase diagram](figures/page_021_figure_01.png)
+```
+
+The crop algorithm is deliberately a first pass. It uses page-level image processing, not semantic figure segmentation:
+
+1. Ignore likely edge artifacts.
+2. Build horizontal ink bands from non-white pixels.
+3. Keep meaningful bands away from the page footer.
+4. Compute horizontal bounds inside the selected vertical union.
+5. Add a small margin and encode PNG.
+
+This was tested on the two figure pages in the first 30 pages:
+
+- page 013 / Figure 1-1: A Rudimentary User Interface
+- page 021 / Figure 1-4: Structure of PSBase
+
+Vision feedback confirmed the final crops remove page numbers/footers and keep the full diagrams. Remaining improvements are tighter whitespace and optional contrast enhancement.
+
+The experiment output is:
+
+```text
+experiments/001-go-quality-pass-embedded-figures/outputs/02-embedded-figures.md
+experiments/001-go-quality-pass-embedded-figures/outputs/figures/page_013_figure_01.png
+experiments/001-go-quality-pass-embedded-figures/outputs/figures/page_021_figure_01.png
 ```

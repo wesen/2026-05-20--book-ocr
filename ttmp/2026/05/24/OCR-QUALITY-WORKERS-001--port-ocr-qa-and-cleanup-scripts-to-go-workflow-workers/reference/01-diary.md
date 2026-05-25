@@ -14,8 +14,12 @@ Owners: []
 RelatedFiles:
     - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/analysis/01-final-ocr-quality-report.md
       Note: Source for follow-up tasks
+    - Path: 2026-05-20--book-ocr/ttmp/2026/05/24/OCR-QUALITY-WORKERS-001--port-ocr-qa-and-cleanup-scripts-to-go-workflow-workers/experiments/001-go-quality-pass-embedded-figures/notes.md
+      Note: Embedded figure experiment notes
     - Path: scraper/pkg/workflows/ocrmvp/prompt.go
       Note: Context policy prompt update
+    - Path: scraper/pkg/workflows/ocrquality/figures.go
+      Note: Figure worker implementation for Step 2
     - Path: scraper/pkg/workflows/ocrquality/package.go
       Note: Main implementation for Step 1
 ExternalSources: []
@@ -24,6 +28,7 @@ LastUpdated: 2026-05-24T20:40:00-04:00
 WhatFor: Use this to understand what changed while porting OCR quality scripts to Go and adding context-aware OCR inputs.
 WhenToUse: Read before continuing OCR quality worker implementation or debugging the quality-pass workflow.
 ---
+
 
 
 # Diary
@@ -174,4 +179,100 @@ go run ./cmd/ocr-mvp run \
   --prompt-version ocr-quality-v4-report794-lexicon \
   --context-window 1 \
   --log-level warn
+```
+
+## Step 2: Add embedded figure extraction to the Go quality pass
+
+I extended the Go quality pass with an embedded figure extraction worker. This moves the first part of the “embedded extracted images” goal into the workflow runtime: markdown figure markers can now be replaced with image links to extracted PNG crops from the source page images.
+
+The first crop implementation was too broad. I used the vision tool to inspect the extracted Figure 1-1 and Figure 1-4 crops, then tightened the algorithm until the page numbers/footers were removed while the complete diagrams remained visible.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Continue beyond QA/cleanup into embedded figure extraction as part of making the OCR output stellar.
+
+**Inferred user intent:** The user wants final OCR markdown to preserve non-text figure information, not just textual `[FIGURE: ...]` markers.
+
+**Commit (code):** `509c8f5dd2b55e6cf88cd650f6c39896fede5a6d` — "Add OCR figure embedding worker"
+
+### What I did
+
+- Added `scraper/pkg/workflows/ocrquality/figures.go`.
+- Added `scraper/pkg/workflows/ocrquality/figures_test.go`.
+- Added `EmbedFiguresInput` and `EmbedFiguresResult`.
+- Added `ocr-quality/embed-figures` workflow executor.
+- Added `ocr-mvp quality-pass --image-dir ... --embed-figures`.
+- Ran the Go quality pass against Experiment 007 with embedded figure extraction.
+- Created experiment folder `experiments/001-go-quality-pass-embedded-figures`.
+- Preserved normalized markdown, embedded markdown, cleanup diff, QA reports, quality report, and extracted PNG figures.
+
+### Why
+
+- The best OCR output had two `[FIGURE: ...]` markers in the first 30 pages.
+- Textual figure descriptions are useful, but a high-quality book OCR artifact should embed the actual extracted diagrams where possible.
+
+### What worked
+
+- The workflow extracted two figure images:
+  - `page_013_figure_01.png`
+  - `page_021_figure_01.png`
+- The embedded markdown replaces figure markers with image links.
+- The final vision check said page numbers/footers are removed and full diagrams remain present.
+- Pre-commit tests/lint/security checks passed before the code commit.
+
+### What didn't work
+
+- The first crop used a broad non-white bounding box and included page margins, punch-hole artifacts, and page numbers.
+- A second crop focused on the dominant ink band but cut off important parts of Figure 1-4.
+- A third crop included all diagram content but still included page numbers.
+- The final crop uses a meaningful ink-band union with a bottom cutoff to remove footer page numbers while preserving the diagrams.
+
+### What I learned
+
+- Figure extraction needs visual validation. A crop can be technically non-empty and still be bad.
+- Page-level figure extraction can work for simple figure-only pages, but full-book extraction will need more structured segmentation.
+
+### What was tricky to build
+
+- The algorithm had to ignore scanner artifacts and footer page numbers without cutting off lower diagram boxes.
+- The page images include margins and page-number ink that are visually far from the diagram but still count as non-white pixels.
+
+### What warrants a second pair of eyes
+
+- Whether the current crop whitespace is acceptable for reading or should be tightened further.
+- Whether contrast normalization should be added for faint diagrams.
+- Whether full-book figure extraction needs connected-component segmentation instead of page-level band selection.
+
+### What should be done in the future
+
+- Add figure QA checks that compare expected figure count to extracted image count.
+- Add optional contrast enhancement.
+- Add structured extraction for pages with multiple figures or figures embedded in prose.
+- Run the embedded-figure quality pass as the default final review artifact for the first 30 pages.
+
+### Code review instructions
+
+- Review:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrquality/figures.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/pkg/workflows/ocrquality/package.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/scraper/cmd/ocr-mvp/main.go`
+- Inspect outputs:
+  - `experiments/001-go-quality-pass-embedded-figures/outputs/02-embedded-figures.md`
+  - `experiments/001-go-quality-pass-embedded-figures/outputs/figures/`
+
+### Technical details
+
+Smoke command:
+
+```bash
+go run ./cmd/ocr-mvp quality-pass \
+  --markdown /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/24/BOOK-OCR-HQ-001--high-quality-book-ocr-experiment-system/experiments/007-quality-v4-mini-pages-001-030/outputs/01-final-quality-v4-mini-pages-001-030.md \
+  --output-dir /tmp/ocr-quality-go-figures/out \
+  --work-dir /tmp/ocr-quality-go-figures/work \
+  --book-id presentation-based-uis-hq-007-v4-mini-30 \
+  --expected-pages 30 \
+  --image-dir /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages \
+  --embed-figures
 ```

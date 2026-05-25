@@ -1,0 +1,15 @@
+experiment_id: 001-go-quality-pass-embedded-figures
+source_experiment: BOOK-OCR-HQ-001/007-quality-v4-mini-pages-001-030
+source_output: ../BOOK-OCR-HQ-001/experiments/007-quality-v4-mini-pages-001-030/outputs/01-final-quality-v4-mini-pages-001-030.md
+strategy:
+  kind: go_workflow_quality_pass_with_embedded_figures
+  workflow_package: ocr-quality
+  command: ocr-mvp quality-pass
+  features:
+    - typed_markdown_qa
+    - deterministic_list_page_normalization
+    - extracted_figure_image_embedding
+    - workflow_artifacts
+outputs:
+  work_dir: /tmp/ocr-quality-go-figures/work
+  output_dir: /tmp/ocr-quality-go-figures/out

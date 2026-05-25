@@ -10,5 +10,5 @@
 - [x] Add workflow-native OCR quality package with QA and normalize steps
 - [x] Add CLI/operator entry point for running OCR quality pass
 - [x] Explore context-aware OCR inputs for surrounding-page continuity
-- [ ] Run quality workers against BOOK-OCR-HQ-001 Experiment 007 and compare with Python output
+- [x] Run quality workers against BOOK-OCR-HQ-001 Experiment 007 and compare with Python output
 - [ ] Iterate toward embedded extracted images and final stellar OCR artifacts
