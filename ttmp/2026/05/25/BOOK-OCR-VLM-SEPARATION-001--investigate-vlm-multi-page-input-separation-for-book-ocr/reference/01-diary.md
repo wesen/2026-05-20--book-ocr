@@ -13,6 +13,8 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: ../../../../../../../../../../code/wesen/go-go-golems/go-go-parc/Projects/2026/05/25/ARTICLE - VLM Separation Benchmark for Book OCR - Prompt Block Layouts and Turn Persistence.md
+      Note: Rewritten deep-dive article
     - Path: cmd/book-ocr/main.go
       Note: Registers vlm-separation benchmark subcommand
     - Path: go.mod
@@ -23,8 +25,12 @@ RelatedFiles:
       Note: |-
         Glazed benchmark command implementation
         Rescore command wiring
+    - Path: internal/vlmseparation/oracle.go
+      Note: Expanded risky-page oracles
     - Path: internal/vlmseparation/rescore.go
-      Note: Saved-run rescore workflow
+      Note: |-
+        Saved-run rescore workflow
+        Missing-response handling during rescore
     - Path: internal/vlmseparation/runner.go
       Note: |-
         Benchmark orchestration and dry-run/live execution
@@ -34,7 +40,9 @@ RelatedFiles:
     - Path: internal/vlmseparation/scenarios.go
       Note: Scenario-specific Geppetto turn/block layouts
     - Path: internal/vlmseparation/scoring.go
-      Note: Sanitize-backed response parsing and schema repair
+      Note: |-
+        Sanitize-backed response parsing and schema repair
+        OCR-field repair and whitespace-normalized scoring
     - Path: internal/vlmseparation/sqlite.go
       Note: |-
         Benchmark run/trial/metric SQLite persistence
@@ -49,6 +57,7 @@ LastUpdated: 2026-05-25T00:00:00-04:00
 WhatFor: Use this diary to understand the investigation setup before implementing the Glazed benchmark command.
 WhenToUse: Read before continuing BOOK-OCR-VLM-SEPARATION-001 or changing the benchmark design.
 ---
+
 
 
 
@@ -845,4 +854,151 @@ Vault commit:
 
 ```text
 80f638fdd6b0c8007e276cb62087ab422a034e28 Article: add VLM benchmark rescore command
+```
+
+## Step 9: Run the broad risky-page benchmark and rewrite the project article as a deep dive
+
+I ran the broader risky-page benchmark over the 16-page Report 794 preset that was derived from duplicated adjacent figure captions in the full-book OCR artifact. Before running it, I expanded the page oracles so the benchmark was testing meaningful page-specific anchors rather than fallback `page NNN` text for the later risky pages.
+
+The live run completed 64 logical page/scenario cells after retrying two transient TLS failures. The final combined interpretation found no forbidden-caption hits and no suspected context bleed under the current oracle. I then rewrote the Obsidian article into a fuller textbook-style technical deep dive covering the motivating failure, benchmark architecture, Geppetto turn persistence, sanitize-backed parser repair, rescoring, the broad-run results, and production pipeline implications.
+
+### Prompt Context
+
+**User prompt (verbatim):** "run it, and then update the article as indicated."
+
+**Assistant interpretation:** Run the broader risky-page live benchmark and then update the Obsidian article with detailed findings and a deeper explanation of the benchmark approach.
+
+**Inferred user intent:** The user wants measured evidence from the broader benchmark and a durable, polished technical report that explains both how the system works and what the new results mean.
+
+**Commit (code):** `050aab506b8adfb5d9fdea3cdf5a457af34356c2` — "Expand VLM benchmark risky page oracles"; `c220e1b3e9d8b9a19d80bcaf280f1f0bc1dcb74a` — "Harden VLM benchmark rescore parsing"; `d37143b611a17a3825ae931029fa6d356f63ca5b` — "Normalize VLM benchmark phrase scoring"
+
+### What I did
+
+- Expanded risky-page oracles in `internal/vlmseparation/oracle.go` for pages:
+  - `12,13,31,32,42,43,59,60,87,88,97,98,112,113,115,116`
+- Used vision inspection to confirm which pages contain figures for ambiguous pairs:
+  - 31/32,
+  - 42/43,
+  - 59/60,
+  - 87/88,
+  - 97/98,
+  - 112/113,
+  - 115/116.
+- Ran the broad live command:
+  - output: `/tmp/book-ocr-vlm-separation-live-risky-pages`
+  - run ID: `vlmsep-4636c84d-e707-4b2c-8134-78e5bda15b9e`
+  - model/profile: `gpt-5-mini-low`
+  - scenarios: `target-only`, `single-block-target-first`, `multi-block-labeled`, `target-plus-text-context`
+- Retried two transient TLS failures:
+  - page 43 / `multi-block-labeled`, successful on second retry at `/tmp/book-ocr-vlm-separation-live-risky-pages-retry-43-mbl-2`
+  - page 88 / `target-plus-text-context`, successful at `/tmp/book-ocr-vlm-separation-live-risky-pages-retry-88-text`
+- Hardened parser repair to accept `ocr` as a transcription field.
+- Made rescore tolerate missing provider responses from failed trials as `missing-response` instead of aborting.
+- Normalized phrase scoring across line breaks so labels such as `Application\nData\nBase` match oracle phrase `Application Data Base`.
+- Re-ran `rescore` over the main and retry output directories.
+- Rewrote the Obsidian article:
+  - `/home/manuel/code/wesen/go-go-golems/go-go-parc/Projects/2026/05/25/ARTICLE - VLM Separation Benchmark for Book OCR - Prompt Block Layouts and Turn Persistence.md`
+- Committed and pushed the vault article:
+  - `802b1b519aeaaaab0b8108c49ff6eb675d020277` — "Article: expand VLM benchmark deep dive"
+
+### Why
+
+- The earlier two-page benchmark was too small to guide production OCR policy.
+- Several risky pages lacked specialized oracles, so the benchmark needed better page-specific expected and forbidden anchors before the broad run.
+- The article needed to present the benchmark as an understandable system, not just a changelog of commands.
+
+### What worked
+
+- Broad benchmark evidence was produced and preserved in files, SQLite, and turns DB.
+- Main run turn-store counts:
+  - turns: 64
+  - blocks: 348
+  - turn block memberships: 562
+- After retries and rescoring, the logical result set had:
+  - trials: 64
+  - successful trials: 64
+  - parseable trials: 64
+  - suspected bleed: 0
+  - forbidden hits: 0
+- Scenario aggregate scores after retry replacement:
+  - `target-only`: average 0.938
+  - `single-block-target-first`: average 0.906
+  - `multi-block-labeled`: average 0.938
+  - `target-plus-text-context`: average 0.938
+- The article now includes setup, architecture, commands, schema details, scoring details, result interpretation, and production recommendations.
+
+### What didn't work
+
+- The main live run had two transient TLS failures:
+  - `Post "https://api.openai.com/v1/responses": remote error: tls: bad record MAC`
+- The first retry for page 43 / `multi-block-labeled` hit the same TLS error, then succeeded on the second retry.
+- The main run's `summary.json` still reflects the original run before retry replacement; the article uses the combined logical interpretation from main + retry outputs.
+
+### What I learned
+
+- The broader run did not reproduce forbidden-caption bleed under the tested scenarios and current oracles.
+- Low scores on pages 59 and 116 were uniform across all scenarios, which points to oracle/coverage issues rather than context separation failures.
+- Phrase scoring must normalize whitespace because diagram OCR often splits labels across lines.
+- The current evidence supports target-image-only primary OCR and text-only context as the production default; image-context layouts can remain benchmark/diagnostic paths.
+
+### What was tricky to build
+
+- The broad run exposed three separate interpretation layers that had to be kept distinct: provider transport failures, schema/parse repair, and actual target/context bleed.
+- The page 31/32 pair required visual confirmation because page 31 contains Figure 2-1 while page 32 contains Figures 2-2 and 2-3; the earlier full-book OCR had made this ambiguous.
+- The article had to be rewritten coherently because previous appended updates were accurate but too fragmented for a deep-dive report.
+
+### What warrants a second pair of eyes
+
+- Review the expanded oracles for pages 59 and 116; their uniform low scores suggest the expected anchors may not be ideal.
+- Review the article's statement that the broad run did not show forbidden-caption bleed; it is true under the current oracle, but should not be overgeneralized into a claim that neighboring page images are production-safe.
+- Review whether the benchmark should record retry replacement metadata formally instead of leaving it as article-level interpretation.
+
+### What should be done in the future
+
+- Add a `vlm-separation report` command that can combine main runs and retry runs into a single formal Markdown/JSON summary.
+- Add structured-output support so fewer live responses need schema repair.
+- Use the benchmark findings to guide the structured OCR redesign toward target-page-only primary OCR and text-context normalization.
+
+### Code review instructions
+
+- Review oracle updates:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/oracle.go`
+- Review parser/scoring updates:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/scoring.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/vlmseparation/rescore.go`
+- Review the rewritten article in the Obsidian vault.
+- Validate with:
+  - `go test ./internal/vlmseparation -count=1`
+  - `go test ./... -count=1`
+  - `docmgr doctor --ticket BOOK-OCR-VLM-SEPARATION-001 --stale-after 30`
+
+### Technical details
+
+Broad run command:
+
+```bash
+go run ./cmd/book-ocr vlm-separation --log-level warn benchmark \
+  --dry-run=false \
+  --book-id report-794 \
+  --image-dir /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages \
+  --preset report794-figure-adjacent \
+  --scenarios target-only,single-block-target-first,multi-block-labeled,target-plus-text-context \
+  --profile gpt-5-mini-low \
+  --profile-registries /tmp/book-ocr-hq-001/profiles-clean.yaml \
+  --out-dir /tmp/book-ocr-vlm-separation-live-risky-pages \
+  --output table
+```
+
+Key output paths:
+
+```text
+/tmp/book-ocr-vlm-separation-live-risky-pages
+/tmp/book-ocr-vlm-separation-live-risky-pages-retry-43-mbl-2
+/tmp/book-ocr-vlm-separation-live-risky-pages-retry-88-text
+```
+
+Vault commit:
+
+```text
+802b1b519aeaaaab0b8108c49ff6eb675d020277 Article: expand VLM benchmark deep dive
 ```
