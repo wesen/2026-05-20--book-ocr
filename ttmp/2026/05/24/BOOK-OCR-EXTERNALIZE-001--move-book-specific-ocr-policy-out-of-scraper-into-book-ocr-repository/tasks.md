@@ -7,7 +7,7 @@
 - [x] Analyze current scraper book-specific OCR code and artifact boundaries
 - [x] Write intern-facing design and implementation guide for moving book-specific OCR policy into 2026-05-20--book-ocr
 - [x] Upload design guide to reMarkable
-- [ ] Phase 1: set up 2026-05-20--book-ocr as a Go module from go-template with book-ocr binary placeholders
+- [x] Phase 1: set up 2026-05-20--book-ocr as a Go module from go-template with book-ocr binary placeholders
 - [ ] Phase 2: copy OCR page workflow out of scraper into the book-ocr repository and make it compile externally
 - [ ] Phase 3: copy OCR quality/bookprofile workflow code and the OCR CLI into the book-ocr repository
 - [ ] Phase 4: wire module dependencies, replace scraper via local path, and run external book-ocr tests
