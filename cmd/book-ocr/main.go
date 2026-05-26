@@ -296,6 +296,8 @@ func runStructuredRun(args []string) error {
 	pollInterval := fs.Duration("poll-interval", 250*time.Millisecond, "Worker polling interval")
 	expectedPages := fs.Int("expected-pages", 0, "Expected page marker count for validation; 0 disables exact check")
 	minRenderedBytes := fs.Int("min-rendered-bytes", 0, "Warn in validation report for successful pages rendered shorter than this byte count; 0 disables")
+	embedFigures := fs.Bool("embed-figures", false, "Extract and embed figure images from structured figure markers during assembly")
+	figuresDir := fs.String("figures-dir", "", "Optional output directory for extracted figures; defaults to <work-dir>/figures when --embed-figures is set")
 	fs.Var(&registries, "profile-registries", "Pinocchio profile registry source (repeatable or comma-separated)")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -335,7 +337,7 @@ func runStructuredRun(args []string) error {
 	if strings.TrimSpace(*runID) != "" {
 		runOpts = append(runOpts, workflow.WithRunID(*runID))
 	}
-	handle, err := rt.StartRun(ctx, ocrpipeline.StructuredPackageName, ocrpipeline.StructuredRunInput{BookID: *bookID, ImageDir: absImageDir, PageGlob: *pageGlob, StartPage: *startPage, EndPage: *endPage, WorkDir: paths.root, RunID: string(*runID), Profile: *profile, ProfileRegistries: append([]string(nil), registries...), DryRun: *dryRun, ExpectedPages: *expectedPages, MinRenderedBytes: *minRenderedBytes}, runOpts...)
+	handle, err := rt.StartRun(ctx, ocrpipeline.StructuredPackageName, ocrpipeline.StructuredRunInput{BookID: *bookID, ImageDir: absImageDir, PageGlob: *pageGlob, StartPage: *startPage, EndPage: *endPage, WorkDir: paths.root, RunID: string(*runID), Profile: *profile, ProfileRegistries: append([]string(nil), registries...), DryRun: *dryRun, ExpectedPages: *expectedPages, MinRenderedBytes: *minRenderedBytes, EmbedFigures: *embedFigures, FiguresDir: *figuresDir}, runOpts...)
 	if err != nil {
 		return err
 	}

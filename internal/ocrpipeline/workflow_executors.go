@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/go-go-golems/book-ocr/internal/ocrmvp"
+	"github.com/go-go-golems/book-ocr/internal/ocrquality"
 	"github.com/go-go-golems/book-ocr/internal/ocrvalidation"
 	"github.com/go-go-golems/scraper/pkg/engine/model"
 	"github.com/go-go-golems/scraper/pkg/workflow"
@@ -49,7 +50,11 @@ func StructuredDiscoverExecutor(projectionName string) workflow.Executor {
 			pageStepIDs = append(pageStepIDs, string(emittedID))
 			pageSpecs = append(pageSpecs, StructuredPageSpec{BookID: page.BookID, PageNumber: page.PageNumber, ImagePath: page.ImagePath})
 		}
-		assembleID, err := step.Emit("assemble-structured-markdown", StructuredAssembleInput{BookID: input.BookID, WorkDir: input.WorkDir}, workflow.StepOpts{Kind: KindStructuredAssemble, Queue: model.QueueKey(QueueStructuredAssemble), DependsOn: workflow.Require(pageHandles...), Metadata: map[string]string{"book_id": input.BookID}})
+		figuresDir := strings.TrimSpace(input.FiguresDir)
+		if figuresDir == "" && input.EmbedFigures {
+			figuresDir = filepath.Join(input.WorkDir, "figures")
+		}
+		assembleID, err := step.Emit("assemble-structured-markdown", StructuredAssembleInput{BookID: input.BookID, WorkDir: input.WorkDir, ImageDir: input.ImageDir, EmbedFigures: input.EmbedFigures, FiguresDir: figuresDir}, workflow.StepOpts{Kind: KindStructuredAssemble, Queue: model.QueueKey(QueueStructuredAssemble), DependsOn: workflow.Require(pageHandles...), Metadata: map[string]string{"book_id": input.BookID}})
 		if err != nil {
 			return err
 		}
@@ -151,7 +156,59 @@ func StructuredAssembleExecutor(projectionName string) workflow.Executor {
 		if err != nil {
 			return workflow.Retryable("structured_store_artifact_failed", err)
 		}
-		return step.Result(StructuredAssembleResult{BookID: input.BookID, PageCount: len(pages), MarkdownPath: assembledPath, MarkdownRefID: ref.ID, MarkdownURI: ref.URI, CharCount: len(assembledBytes)})
+		result := StructuredAssembleResult{BookID: input.BookID, PageCount: len(pages), MarkdownPath: assembledPath, MarkdownRefID: ref.ID, MarkdownURI: ref.URI, CharCount: len(assembledBytes)}
+		if input.EmbedFigures {
+			figuresDir := strings.TrimSpace(input.FiguresDir)
+			if figuresDir == "" {
+				figuresDir = filepath.Join(input.WorkDir, "figures")
+			}
+			embedded, figures, err := ocrquality.EmbedExtractedFigures(string(assembledBytes), ocrquality.FigureExtractionOptions{ImageDir: input.ImageDir, OutputDir: figuresDir})
+			if err != nil {
+				return workflow.Permanent("structured_embed_figures_failed", err)
+			}
+			embeddedPath := filepath.Join(input.WorkDir, "embedded-figures.md")
+			if err := os.WriteFile(embeddedPath, []byte(embedded), 0o644); err != nil {
+				return workflow.Retryable("structured_embedded_write_failed", err)
+			}
+			embeddedRef, err := step.StoreArtifact("embedded-figures.md", "text/markdown", []byte(embedded), workflow.ArtifactKind("structured-embedded-markdown"))
+			if err != nil {
+				return workflow.Retryable("structured_store_artifact_failed", err)
+			}
+			for _, figure := range figures {
+				imageBytes, err := os.ReadFile(figure.ImagePath)
+				if err != nil {
+					return workflow.Retryable("structured_figure_read_failed", err)
+				}
+				metadata := map[string]string{"page": fmt.Sprintf("%03d", figure.PageNumber), "description": figure.Description}
+				if _, err := step.StoreArtifact(filepath.Base(figure.ImagePath), "image/png", imageBytes, workflow.ArtifactKind("structured-extracted-figure"), workflow.ArtifactMetadata(metadata)); err != nil {
+					return workflow.Retryable("structured_figure_artifact_failed", err)
+				}
+				if strings.TrimSpace(figure.SidecarPath) != "" {
+					sidecarBytes, err := os.ReadFile(figure.SidecarPath)
+					if err != nil {
+						return workflow.Retryable("structured_figure_sidecar_read_failed", err)
+					}
+					if _, err := step.StoreArtifact(filepath.Base(figure.SidecarPath), "application/json", sidecarBytes, workflow.ArtifactKind("structured-figure-sidecar"), workflow.ArtifactMetadata(metadata)); err != nil {
+						return workflow.Retryable("structured_figure_sidecar_artifact_failed", err)
+					}
+				}
+				if strings.TrimSpace(figure.DebugPath) != "" {
+					debugBytes, err := os.ReadFile(figure.DebugPath)
+					if err != nil {
+						return workflow.Retryable("structured_figure_debug_read_failed", err)
+					}
+					if _, err := step.StoreArtifact(filepath.Base(figure.DebugPath), "image/png", debugBytes, workflow.ArtifactKind("structured-figure-debug-overlay"), workflow.ArtifactMetadata(metadata)); err != nil {
+						return workflow.Retryable("structured_figure_debug_artifact_failed", err)
+					}
+				}
+			}
+			result.EmbeddedMarkdownPath = embeddedPath
+			result.EmbeddedRefID = embeddedRef.ID
+			result.EmbeddedURI = embeddedRef.URI
+			result.FiguresDir = figuresDir
+			result.FigureCount = len(figures)
+		}
+		return step.Result(result)
 	})
 }
 

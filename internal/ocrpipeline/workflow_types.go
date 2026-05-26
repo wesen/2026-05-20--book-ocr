@@ -26,6 +26,8 @@ type StructuredRunInput struct {
 	DryRun            bool     `json:"dry_run,omitempty"`
 	ExpectedPages     int      `json:"expected_pages,omitempty"`
 	MinRenderedBytes  int      `json:"min_rendered_bytes,omitempty"`
+	EmbedFigures      bool     `json:"embed_figures,omitempty"`
+	FiguresDir        string   `json:"figures_dir,omitempty"`
 }
 
 type StructuredPageWorkflowInput struct {
@@ -75,17 +77,25 @@ type StructuredPageWorkflowResult struct {
 }
 
 type StructuredAssembleInput struct {
-	BookID  string `json:"book_id"`
-	WorkDir string `json:"work_dir"`
+	BookID       string `json:"book_id"`
+	WorkDir      string `json:"work_dir"`
+	ImageDir     string `json:"image_dir,omitempty"`
+	EmbedFigures bool   `json:"embed_figures,omitempty"`
+	FiguresDir   string `json:"figures_dir,omitempty"`
 }
 
 type StructuredAssembleResult struct {
-	BookID        string `json:"book_id"`
-	PageCount     int    `json:"page_count"`
-	MarkdownPath  string `json:"markdown_path"`
-	MarkdownRefID string `json:"markdown_ref_id,omitempty"`
-	MarkdownURI   string `json:"markdown_uri,omitempty"`
-	CharCount     int    `json:"char_count"`
+	BookID               string `json:"book_id"`
+	PageCount            int    `json:"page_count"`
+	MarkdownPath         string `json:"markdown_path"`
+	MarkdownRefID        string `json:"markdown_ref_id,omitempty"`
+	MarkdownURI          string `json:"markdown_uri,omitempty"`
+	EmbeddedMarkdownPath string `json:"embedded_markdown_path,omitempty"`
+	EmbeddedRefID        string `json:"embedded_ref_id,omitempty"`
+	EmbeddedURI          string `json:"embedded_uri,omitempty"`
+	FiguresDir           string `json:"figures_dir,omitempty"`
+	FigureCount          int    `json:"figure_count,omitempty"`
+	CharCount            int    `json:"char_count"`
 }
 
 type StructuredValidateInput struct {
