@@ -17,10 +17,12 @@ RelatedFiles:
         Workflow-backed structured-run CLI wiring and resume registration (commit 325614b)
         structured-pages status command (commit 9d42c5d)
         min-rendered-bytes CLI flag (commit 936952d)
+        embed-figures CLI flags for structured-run (commit 600dbc7)
     - Path: internal/ocrpipeline/workflow_executors.go
       Note: |-
         Discover/page/assemble/validate workflow executors (commit d4bf768)
         Short-page validation query and report generation (commit 936952d)
+        Structured assembly figure embedding and artifact storage (commit 600dbc7)
     - Path: internal/ocrpipeline/workflow_package.go
       Note: Structured workflow package registration and retry policy (commit d4bf768)
     - Path: internal/ocrpipeline/workflow_projection.go
@@ -31,6 +33,7 @@ RelatedFiles:
       Note: |-
         Structured workflow input/result contracts (commit d4bf768)
         Short-page validation result contracts (commit 936952d)
+        Figure embedding workflow result/input fields (commit 600dbc7)
     - Path: ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/design-doc/01-workflow-backed-structured-ocr-design-and-implementation-guide.md
       Note: Primary workflow promotion design guide
     - Path: ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/experiments/001-report794-50-workflow-live-w4/01-summary.md
@@ -45,6 +48,7 @@ LastUpdated: 0001-01-01T00:00:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -754,6 +758,109 @@ go run ./cmd/book-ocr structured-run \
   --dry-run \
   --expected-pages 3 \
   --min-rendered-bytes 100 \
+  --max-workers 2 \
+  --log-level warn
+```
+
+## Step 8: Connect structured figure blocks to figure image embedding
+
+I completed the remaining Phase 6 hardening task by adding figure embedding to the workflow-backed structured assembly step. Structured runs can now pass `--embed-figures`; the assemble step writes the ordinary `assembled.md`, then uses the existing OCR quality figure extraction code to produce `embedded-figures.md`, figure crops, sidecars, debug overlays, and workflow artifacts.
+
+This implementation deliberately reuses the existing `ocrquality.EmbedExtractedFigures` path instead of inventing a new cropper. The structured renderer already emits `[FIGURE: ...]` markers for figure blocks when no figure resolver is supplied, so the existing marker-driven extraction path can operate on structured-rendered Markdown.
+
+### Prompt Context
+
+**User prompt (verbatim):** "go ahead"
+
+**Assistant interpretation:** Continue from the previous Phase 6 work and implement the remaining structured figure embedding task.
+
+**Inferred user intent:** The user wants structured OCR output to move closer to final review quality by embedding cropped figure images, not only figure captions/placeholders.
+
+**Commit (code):** `600dbc763264a8537796efb98dc096e467bca359` — "Embed figures in structured OCR assembly"
+
+### What I did
+
+- Added `EmbedFigures` and `FiguresDir` to `StructuredRunInput`.
+- Added figure-embedding fields to `StructuredAssembleInput` and `StructuredAssembleResult`.
+- Added CLI flags:
+  - `--embed-figures`
+  - `--figures-dir`
+- Updated `StructuredDiscoverExecutor` to pass image dir and figure embedding options to the assemble step.
+- Updated `StructuredAssembleExecutor` to:
+  - write `assembled.md`,
+  - optionally call `ocrquality.EmbedExtractedFigures`,
+  - write `embedded-figures.md`,
+  - write figure crops under `<work-dir>/figures`,
+  - store embedded Markdown, figure PNGs, sidecars, and debug overlays as workflow artifacts.
+- Ran a dry-run smoke over pages 12-13 with figure embedding enabled.
+
+### Why
+
+- Structured OCR now identifies figure blocks and captions, but final review Markdown needs image links.
+- The old quality pass already has a crop/extract/embed implementation; reusing it reduces risk and keeps sidecar/debug provenance behavior consistent.
+
+### What worked
+
+- Full tests passed:
+  - `go test ./... -count=1`
+- Dry-run figure embedding smoke succeeded:
+  - `/tmp/book-ocr-structured-embed-dry/embedded-figures.md`
+- The embedded Markdown contains a figure image link:
+  - `![Diagram showing a user interface connected to an application data base.](figures/page_013_figure_01.png)`
+- The figures directory contains:
+  - `page_013_figure_01.png`
+  - `page_013_figure_01.json`
+  - `page_013_figure_01.debug.png`
+- Workflow artifacts were written for embedded Markdown and figure-related files.
+
+### What didn't work
+
+- An earlier ad hoc attempt to inspect the assemble result with an incorrectly quoted SQLite command failed. The workflow run itself succeeded; I switched to direct file checks for the smoke validation.
+
+### What I learned
+
+- The structured renderer and legacy figure embedding path already meet at a useful compatibility boundary: `[FIGURE: ...]` markers.
+- A future improvement can replace marker synthesis with a direct `FigureResolver` path, but the marker-based bridge is enough to produce reviewable embedded Markdown now.
+
+### What was tricky to build
+
+- The assembly result needs to report both raw assembled Markdown and embedded Markdown. `assembled.md` remains the renderer-native output, while `embedded-figures.md` is the review artifact with image links.
+- Workflow artifacts should include not only the embedded Markdown and figure PNG but also sidecar and debug overlay files, because those files explain crop provenance.
+
+### What warrants a second pair of eyes
+
+- Review whether `structured_embed_figures_failed` should be permanent or retryable. Missing source images are permanent, but filesystem/transient decode issues may be retryable.
+- Review whether structured figure embedding should eventually bypass marker-based extraction and use a structured `FigureResolver` that maps `page_number + block_id` to crop paths.
+
+### What should be done in the future
+
+- Run a first-50 workflow-backed live structured OCR with `--embed-figures` and inspect the resulting `embedded-figures.md`.
+- Add a dedicated test around structured assemble figure embedding, ideally with a small generated page image.
+- Consider adding figure count and embedded path to `structured-pages` or a run-level status command.
+
+### Code review instructions
+
+- Review type additions:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/workflow_types.go`
+- Review assembly changes:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/workflow_executors.go`
+- Review CLI flags:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/cmd/book-ocr/main.go`
+
+### Technical details
+
+Smoke command:
+
+```bash
+go run ./cmd/book-ocr structured-run \
+  --book-id report-794-embed-dry \
+  --image-dir /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages \
+  --start-page 12 \
+  --end-page 13 \
+  --work-dir /tmp/book-ocr-structured-embed-dry \
+  --dry-run \
+  --expected-pages 2 \
+  --embed-figures \
   --max-workers 2 \
   --log-level warn
 ```
