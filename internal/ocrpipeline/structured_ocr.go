@@ -303,8 +303,18 @@ func ValidateStructuredPage(page StructuredPageOCR, rendered string) StructuredV
 		if block.Type == BlockFigure && strings.TrimSpace(block.Caption) == "" {
 			validation.Warnings = append(validation.Warnings, ocrvalidation.Warning{Code: "figure_missing_caption", Page: page.PageNumber, Value: block.ID, Message: fmt.Sprintf("figure block %q has no caption", block.ID)})
 		}
-		if block.Type == BlockTable && block.Table == nil {
-			validation.Warnings = append(validation.Warnings, ocrvalidation.Warning{Code: "table_missing_payload", Page: page.PageNumber, Value: block.ID, Message: fmt.Sprintf("table block %q has no table payload", block.ID)})
+		if block.Type == BlockTable {
+			if block.Table == nil {
+				validation.Warnings = append(validation.Warnings, ocrvalidation.Warning{Code: "table_missing_payload", Page: page.PageNumber, Value: block.ID, Message: fmt.Sprintf("table block %q has no table payload", block.ID)})
+			} else if len(block.Table.Headers) == 0 && len(block.Table.Rows) == 0 {
+				validation.Warnings = append(validation.Warnings, ocrvalidation.Warning{Code: "table_empty", Page: page.PageNumber, Value: block.ID, Message: fmt.Sprintf("table block %q has no headers or rows", block.ID)})
+			}
+		}
+		if block.Type == BlockCode && strings.TrimSpace(block.Text) == "" {
+			validation.Warnings = append(validation.Warnings, ocrvalidation.Warning{Code: "code_empty", Page: page.PageNumber, Value: block.ID, Message: fmt.Sprintf("code block %q has no text", block.ID)})
+		}
+		if block.Type == BlockList && len(block.Items) == 0 {
+			validation.Warnings = append(validation.Warnings, ocrvalidation.Warning{Code: "list_empty", Page: page.PageNumber, Value: block.ID, Message: fmt.Sprintf("list block %q has no items", block.ID)})
 		}
 	}
 	return validation

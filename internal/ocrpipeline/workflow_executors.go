@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -54,7 +55,7 @@ func StructuredDiscoverExecutor(projectionName string) workflow.Executor {
 		if figuresDir == "" && input.EmbedFigures {
 			figuresDir = filepath.Join(input.WorkDir, "figures")
 		}
-		assembleID, err := step.Emit("assemble-structured-markdown", StructuredAssembleInput{BookID: input.BookID, WorkDir: input.WorkDir, ImageDir: input.ImageDir, EmbedFigures: input.EmbedFigures, FiguresDir: figuresDir}, workflow.StepOpts{Kind: KindStructuredAssemble, Queue: model.QueueKey(QueueStructuredAssemble), DependsOn: workflow.Require(pageHandles...), Metadata: map[string]string{"book_id": input.BookID}})
+		assembleID, err := step.Emit("assemble-structured-markdown", StructuredAssembleInput{BookID: input.BookID, WorkDir: input.WorkDir, ImageDir: input.ImageDir, EmbedFigures: input.EmbedFigures, FiguresDir: figuresDir, RenderPDF: input.RenderPDF, PDFPath: input.PDFPath, PandocPath: input.PandocPath}, workflow.StepOpts{Kind: KindStructuredAssemble, Queue: model.QueueKey(QueueStructuredAssemble), DependsOn: workflow.Require(pageHandles...), Metadata: map[string]string{"book_id": input.BookID}})
 		if err != nil {
 			return err
 		}
@@ -157,6 +158,7 @@ func StructuredAssembleExecutor(projectionName string) workflow.Executor {
 			return workflow.Retryable("structured_store_artifact_failed", err)
 		}
 		result := StructuredAssembleResult{BookID: input.BookID, PageCount: len(pages), MarkdownPath: assembledPath, MarkdownRefID: ref.ID, MarkdownURI: ref.URI, CharCount: len(assembledBytes)}
+		pdfSourcePath := assembledPath
 		if input.EmbedFigures {
 			figuresDir := strings.TrimSpace(input.FiguresDir)
 			if figuresDir == "" {
@@ -207,6 +209,27 @@ func StructuredAssembleExecutor(projectionName string) workflow.Executor {
 			result.EmbeddedURI = embeddedRef.URI
 			result.FiguresDir = figuresDir
 			result.FigureCount = len(figures)
+			pdfSourcePath = embeddedPath
+		}
+		if input.RenderPDF {
+			pdfPath := strings.TrimSpace(input.PDFPath)
+			if pdfPath == "" {
+				pdfPath = filepath.Join(input.WorkDir, "book.pdf")
+			}
+			if err := renderStructuredPDF(ctx, input.WorkDir, pdfSourcePath, pdfPath, input.PandocPath); err != nil {
+				return workflow.Retryable("structured_pdf_render_failed", err)
+			}
+			pdfBytes, err := os.ReadFile(pdfPath)
+			if err != nil {
+				return workflow.Retryable("structured_pdf_read_failed", err)
+			}
+			pdfRef, err := step.StoreArtifact(filepath.Base(pdfPath), "application/pdf", pdfBytes, workflow.ArtifactKind("structured-rendered-pdf"))
+			if err != nil {
+				return workflow.Retryable("structured_pdf_artifact_failed", err)
+			}
+			result.PDFPath = pdfPath
+			result.PDFRefID = pdfRef.ID
+			result.PDFURI = pdfRef.URI
 		}
 		return step.Result(result)
 	})
@@ -316,6 +339,30 @@ func splitRenderedPages(markdown string) []ocrvalidation.PageText {
 		out = append(out, ocrvalidation.PageText{Number: num, Markdown: "<!-- page:" + part})
 	}
 	return out
+}
+
+func renderStructuredPDF(ctx context.Context, workDir, markdownPath, pdfPath, pandocPath string) error {
+	if strings.TrimSpace(pandocPath) == "" {
+		pandocPath = "pandoc"
+	}
+	if err := os.MkdirAll(filepath.Dir(pdfPath), 0o755); err != nil {
+		return err
+	}
+	cmd := exec.CommandContext(ctx, pandocPath,
+		markdownPath,
+		"--from", "markdown+raw_html",
+		"--pdf-engine=xelatex",
+		"-V", "geometry:margin=0.8in",
+		"-V", "mainfont=DejaVu Serif",
+		"-V", "monofont=DejaVu Sans Mono",
+		"-o", pdfPath,
+	)
+	cmd.Dir = workDir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("run pandoc: %w: %s", err, strings.TrimSpace(string(out)))
+	}
+	return nil
 }
 
 func classifyStructuredPageError(err error) error {

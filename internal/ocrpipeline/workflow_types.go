@@ -28,6 +28,9 @@ type StructuredRunInput struct {
 	MinRenderedBytes  int      `json:"min_rendered_bytes,omitempty"`
 	EmbedFigures      bool     `json:"embed_figures,omitempty"`
 	FiguresDir        string   `json:"figures_dir,omitempty"`
+	RenderPDF         bool     `json:"render_pdf,omitempty"`
+	PDFPath           string   `json:"pdf_path,omitempty"`
+	PandocPath        string   `json:"pandoc_path,omitempty"`
 }
 
 type StructuredPageWorkflowInput struct {
@@ -82,6 +85,9 @@ type StructuredAssembleInput struct {
 	ImageDir     string `json:"image_dir,omitempty"`
 	EmbedFigures bool   `json:"embed_figures,omitempty"`
 	FiguresDir   string `json:"figures_dir,omitempty"`
+	RenderPDF    bool   `json:"render_pdf,omitempty"`
+	PDFPath      string `json:"pdf_path,omitempty"`
+	PandocPath   string `json:"pandoc_path,omitempty"`
 }
 
 type StructuredAssembleResult struct {
@@ -95,6 +101,9 @@ type StructuredAssembleResult struct {
 	EmbeddedURI          string `json:"embedded_uri,omitempty"`
 	FiguresDir           string `json:"figures_dir,omitempty"`
 	FigureCount          int    `json:"figure_count,omitempty"`
+	PDFPath              string `json:"pdf_path,omitempty"`
+	PDFRefID             string `json:"pdf_ref_id,omitempty"`
+	PDFURI               string `json:"pdf_uri,omitempty"`
 	CharCount            int    `json:"char_count"`
 }
 
