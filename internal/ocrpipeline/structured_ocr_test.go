@@ -91,6 +91,13 @@ func TestParseStructuredOCRResponseRepairsCommonLiveShape(t *testing.T) {
 	require.Equal(t, []string{"Columns: A | B | C", "Row 1: A1 = 100"}, page.Blocks[0].DiagramText)
 }
 
+func TestParseStructuredOCRResponseAcceptsStringListItems(t *testing.T) {
+	raw := `{"schema_version":"structured-ocr/v1","book_id":"report-794","page_number":6,"page_type":"contents","blocks":[{"id":"p006-list001","type":"list","items":["1.1 The Primitive Presentation System Model .... 9"]}]}`
+	page, err := ParseStructuredOCRResponse(raw)
+	require.NoError(t, err)
+	require.Equal(t, "1.1 The Primitive Presentation System Model .... 9", page.Blocks[0].Items[0].Text)
+}
+
 func TestParseStructuredOCRResponseRepairsNestedFigureAndHeadingCaption(t *testing.T) {
 	raw := `{
   "schema_version": "structured-ocr/v1",

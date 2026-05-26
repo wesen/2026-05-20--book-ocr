@@ -142,6 +142,21 @@ type ListItem struct {
 	Children []ListItem `json:"children,omitempty"`
 }
 
+func (i *ListItem) UnmarshalJSON(data []byte) error {
+	var text string
+	if err := json.Unmarshal(data, &text); err == nil {
+		i.Text = text
+		return nil
+	}
+	type alias ListItem
+	var raw alias
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	*i = ListItem(raw)
+	return nil
+}
+
 type TableBlock struct {
 	Headers []string   `json:"headers,omitempty"`
 	Rows    [][]string `json:"rows,omitempty"`
