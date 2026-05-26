@@ -63,6 +63,8 @@ func run(args []string) error {
 		return showStatus(subArgs)
 	case "pages":
 		return listPages(subArgs)
+	case "structured-pages":
+		return listStructuredPages(subArgs)
 	case "quality-pass":
 		return runQualityPass(subArgs)
 	case "structured-page":
@@ -89,6 +91,7 @@ func printUsage() {
   ocr-mvp resume --work-dir DIR --run-id RUN_ID
   ocr-mvp cancel --work-dir DIR --run-id RUN_ID
   ocr-mvp pages --work-dir DIR --book-id BOOK_ID [--status STATUS]
+  ocr-mvp structured-pages --work-dir DIR --book-id BOOK_ID [--status STATUS]
   ocr-mvp quality-pass --markdown PATH --output-dir DIR [--expected-pages N]
   ocr-mvp structured-page --book-id BOOK --page N --image PATH --work-dir DIR --dry-run
   ocr-mvp structured-run --book-id BOOK --image-dir DIR --start-page N --end-page M --work-dir DIR --dry-run
@@ -732,6 +735,51 @@ func configureLogLevel(value string) error {
 		return fmt.Errorf("invalid --log-level %q: %w", value, err)
 	}
 	zerolog.SetGlobalLevel(level)
+	return nil
+}
+
+func listStructuredPages(args []string) error {
+	fs := flag.NewFlagSet("structured-pages", flag.ContinueOnError)
+	workDir := fs.String("work-dir", defaultWorkDir, "Directory containing projections")
+	bookID := fs.String("book-id", "", "Book ID to list")
+	status := fs.String("status", "", "Optional page status filter")
+	limit := fs.Int("limit", 0, "Optional maximum number of rows")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if strings.TrimSpace(*bookID) == "" {
+		return fmt.Errorf("--book-id is required")
+	}
+	paths, err := resolveWorkDir(*workDir, false)
+	if err != nil {
+		return err
+	}
+	ctx := context.Background()
+	store := workflow.NewSQLiteProjectionStore(paths.projectionsDir)
+	defer func() { _ = store.Close() }()
+	projection, err := store.Projection(ctx, ocrpipeline.StructuredProjectionName)
+	if err != nil {
+		return err
+	}
+	if err := ocrpipeline.EnsureStructuredProjectionSchema(ctx, projection); err != nil {
+		return err
+	}
+	query := `SELECT page_num, status, step_id, warning_count, table_count, figure_count, rendered_bytes, error_code, rendered_markdown_path, updated_at FROM structured_pages WHERE book_id = ?`
+	queryArgs := []any{*bookID}
+	if strings.TrimSpace(*status) != "" {
+		query += ` AND status = ?`
+		queryArgs = append(queryArgs, *status)
+	}
+	query += ` ORDER BY page_num`
+	if *limit > 0 {
+		query += ` LIMIT ?`
+		queryArgs = append(queryArgs, *limit)
+	}
+	rows, err := projection.Query(ctx, query, queryArgs...)
+	if err != nil {
+		return err
+	}
+	printPageRows(rows)
 	return nil
 }
 
