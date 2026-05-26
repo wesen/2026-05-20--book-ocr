@@ -111,3 +111,14 @@ Added targeted structured page rerun operator and workflow PDF rendering; patche
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/workflow_executors.go — PDF assembly
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/reference/01-diary.md — Step 10 diary
 
+
+## 2026-05-26
+
+Fixed duplicate image embedding for spreadsheet/table figures; reprocessed pages 34 and 48 and regenerated the PDF without PPSCalc spreadsheet image refs (commits 8825cd2, ff48bd4).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/renderer.go — Table-figure rendering
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrquality/figures.go — Figure synthesis guard
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/reference/01-diary.md — Step 11 diary
+

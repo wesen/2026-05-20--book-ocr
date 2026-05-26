@@ -22,7 +22,9 @@ RelatedFiles:
     - Path: internal/ocrpipeline/prompts.go
       Note: Prompt rules for readable screenshot/code/table content (commit a576e96)
     - Path: internal/ocrpipeline/renderer.go
-      Note: Code block rendering (commit a576e96)
+      Note: |-
+        Code block rendering (commit a576e96)
+        Suppress duplicate image markers for table-like figure blocks (commit 8825cd2)
     - Path: internal/ocrpipeline/structured_ocr.go
       Note: empty code/list/table validation warnings (commit 52eba49)
     - Path: internal/ocrpipeline/types.go
@@ -45,6 +47,10 @@ RelatedFiles:
         Short-page validation result contracts (commit 936952d)
         Figure embedding workflow result/input fields (commit 600dbc7)
         PDF fields in structured workflow inputs/results (commit 52eba49)
+    - Path: internal/ocrquality/figures.go
+      Note: Avoid synthesized figure markers on rendered table pages (commit ff48bd4)
+    - Path: internal/ocrquality/figures_test.go
+      Note: Regression test for table pages without synthesized figures (commit ff48bd4)
     - Path: ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/design-doc/01-workflow-backed-structured-ocr-design-and-implementation-guide.md
       Note: Primary workflow promotion design guide
     - Path: ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/experiments/001-report794-50-workflow-live-w4/01-summary.md
@@ -59,6 +65,7 @@ LastUpdated: 0001-01-01T00:00:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -1112,4 +1119,108 @@ Regenerated artifacts:
 /tmp/book-ocr-structured-workflow-full-live-w4-figures/embedded-figures.md
 /tmp/book-ocr-structured-workflow-full-live-w4-figures/book.pdf
 /tmp/book-ocr-structured-workflow-full-live-w4-figures/validation-report.json
+```
+
+## Step 11: Remove duplicate figure images for table-like spreadsheet figures
+
+Manual PDF review showed that source pages containing PPSCalc spreadsheet tables were still producing image-only figure floats in the PDF even though the OCR had already recognized the table contents. The issue was not only the structured OCR model output: page 48 had proper table blocks, but the figure embedding pass synthesized image markers from figure captions and then cropped the source page again.
+
+I fixed both sides of the boundary. The structured renderer now suppresses figure image markers when a table-like figure is immediately followed by a structured table transcription, and the legacy figure embedding pass no longer synthesizes missing figure markers on pages that already contain Markdown tables.
+
+### Prompt Context
+
+**User prompt (verbatim):** "i swear, in the pdf it's still the figure. figure 10 and figure 11 on pages 30 and 31 should be text with tables."
+
+**Assistant interpretation:** The PDF still contains image floats for spreadsheet figures that have already been recognized as text/table content, so the final rendering/embedding path is duplicating table figures as images.
+
+**Inferred user intent:** The review PDF should show searchable tables for spreadsheet-like figures and should not include duplicate cropped page images for those same figures.
+
+**Commit (code):** `8825cd2c2dce21f7567c4e3df7756902e223aca2` — "Suppress duplicate images for table figures"
+
+**Commit (code):** `ff48bd4` — "Avoid synthesizing figures for rendered tables"
+
+### Prompt Context
+
+**User prompt (verbatim):** "/tmp/pi-clipboard-6571b388-4245-41f3-bce9-2c2a136fa90e.png Here's page 31 and here's page 32 which is well scanned /tmp/pi-clipboard-ff876c4d-c52a-458c-9c08-0024dda54d53.png (you can look with read tool)"
+
+**Assistant interpretation:** Compare the user's screenshots with the regenerated PDF and source markdown to verify that the bad pages correspond to table-like spreadsheet figures still being embedded as images.
+
+**Inferred user intent:** Validate visually that the specific PDF pages now render as text/tables rather than as large scanned/cropped images.
+
+### What I did
+
+- Read the two clipboard screenshots with the image-capable `read` tool.
+- Confirmed the screenshot labeled page 31 corresponded to source page 48 in the generated Markdown/PDF, not source page 31.
+- Found remaining spreadsheet image refs in `embedded-figures.md`:
+  - page 34 Figure 2-7
+  - page 48 Figure 2-12
+  - page 48 Figure 2-13
+- Added renderer logic to suppress image markers for table-like figure blocks when the next block is a structured table.
+- Updated the structured prompt so primarily table/grid/spreadsheet figures should be emitted as caption text plus table blocks, not as figure blocks.
+- Added a renderer unit test for suppressing a PPSCalc figure image when a table follows.
+- Fixed `ocrquality.synthesizeMissingFigureMarkers` so it does not synthesize `[FIGURE: ...]` markers on pages that already contain Markdown tables.
+- Added a unit test preventing marker synthesis for rendered table pages.
+- Reprocessed source pages 34 and 48 with `structured-rerun-pages`, reassembled Markdown, re-rendered PDF, and reopened it in Okular.
+
+### Why
+
+- The final review PDF should be optimized for readable/searchable OCR text and tables.
+- Figure crops are useful for diagrams, but not when they duplicate a table that is already represented as Markdown.
+
+### What worked
+
+- Tests passed:
+  - `go test ./... -count=1`
+- After the second fix, `embedded-figures.md` no longer contains spreadsheet/PPSCalc image refs:
+  - `rg '^!\\[.*(Spreadsheet|spreadsheet|columns A B C|PPSCalc)' embedded-figures.md` returns no matches.
+- Page 48 now renders as prose plus Markdown tables and captions, without spreadsheet image links.
+- The regenerated PDF was opened in Okular:
+  - `/tmp/book-ocr-structured-workflow-full-live-w4-figures/book.pdf`
+
+### What didn't work
+
+- The first renderer-only fix did not remove the duplicate images from the final `embedded-figures.md` because the legacy figure embedding pass synthesized new `[FIGURE: ...]` markers from captions on table-heavy pages.
+- The PDF physical page numbers shifted after the duplicate image floats were removed, so validating by Okular page number alone is unreliable.
+
+### What I learned
+
+- There are two independent sources of image links: explicit renderer `[FIGURE: ...]` markers and synthesized figure markers in `ocrquality`.
+- A page can have correct structured JSON and correct per-page rendered Markdown, then still become wrong in `embedded-figures.md` if the embedding pass synthesizes markers too aggressively.
+
+### What was tricky to build
+
+- The PDF issue appeared as a model/OCR issue, but the actual remaining failure was post-processing: synthesis treated captions plus table text as a diagram-like page.
+- The right fix is conservative: if Markdown tables are present, do not synthesize missing full-page figure markers for that page.
+
+### What warrants a second pair of eyes
+
+- Review whether the `shouldSuppressFigureImageForFollowingTable` cues are too narrow or too broad.
+- Review whether `containsMarkdownTable` should become a more general page-classifier helper used by other figure-synthesis heuristics.
+
+### What should be done in the future
+
+- Add a report section listing image links whose alt text contains table/spreadsheet/grid terms; those are review suspects.
+- Consider visible source page markers in the PDF to make manual validation less confusing.
+
+### Code review instructions
+
+- Review:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/renderer.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrquality/figures.go`
+- Validate with:
+  - `go test ./... -count=1`
+  - `rg '^!\\[.*(Spreadsheet|spreadsheet|columns A B C|PPSCalc)' /tmp/book-ocr-structured-workflow-full-live-w4-figures/embedded-figures.md`
+
+### Technical details
+
+Regenerated artifact:
+
+```text
+/tmp/book-ocr-structured-workflow-full-live-w4-figures/book.pdf
+```
+
+Relevant backup before rerun:
+
+```text
+/tmp/book-ocr-structured-workflow-full-live-w4-figures/engine.db.before-rerun-table-synthesis-fix.bak
 ```
