@@ -7,6 +7,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestRenderPageMarkdownSuppressesTextualBoxedFigureWithFallback(t *testing.T) {
+	page := StructuredPageOCR{SchemaVersion: "structured-ocr/v1", BookID: "report-794", PageNumber: 121, PageType: PageTypeBody, Blocks: []OCRBlock{
+		{ID: "p121-f001", Type: BlockFigure, Description: "Boxed presentation of a set with items ONE, TWO, THREE."},
+	}}
+	figures := FigureMap{121: {"p121-f001": {Path: "figures/page_121_figure_01.png"}}}
+	got := RenderPageMarkdown(page, figures, DefaultRenderOptions())
+	require.Contains(t, got, "```text\n{ONE, TWO, THREE}\n```")
+	require.NotContains(t, got, "page_121_figure_01.png")
+	require.NotContains(t, got, "[FIGURE:")
+}
+
 func TestRenderPageMarkdownSuppressesSpreadsheetFigureImageWhenTableFollows(t *testing.T) {
 	page := StructuredPageOCR{SchemaVersion: "structured-ocr/v1", BookID: "report-794", PageNumber: 48, PageType: PageTypeTable, Blocks: []OCRBlock{
 		{ID: "p048-f001", Type: BlockFigure, Caption: "Figure 2-12: PPSCalc -- Formula Moved", Description: "Spreadsheet showing columns A B C and rows 1-3 with values and formulas."},

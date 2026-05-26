@@ -2,6 +2,7 @@ package ocrpipeline
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -27,8 +28,11 @@ func RenderPageMarkdown(page StructuredPageOCR, figures FigureResolver, opts Ren
 	}
 	for i, block := range page.Blocks {
 		suppressFigureImage := false
-		if block.Type == BlockFigure && i+1 < len(page.Blocks) && page.Blocks[i+1].Type == BlockTable {
-			suppressFigureImage = shouldSuppressFigureImageForFollowingTable(block)
+		if block.Type == BlockFigure {
+			suppressFigureImage = shouldSuppressTextualFigureImage(block)
+			if !suppressFigureImage && i+1 < len(page.Blocks) && page.Blocks[i+1].Type == BlockTable {
+				suppressFigureImage = shouldSuppressFigureImageForFollowingTable(block)
+			}
 		}
 		renderBlock(&out, page.PageNumber, block, figures, opts, suppressFigureImage)
 	}
@@ -75,6 +79,16 @@ func renderBlock(out *strings.Builder, pageNumber int, block OCRBlock, figures F
 	}
 }
 
+func shouldSuppressTextualFigureImage(block OCRBlock) bool {
+	text := strings.ToLower(strings.Join([]string{block.Caption, block.Description}, " "))
+	for _, cue := range []string{"code listing", "code sample", "code block", "lisp-like definition", "boxed example", "boxed presentation"} {
+		if strings.Contains(text, cue) {
+			return true
+		}
+	}
+	return false
+}
+
 func shouldSuppressFigureImageForFollowingTable(block OCRBlock) bool {
 	text := strings.ToLower(strings.Join([]string{block.Caption, block.Description}, " "))
 	for _, cue := range []string{"ppscalc", "spreadsheet", "formula display", "value display", "formula moved", "preparing to copy formula", "grid", "table"} {
@@ -83,6 +97,20 @@ func shouldSuppressFigureImageForFollowingTable(block OCRBlock) bool {
 		}
 	}
 	return false
+}
+
+var boxedSetItemsRE = regexp.MustCompile(`(?i)items?\s+([A-Z0-9_ -]+(?:,\s*[A-Z0-9_ -]+)*(?:,?\s+and\s+[A-Z0-9_ -]+)?)`)
+
+func textualFigureFallback(block OCRBlock) string {
+	desc := strings.TrimSpace(block.Description)
+	match := boxedSetItemsRE.FindStringSubmatch(desc)
+	if len(match) == 2 {
+		items := strings.TrimSpace(match[1])
+		items = strings.ReplaceAll(items, " and ", ", ")
+		items = strings.TrimSuffix(items, ".")
+		return "{" + items + "}"
+	}
+	return ""
 }
 
 func renderCode(out *strings.Builder, text string) {
@@ -102,9 +130,12 @@ func renderFigure(out *strings.Builder, pageNumber int, block OCRBlock, figures 
 		out.WriteString("\n\n")
 	}
 	if suppressImage {
-		// The next block carries a structured transcription of this table-like figure.
-		// Keep the caption but avoid emitting a marker/image that would duplicate the
-		// readable table in review PDFs.
+		// A neighboring block, or a simple textual fallback below, carries the readable
+		// content of this figure. Keep the caption but avoid emitting a marker/image
+		// that would duplicate searchable text/code/table content in review PDFs.
+		if fallback := textualFigureFallback(block); fallback != "" {
+			renderCode(out, fallback)
+		}
 	} else if figures != nil {
 		if ref, ok := figures.RefFor(pageNumber, block.ID); ok {
 			alt := strings.TrimSpace(ref.Alt)
