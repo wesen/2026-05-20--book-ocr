@@ -16,8 +16,11 @@ RelatedFiles:
       Note: |-
         Workflow-backed structured-run CLI wiring and resume registration (commit 325614b)
         structured-pages status command (commit 9d42c5d)
+        min-rendered-bytes CLI flag (commit 936952d)
     - Path: internal/ocrpipeline/workflow_executors.go
-      Note: Discover/page/assemble/validate workflow executors (commit d4bf768)
+      Note: |-
+        Discover/page/assemble/validate workflow executors (commit d4bf768)
+        Short-page validation query and report generation (commit 936952d)
     - Path: internal/ocrpipeline/workflow_package.go
       Note: Structured workflow package registration and retry policy (commit d4bf768)
     - Path: internal/ocrpipeline/workflow_projection.go
@@ -25,7 +28,9 @@ RelatedFiles:
     - Path: internal/ocrpipeline/workflow_retry_test.go
       Note: Deterministic workflow retry proof (commit 9d42c5d)
     - Path: internal/ocrpipeline/workflow_types.go
-      Note: Structured workflow input/result contracts (commit d4bf768)
+      Note: |-
+        Structured workflow input/result contracts (commit d4bf768)
+        Short-page validation result contracts (commit 936952d)
     - Path: ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/design-doc/01-workflow-backed-structured-ocr-design-and-implementation-guide.md
       Note: Primary workflow promotion design guide
     - Path: ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/experiments/001-report794-50-workflow-live-w4/01-summary.md
@@ -40,6 +45,7 @@ LastUpdated: 0001-01-01T00:00:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -658,4 +664,96 @@ go run ./cmd/book-ocr structured-pages \
   --work-dir /tmp/book-ocr-structured-workflow-live-50-w4 \
   --book-id report-794-structured-workflow-live-50-w4 \
   --limit 5
+```
+
+## Step 7: Add configurable short-page completeness warnings
+
+I added the first prose-completeness gate: a configurable `--min-rendered-bytes` validation warning for pages whose rendered Markdown is suspiciously short. This does not fail the workflow by default; it records short pages in `validation-report.json` so a reviewer can inspect likely under-transcribed pages.
+
+This is intentionally conservative. The structured OCR output can legitimately be short for blank/front-matter pages, so the threshold is opt-in. It gives production runs a way to surface suspicious pages without hardcoding a single threshold for all books and page types.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 6)
+
+**Assistant interpretation:** Continue Phase 6 hardening after retry and status work.
+
+**Inferred user intent:** The user wants production-readiness checks that catch the structured OCR's known lower prose-volume risk.
+
+**Commit (code):** `936952db8d3fe627a1865906dc24154b40ffbffc` — "Add structured OCR short page validation"
+
+### What I did
+
+- Added `MinRenderedBytes` to `StructuredRunInput` and `StructuredValidateInput`.
+- Added `StructuredShortPageWarning` and `ShortPages` to `StructuredValidateResult`.
+- Added `--min-rendered-bytes` to `book-ocr structured-run`.
+- Updated the validation executor to query `structured_pages` for successful pages with `rendered_bytes` below the threshold.
+- Fixed validation report writing so the local report includes `report_path`, `report_ref_id`, and `report_uri`.
+- Ran a dry-run validation smoke with a threshold of 100 bytes.
+
+### Why
+
+- The first-50 structured output was cleaner but shorter than freeform OCR. A production workflow needs to surface suspiciously short pages before a full-book run is accepted.
+
+### What worked
+
+- Full tests passed:
+  - `go test ./... -count=1`
+- Dry-run short-page smoke produced warnings as expected:
+  - `warning_count = 3`
+  - pages 1, 2, and 3 were below 100 rendered bytes in the dry-run fake output.
+- Local validation report now includes:
+  - `report_path`,
+  - `report_ref_id`,
+  - `warning_count`,
+  - `short_pages`.
+
+### What didn't work
+
+- Initially, the local `validation-report.json` omitted `report_path` and artifact IDs because the report was marshaled before those fields were set. I fixed the order by setting `ReportPath` before the first marshal and rewriting the local report after storing the report artifact.
+
+### What I learned
+
+- Completeness validation needs to be configurable and page-type-aware over time. The first useful primitive is a threshold warning, not a hard failure.
+
+### What was tricky to build
+
+- The validation step needs data from both the assembled Markdown and the structured projection. The assembled Markdown gives page markers and adjacent captions; the projection gives per-page rendered byte counts and artifact paths.
+
+### What warrants a second pair of eyes
+
+- Review whether `--min-rendered-bytes` should exclude blank pages by reading each page's structured JSON page type.
+- Review whether suspicious short pages should eventually fail full-book acceptance gates or remain warnings.
+
+### What should be done in the future
+
+- Add page-type-aware completeness checks.
+- Add anchor/oracle-based checks for known risky pages.
+- Add baseline comparison against the previous freeform target-only OCR output.
+
+### Code review instructions
+
+- Review validation types:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/workflow_types.go`
+- Review validation executor:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/workflow_executors.go`
+- Review CLI flag:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/cmd/book-ocr/main.go`
+
+### Technical details
+
+Smoke command:
+
+```bash
+go run ./cmd/book-ocr structured-run \
+  --book-id report-794-shortpage-dry \
+  --image-dir /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages \
+  --start-page 1 \
+  --end-page 3 \
+  --work-dir /tmp/book-ocr-structured-workflow-shortpage-dry \
+  --dry-run \
+  --expected-pages 3 \
+  --min-rendered-bytes 100 \
+  --max-workers 2 \
+  --log-level warn
 ```

@@ -68,3 +68,14 @@ Phase 6: added deterministic structured workflow retry test and projection-backe
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/workflow_retry_test.go — Retry test
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/reference/01-diary.md — Phase 6 diary
 
+
+## 2026-05-25
+
+Phase 6: added opt-in short-page completeness warnings via --min-rendered-bytes and included short pages in validation-report.json (commit 936952d).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/cmd/book-ocr/main.go — CLI flag
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/workflow_executors.go — Short-page validation
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/reference/01-diary.md — Completeness validation diary
+
