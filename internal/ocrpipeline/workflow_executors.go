@@ -53,7 +53,7 @@ func StructuredDiscoverExecutor(projectionName string) workflow.Executor {
 		if err != nil {
 			return err
 		}
-		if _, err := step.Emit("validate-structured-run", StructuredValidateInput{BookID: input.BookID, WorkDir: input.WorkDir, ExpectedPages: input.ExpectedPages}, workflow.StepOpts{Kind: KindStructuredValidate, Queue: model.QueueKey(QueueStructuredValidation), DependsOn: workflow.Require(workflow.StepHandle{ID: assembleID}), Metadata: map[string]string{"book_id": input.BookID}}); err != nil {
+		if _, err := step.Emit("validate-structured-run", StructuredValidateInput{BookID: input.BookID, WorkDir: input.WorkDir, ExpectedPages: input.ExpectedPages, MinRenderedBytes: input.MinRenderedBytes}, workflow.StepOpts{Kind: KindStructuredValidate, Queue: model.QueueKey(QueueStructuredValidation), DependsOn: workflow.Require(workflow.StepHandle{ID: assembleID}), Metadata: map[string]string{"book_id": input.BookID}}); err != nil {
 			return err
 		}
 		return step.Result(StructuredDiscoverResult{BookID: input.BookID, PageCount: len(pages), PageStepIDs: pageStepIDs, Pages: pageSpecs})
@@ -176,24 +176,73 @@ func StructuredValidateExecutor(projectionName string) workflow.Executor {
 		if input.ExpectedPages > 0 && len(pages) != input.ExpectedPages {
 			return workflow.Permanent("structured_expected_pages_mismatch", fmt.Errorf("expected %d pages, got %d", input.ExpectedPages, len(pages)))
 		}
-		result := StructuredValidateResult{BookID: input.BookID, PageCount: len(pages), ExpectedPages: input.ExpectedPages, WarningCount: len(warnings), AdjacentDuplicateCaptions: adjacent}
+		shortPages, err := loadShortStructuredPages(ctx, step, projectionNameOrDefaultStructured(projectionName), input.BookID, input.MinRenderedBytes)
+		if err != nil {
+			return workflow.Retryable("structured_projection_short_page_query_failed", err)
+		}
+		reportPath := filepath.Join(input.WorkDir, "validation-report.json")
+		result := StructuredValidateResult{BookID: input.BookID, PageCount: len(pages), ExpectedPages: input.ExpectedPages, WarningCount: len(warnings) + len(shortPages), AdjacentDuplicateCaptions: adjacent, ShortPages: shortPages, MinRenderedBytes: input.MinRenderedBytes, ReportPath: reportPath}
 		reportBytes, err := json.MarshalIndent(result, "", "  ")
 		if err != nil {
 			return err
-		}
-		reportPath := filepath.Join(input.WorkDir, "validation-report.json")
-		if err := os.WriteFile(reportPath, append(reportBytes, '\n'), 0o644); err != nil {
-			return workflow.Retryable("structured_validation_write_failed", err)
 		}
 		ref, err := step.StoreArtifact("validation-report.json", "application/json", append(reportBytes, '\n'), workflow.ArtifactKind("structured-validation-report"))
 		if err != nil {
 			return workflow.Retryable("structured_store_artifact_failed", err)
 		}
-		result.ReportPath = reportPath
 		result.ReportRefID = ref.ID
 		result.ReportURI = ref.URI
+		reportBytes, err = json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return err
+		}
+		if err := os.WriteFile(reportPath, append(reportBytes, '\n'), 0o644); err != nil {
+			return workflow.Retryable("structured_validation_write_failed", err)
+		}
 		return step.Result(result)
 	})
+}
+
+func loadShortStructuredPages(ctx context.Context, step *workflow.StepContext, projectionName, bookID string, minRenderedBytes int) ([]StructuredShortPageWarning, error) {
+	if minRenderedBytes <= 0 {
+		return nil, nil
+	}
+	projection, err := step.Projection(projectionName)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := projection.Query(ctx, `SELECT page_num, rendered_bytes, rendered_markdown_path FROM structured_pages WHERE book_id = ? AND status = 'succeeded' AND rendered_bytes > 0 AND rendered_bytes < ? ORDER BY page_num`, bookID, minRenderedBytes)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]StructuredShortPageWarning, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, StructuredShortPageWarning{PageNumber: intFromAny(row["page_num"]), RenderedBytes: intFromAny(row["rendered_bytes"]), RenderedMarkdownPath: fmt.Sprint(row["rendered_markdown_path"])})
+	}
+	return out, nil
+}
+
+func intFromAny(value any) int {
+	switch v := value.(type) {
+	case int:
+		return v
+	case int64:
+		return int(v)
+	case float64:
+		return int(v)
+	case []byte:
+		var n int
+		_, _ = fmt.Sscanf(string(v), "%d", &n)
+		return n
+	case string:
+		var n int
+		_, _ = fmt.Sscanf(v, "%d", &n)
+		return n
+	default:
+		var n int
+		_, _ = fmt.Sscanf(fmt.Sprint(v), "%d", &n)
+		return n
+	}
 }
 
 func splitRenderedPages(markdown string) []ocrvalidation.PageText {

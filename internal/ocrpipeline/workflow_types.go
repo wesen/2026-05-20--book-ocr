@@ -25,6 +25,7 @@ type StructuredRunInput struct {
 	ProfileRegistries []string `json:"profile_registries,omitempty"`
 	DryRun            bool     `json:"dry_run,omitempty"`
 	ExpectedPages     int      `json:"expected_pages,omitempty"`
+	MinRenderedBytes  int      `json:"min_rendered_bytes,omitempty"`
 }
 
 type StructuredPageWorkflowInput struct {
@@ -88,18 +89,27 @@ type StructuredAssembleResult struct {
 }
 
 type StructuredValidateInput struct {
-	BookID        string `json:"book_id"`
-	WorkDir       string `json:"work_dir"`
-	ExpectedPages int    `json:"expected_pages,omitempty"`
+	BookID           string `json:"book_id"`
+	WorkDir          string `json:"work_dir"`
+	ExpectedPages    int    `json:"expected_pages,omitempty"`
+	MinRenderedBytes int    `json:"min_rendered_bytes,omitempty"`
+}
+
+type StructuredShortPageWarning struct {
+	PageNumber           int    `json:"page_number"`
+	RenderedBytes        int    `json:"rendered_bytes"`
+	RenderedMarkdownPath string `json:"rendered_markdown_path,omitempty"`
 }
 
 type StructuredValidateResult struct {
-	BookID                    string   `json:"book_id"`
-	PageCount                 int      `json:"page_count"`
-	ExpectedPages             int      `json:"expected_pages,omitempty"`
-	WarningCount              int      `json:"warning_count"`
-	AdjacentDuplicateCaptions []string `json:"adjacent_duplicate_captions,omitempty"`
-	ReportPath                string   `json:"report_path"`
-	ReportRefID               string   `json:"report_ref_id,omitempty"`
-	ReportURI                 string   `json:"report_uri,omitempty"`
+	BookID                    string                       `json:"book_id"`
+	PageCount                 int                          `json:"page_count"`
+	ExpectedPages             int                          `json:"expected_pages,omitempty"`
+	WarningCount              int                          `json:"warning_count"`
+	AdjacentDuplicateCaptions []string                     `json:"adjacent_duplicate_captions,omitempty"`
+	ShortPages                []StructuredShortPageWarning `json:"short_pages,omitempty"`
+	MinRenderedBytes          int                          `json:"min_rendered_bytes,omitempty"`
+	ReportPath                string                       `json:"report_path"`
+	ReportRefID               string                       `json:"report_ref_id,omitempty"`
+	ReportURI                 string                       `json:"report_uri,omitempty"`
 }
