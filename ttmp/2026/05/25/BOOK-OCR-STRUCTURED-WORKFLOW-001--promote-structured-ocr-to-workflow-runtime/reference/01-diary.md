@@ -13,13 +13,17 @@ Intent: long-term
 Owners: []
 RelatedFiles:
     - Path: cmd/book-ocr/main.go
-      Note: Workflow-backed structured-run CLI wiring and resume registration (commit 325614b)
+      Note: |-
+        Workflow-backed structured-run CLI wiring and resume registration (commit 325614b)
+        structured-pages status command (commit 9d42c5d)
     - Path: internal/ocrpipeline/workflow_executors.go
       Note: Discover/page/assemble/validate workflow executors (commit d4bf768)
     - Path: internal/ocrpipeline/workflow_package.go
       Note: Structured workflow package registration and retry policy (commit d4bf768)
     - Path: internal/ocrpipeline/workflow_projection.go
       Note: Structured page projection schema and helpers (commit d4bf768)
+    - Path: internal/ocrpipeline/workflow_retry_test.go
+      Note: Deterministic workflow retry proof (commit 9d42c5d)
     - Path: internal/ocrpipeline/workflow_types.go
       Note: Structured workflow input/result contracts (commit d4bf768)
     - Path: ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/design-doc/01-workflow-backed-structured-ocr-design-and-implementation-guide.md
@@ -28,12 +32,15 @@ RelatedFiles:
       Note: Workflow-backed first-50 live W4 experiment summary
     - Path: ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/reference/01-diary.md
       Note: Chronological implementation diary
+    - Path: ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/tasks.md
+      Note: Phase 6 hardening task list
 ExternalSources: []
 Summary: ""
 LastUpdated: 0001-01-01T00:00:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -552,4 +559,103 @@ go run ./cmd/book-ocr structured-run \
   --expected-pages 50 \
   --max-workers 4 \
   --log-level warn
+```
+
+## Step 6: Add deterministic retry test and structured page status command
+
+I started Phase 6 hardening by proving workflow retry deterministically and adding a projection-backed page status command. The retry test uses a fake structured OCR client that fails once with a retryable provider-style error and succeeds on the second attempt. This closes the gap left by the live W4 run, which succeeded without exercising retry behavior.
+
+I also added `book-ocr structured-pages`, which queries the `structured_pages` projection and prints page status, warning counts, table/figure counts, rendered bytes, errors, and rendered Markdown paths. This gives operators a structured equivalent of the older `pages` command.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, continue, keep a detailed diary, commit at appropriate intervals"
+
+**Assistant interpretation:** Continue Phase 6 hardening work incrementally, recording what changes and validating each slice.
+
+**Inferred user intent:** The user wants production hardening to proceed beyond the successful W4 run, with the same documentation and commit discipline as previous phases.
+
+**Commit (code):** `9d42c5d75bd968b298055e2ba5d280f30eab8fd6` — "Add structured workflow retry test and page status"
+
+### What I did
+
+- Added `internal/ocrpipeline/workflow_retry_test.go`.
+- Implemented a fake `failOnceStructuredClient` that returns:
+  - `run structured OCR inference: transient test failure`
+  on the first call, then delegates to `DryRunStructuredOCRClient`.
+- Added an integration-style workflow runtime test that:
+  - starts a structured workflow run,
+  - observes workflow retry behavior,
+  - verifies the workflow succeeds,
+  - verifies the client was called at least twice,
+  - verifies the structured projection row is `succeeded`.
+- Added `book-ocr structured-pages` command.
+- Verified it against the W4 live run projection:
+  - `/tmp/book-ocr-structured-workflow-live-50-w4/projections/book_ocr_structured.db`
+- Added Phase 6 hardening tasks for retry proof, page status, prose completeness, and figure embedding.
+
+### Why
+
+- The W4 live run proved parallel execution but did not prove retry because no provider failure occurred.
+- A deterministic retry test is better than waiting for a random TLS failure.
+- Operators need page-level status for structured OCR runs, especially as we prepare for larger live runs.
+
+### What worked
+
+- Targeted retry test passed:
+  - `go test ./internal/ocrpipeline -run TestStructuredWorkflowRetriesTransientPageFailure -count=1 -v`
+- Full tests passed:
+  - `go test ./... -count=1`
+- Test logs showed the expected sequence:
+  - page step attempt 1 failed and was scheduled for retry,
+  - page step attempt 2 succeeded,
+  - assemble and validate succeeded,
+  - workflow succeeded.
+- `structured-pages` printed rows from the W4 run, for example:
+  - `page_num=1 status=succeeded warning_count=0 rendered_markdown_path=/tmp/book-ocr-structured-workflow-live-50-w4/pages/page_001/05-rendered.md`
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- The workflow retry policy is working for structured page OCR when the executor returns a retryable workflow error.
+- A page-status command is a useful complement to workflow-level status because it exposes OCR-domain fields: warnings, table count, figure count, rendered bytes, and rendered Markdown path.
+
+### What was tricky to build
+
+- The retry test has to wait through the workflow retry backoff. The test loops `RunOnce` until the workflow reaches a terminal state instead of assuming retry occurs in the next immediate scheduler cycle.
+- The projection file suffix is `.db`, matching `workflow.NewSQLiteProjectionStore`, not `.sqlite`.
+
+### What warrants a second pair of eyes
+
+- Review whether the retry test should reduce retry backoff through a test-only policy hook to avoid waiting around one second.
+- Review whether `structured-pages` should sort or format columns in a more human-friendly table instead of reusing the generic key/value row printer.
+
+### What should be done in the future
+
+- Add suspicious-short-page/prose completeness validation.
+- Connect structured figure blocks to figure image embedding.
+- Consider adding `--output json/table` for `structured-pages` later.
+
+### Code review instructions
+
+- Review retry test:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/workflow_retry_test.go`
+- Review status command:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/cmd/book-ocr/main.go`
+- Validate with:
+  - `go test ./... -count=1`
+  - `go run ./cmd/book-ocr structured-pages --work-dir /tmp/book-ocr-structured-workflow-live-50-w4 --book-id report-794-structured-workflow-live-50-w4 --limit 5`
+
+### Technical details
+
+Structured page status command:
+
+```bash
+go run ./cmd/book-ocr structured-pages \
+  --work-dir /tmp/book-ocr-structured-workflow-live-50-w4 \
+  --book-id report-794-structured-workflow-live-50-w4 \
+  --limit 5
 ```
