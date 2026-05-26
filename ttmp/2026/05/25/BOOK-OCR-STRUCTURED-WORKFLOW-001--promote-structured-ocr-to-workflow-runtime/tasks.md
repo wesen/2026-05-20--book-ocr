@@ -11,4 +11,4 @@
 - [x] Wire book-ocr structured-run to workflow runtime and add status/resume/retry operator compatibility
 - [x] Add workflow projection rows and artifact metadata for structured page outputs
 - [x] Validate dry-run workflow over pages 1-50 and inspect turns/artifacts/projections
-- [ ] Run limited live structured workflow smoke and verify automatic retry/resume behavior
+- [x] Run limited live structured workflow smoke and verify automatic retry/resume behavior

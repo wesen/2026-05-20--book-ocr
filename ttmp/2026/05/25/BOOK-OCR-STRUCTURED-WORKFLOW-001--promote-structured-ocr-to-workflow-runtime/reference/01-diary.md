@@ -24,6 +24,8 @@ RelatedFiles:
       Note: Structured workflow input/result contracts (commit d4bf768)
     - Path: ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/design-doc/01-workflow-backed-structured-ocr-design-and-implementation-guide.md
       Note: Primary workflow promotion design guide
+    - Path: ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/experiments/001-report794-50-workflow-live-w4/01-summary.md
+      Note: Workflow-backed first-50 live W4 experiment summary
     - Path: ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/reference/01-diary.md
       Note: Chronological implementation diary
 ExternalSources: []
@@ -32,6 +34,7 @@ LastUpdated: 0001-01-01T00:00:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -443,4 +446,110 @@ sqlite3 /tmp/book-ocr-structured-workflow-dry-50/engine.db \
   'select status,count(*) from ops group by status;'
 sqlite3 /tmp/book-ocr-structured-workflow-dry-50/turns.db \
   'select count(*) from turns;'
+```
+
+## Step 5: Run workflow-backed first-50 live OCR with four workers
+
+I ran the workflow-backed structured OCR pipeline on pages 1-50 with `--max-workers 4` from the start. This was the first real parallel live run of the structured workflow path.
+
+The run succeeded without provider failures. It produced 50 structured page outputs, 50 projection success rows, 53 succeeded workflow ops, an assembled Markdown file, a validation report, and a shared turns DB. No separate `--max-vision-workers` flag was needed for this experiment; the existing workflow `--max-workers` setting was enough to exercise page-level parallelism.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, let's try 4 from the start, just for fun."
+
+**Assistant interpretation:** Run the workflow-backed structured OCR live path with four concurrent workers immediately, rather than adding a separate max-vision-workers flag first.
+
+**Inferred user intent:** The user wants practical evidence about whether the workflow-backed structured OCR can parallelize live OCR calls at worker concurrency 4.
+
+**Commit (code):** N/A — live validation/documentation only.
+
+### What I did
+
+- Ran `book-ocr structured-run` live over pages 1-50 with:
+  - `--max-workers 4`,
+  - `--dry-run=false`,
+  - `--profile gpt-5-mini-low`,
+  - `--expected-pages 50`.
+- Measured assembled Markdown, projection, engine DB, and turns DB.
+- Wrote experiment summary:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/experiments/001-report794-50-workflow-live-w4/01-summary.md`
+
+### Why
+
+- The user asked whether we could parallelize OCR. The structured workflow graph should allow page steps to run concurrently after discovery. A live W4 run is the simplest proof.
+
+### What worked
+
+- Run succeeded:
+  - run ID `book-ocr/structured-f32e3de4-eb1f-49cd-b000-f4364241238b`
+  - work dir `/tmp/book-ocr-structured-workflow-live-50-w4`
+- Final artifacts:
+  - `/tmp/book-ocr-structured-workflow-live-50-w4/assembled.md`
+  - `/tmp/book-ocr-structured-workflow-live-50-w4/validation-report.json`
+  - `/tmp/book-ocr-structured-workflow-live-50-w4/engine.db`
+  - `/tmp/book-ocr-structured-workflow-live-50-w4/projections/book_ocr_structured.db`
+  - `/tmp/book-ocr-structured-workflow-live-50-w4/turns.db`
+- Counts:
+  - page markers: `50`
+  - assembled bytes: `78,976`
+  - table Markdown lines: `74`
+  - structured table blocks: `10`
+  - structured figure blocks: `17`
+  - figure blocks with captions: `17`
+  - validation warnings: `0`
+  - projection rows: `succeeded|50`
+  - engine ops: `succeeded|53`
+  - turn rows: `50`
+  - turn phases: `input|200`, `final|200`
+
+### What didn't work
+
+- No provider failures occurred, so this run did not demonstrate automatic retry in action. It demonstrated successful parallel execution, not retry recovery.
+
+### What I learned
+
+- Worker concurrency 4 is viable for this 50-page live structured workflow run under current provider/profile conditions.
+- The workflow-backed graph created the expected number of ops: discover + 50 page steps + assemble + validate.
+- A deterministic retry test is still needed because relying on provider TLS failures is not a reliable validation strategy.
+
+### What was tricky to build
+
+- Nothing new was built in this step. The main operational nuance is interpreting the absence of failures: it is good news for throughput, but it does not prove retry behavior beyond the configured workflow retry policy.
+
+### What warrants a second pair of eyes
+
+- Review the assembled output for prose completeness, because previous structured runs were still shorter than freeform OCR.
+- Review provider usage/cost before trying higher concurrency or full-book W4.
+
+### What should be done in the future
+
+- Add a fake retrying structured OCR client test that fails once with a retryable error and succeeds on the second attempt.
+- Add structured page-status command for the `structured_pages` projection.
+- Continue Phase 6 hardening.
+
+### Code review instructions
+
+- Review experiment summary:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/experiments/001-report794-50-workflow-live-w4/01-summary.md`
+- Inspect live output:
+  - `/tmp/book-ocr-structured-workflow-live-50-w4/assembled.md`
+
+### Technical details
+
+Command:
+
+```bash
+go run ./cmd/book-ocr structured-run \
+  --book-id report-794-structured-workflow-live-50-w4 \
+  --image-dir /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages \
+  --start-page 1 \
+  --end-page 50 \
+  --work-dir /tmp/book-ocr-structured-workflow-live-50-w4 \
+  --profile gpt-5-mini-low \
+  --profile-registries /tmp/book-ocr-hq-001/profiles-clean.yaml \
+  --dry-run=false \
+  --expected-pages 50 \
+  --max-workers 4 \
+  --log-level warn
 ```

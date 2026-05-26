@@ -47,3 +47,13 @@ Validated workflow-backed structured OCR over pages 1-50 in dry-run mode; engine
 
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/reference/01-diary.md — Dry-run validation diary
 
+
+## 2026-05-25
+
+Ran workflow-backed structured OCR live over pages 1-50 with --max-workers 4; all 50 page steps succeeded, validation warnings were zero, and the W4 experiment summary was recorded.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/experiments/001-report794-50-workflow-live-w4/01-summary.md — Live W4 summary
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/reference/01-diary.md — Live W4 diary
+
