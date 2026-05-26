@@ -133,3 +133,12 @@ Rendered structured code as Common Lisp, fixed targeted rerun downstream orderin
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/renderer.go — Code fence rendering
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/reference/01-diary.md — Step 12 diary
 
+
+## 2026-05-26
+
+Reprocessed additional Common Lisp listing pages 132,140,179,181,182 and regenerated PDF after manual review found more prose-rendered code.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/reference/01-diary.md — Step 13 diary
+

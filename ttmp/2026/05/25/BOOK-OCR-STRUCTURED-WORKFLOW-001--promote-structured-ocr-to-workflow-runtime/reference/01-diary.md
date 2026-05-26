@@ -1427,3 +1427,188 @@ Backup before rerun:
 ```text
 /tmp/book-ocr-structured-workflow-full-live-w4-figures/engine.db.before-rerun-common-lisp-pages.bak
 ```
+
+## Step 13: Rerun additional Common Lisp listing pages after manual review
+
+The user identified more sections where Lisp definitions were still rendered as prose instead of code blocks. I treated these as additional targeted repair pages rather than a new full-book run, because the current workflow artifact is otherwise close to reviewable.
+
+I reprocessed the pages containing the cited snippets and regenerated the PDF. The affected snippets now appear in `common-lisp` fenced blocks in the per-page Markdown and the assembled full-book Markdown.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Open/Close Mechanism.
+Like the move recognition driver discussed above, this mechanism provides a general framework
+for implementing opening and closing of domain objects, like that used in the Xerox Star and Apple
+Lisa styles (see section 4.3). In those systems, opening a document icon, for example, causes the
+text of the file to be displayed.
+Opening and closing domain objects can be thought of as changing presentation styles. The inter-
+face builder specifies links between the domain object class and the opened and closed presentation
+styles. The following specification is typical:
+(def-open-close-presentation-style file-document file document-icon text-file-contents fonts:cptfont)
+This specifies that for instances of class file the document icon style will be used for the closed
+presentation and the text file contents style for the opened presentation. The default font for the
+opened style is also specified.
+The open command is given a presentation as an argument and a position. It finds the entry for
+the presentation, based on the presented domain object, and invokes the presenter for the opened
+presentation style specified by the entry. The presenter creates the opened presentation at the
+given position. The original presentation is erased but remembered as a property of the opened
+presentation. This allows the original presentation to be redrawn
+when the opened presentation is later closed, if possible, for efficiency and so that its original
+position is restored.
+The decisions to erase and record the original presentation are a matter of style and are easily
+changed. This style attempts, by having only one presentation of a domain object at a time, to give
+a feeling of directness – that the visual presentation is the domain object, and
+
+----
+
+the domain objects being presented.
+The definition therefore drives the domain collector and semantic presenter, but has left the text
+positioning details up to a standard organizational presenter. (The organizational presenter used
+is the one that fills a rectangular area with the text, as a paragraph would be filled.)
+The following is the dictionary entry as the builder would write it, to produce text such as “Thursday,
+August 9, 1984.”
+(defmethod (DATE :PHRASAL-PRESENTER-DICTIONARY-ENTRY) () ’(:SAY ,self (:FURTHER-INFO
+(:SAY-PROPERTY (,self :DAY-OF-WEEK) ,(phrasal-presenter-dictionary-entry day-of-week)) (:SAY-
+PROPERTY (,self :MONTH) ,(phrasal-presenter-dictionary-entry month)) (:SAY-PROPERTY (,self
+:DAY-OF-MONTH) ,(phrasal-presenter-dictionary-entry day-of-month)) “,” (:SAY-PROPERTY (,self
+:YEAR) ,(phrasal-presenter-dictionary-entry year))))
+The tree produced has the following items:
+• An identifying symbol, :say
+• The presented domain object – the date instance, since self will be bound to it
+• A sub-tree, flagged as carrying non-restrictive further information, that accesses the dictionary
+entry for the day of week property, labeled as presenting the day of week property
+• A sub-tree that accesses the dictionary entry for the month property
+• A sub-tree that accesses the dictionary entry for the day of month, similarly labeled as a prop-
+erty presentation
+• Some template text, a comma
+• A sub-tree that accesses the dictiona
+
+---
+
+ecognizers to handle the recognition, once the general organizational recognizer has determined
+that it applies. The following specifies the move recognition rule used for recognizing movement of
+a document icon to a directory (either a folder icon or an opened directory display) as a command
+to move the file to that directory (there are four other similar rules specified for the interface):
+(def-move-recognition-rule move-document-to-directory (:overlap (file (document-icon)) (directory
+(folder-icon tops20-directory-icon-listing))) :recognize-file-directory-movement)
+The semantic recognizers for move recognition are all very similar. The following is a sample:
+(defmethod (PRESENTATION :RECOGNIZE-MAIL-FILE-MOVEMENT) (out-box-presentation edit-
+history-entry) (let* ((file (send self ‘:resolve-presented-domain-object #’typep ’file)) (command-
+application (make-command-application (intern-command ’send-file-as-mail-1) (list file)))) (send
+command-application’:execute) (send self ‘:move-next-to-presentation out-box-presentation edit-
+history-entry’:right)))
+This recognizer is invoked by sending a recognize-mail-file-movement message to the presentation
+being moved, the document icon. It is given the out-box icon as one of its arguments. The first bind-
+ing form in the let* resolves the presented domain object to a file instance. The second binding form
+creates the command application, specifying the send-file-as-mail-1 command and an argument list
+with the file as the single argument.
+The body of the let* executes the command application (the general PSBase command execution
+presenter will take care of the highlighting automatically) and ends by moving the document icon
+to a standard position to the right of the out-box.
+The other move recognizers are about this simp
+
+---
+
+This is implemented in the current PSBase data base mechanism by defining a method for directory.
+(All properties are accessed by the message passing. Some properties are defined by the contents of
+slots in the instances; but the Lisp machine message-passing system automatically creates methods
+to retrieve these as well. Thus, the property accessing is uniform.) This method is shown below:
+(defmethod (DIRECTORY :FILE-COMMAND-SET) () short-file-command-set)
+This defines the file command set property for directories. It returns the command set instance in
+the data base network that the variable short-file-command-set is bound to.
+(defvar SHORT-FILE-COMMAND-SET (make-command-set-from-spec ’(present-file delete-file
+dover-print-file line-print-file)))
+This specification defines a command set instance by simply listing the names of the commands
+to be included. These commands are defined individually elsewhere. (They may be included in
+several different command sets. The PSBa
+
+
+This is implemented in the current PSBase data base mechanism by defining a method for directory.
+(All properties are accessed by the message passing. Some properties are defined by the contents of
+slots in the instances; but the Lisp machine message-passing system automatically creates methods
+to retrieve these as well. Thus, the property accessing is uniform.) This method is shown below:
+(defmethod (DIRECTORY :FILE-COMMAND-SET) () short-file-command-set)
+This defines the file command set property for directories. It returns the command set instance in
+the data base network that the variable short-file-command-set is bound to.
+(defvar SHORT-FILE-COMMAND-SET (make-command-set-from-spec ’(present-file delete-file
+dover-print-file line-print-file)))
+This specification defines a command set instance by simply listing the names of the commands
+to be included. These commands are defined individually elsewhere. (They may be included in
+several different command sets. The PSBa
+
+---
+
+We still have issues with code not being recognized."
+
+**Assistant interpretation:** More Common Lisp definitions need to be reprocessed so they become structured `code` blocks and render as Common Lisp fenced code in the PDF.
+
+**Inferred user intent:** Continue iterating toward a manually reviewable PDF where code examples are clearly separated from prose.
+
+**Commit (code):** N/A — reused the Common Lisp rendering/prompt/operator fixes from commit `c74f34e`.
+
+### What I did
+
+- Located the cited snippets in the current artifact.
+- Reprocessed source pages:
+  - 132 (`DATE :PHRASAL-PRESENTER-DICTIONARY-ENTRY`)
+  - 140 (`def-open-close-presentation-style file-document`)
+  - 179 (`def-open-close-presentation-style`, `def-move-recognition-rule`, `RECOGNIZE-MAIL-FILE-MOVEMENT`)
+  - 181 (`DIRECTORY :FILE-COMMAND-SET`)
+  - 182 (`SHORT-FILE-COMMAND-SET`, related command definitions)
+- Reassembled Markdown and regenerated the PDF through the workflow.
+- Reopened `/tmp/book-ocr-structured-workflow-full-live-w4-figures/book.pdf` in Okular.
+
+### Why
+
+- The previous pass fixed many code-heavy pages but not all occurrences of Lisp definitions.
+- The snippets the user pasted were good concrete anchors for a targeted rerun.
+
+### What worked
+
+- The target pages now contain `common-lisp` fenced code in per-page Markdown.
+- `embedded-figures.md` now includes Common Lisp fences for the cited definitions.
+- The regenerated PDF was opened for manual validation.
+
+### What didn't work
+
+- The current system still depends on manual discovery of missed code snippets. We need an automated audit for Lisp-looking lines outside fenced code blocks.
+
+### What I learned
+
+- Many code recognition failures can be repaired with targeted page reruns after prompt/schema fixes, without rerunning the whole book.
+- The strongest next validation is pattern-based: scan for `def`, `defmethod`, `defvar`, `:keyword`, and Lisp parentheses outside code fences.
+
+### What was tricky to build
+
+- Mapping pasted PDF text back to source pages is indirect because PDF physical page numbers differ from source page markers.
+- Some snippets are split across page boundaries, so the correct repair set may include neighboring pages.
+
+### What warrants a second pair of eyes
+
+- Review OCR fidelity for the rerun Lisp snippets, especially quote normalization (`'` vs typographic quotes) and symbol names with asterisks.
+
+### What should be done in the future
+
+- Add a code-fence audit command/report before further manual review.
+- Add a visible source page marker option to the PDF for easier mapping.
+
+### Code review instructions
+
+- Manual validation PDF:
+  - `/tmp/book-ocr-structured-workflow-full-live-w4-figures/book.pdf`
+- Search validation:
+  - `rg '```common-lisp|def-open-close-presentation-style|PHRASAL-PRESENTER-DICTIONARY|RECOGNIZE-MAIL-FILE|FILE-COMMAND-SET|SHORT-FILE-COMMAND-SET' /tmp/book-ocr-structured-workflow-full-live-w4-figures/embedded-figures.md`
+
+### Technical details
+
+Targeted rerun command:
+
+```bash
+book-ocr structured-rerun-pages \
+  --work-dir /tmp/book-ocr-structured-workflow-full-live-w4-figures \
+  --run-id book-ocr/structured-499f1718-bfb6-4135-a52f-56d35001d0bd \
+  --pages 132,140,179,181,182 \
+  --render-pdf \
+  --max-workers 2 \
+  --log-level warn
+```
