@@ -1,0 +1,105 @@
+package ocrpipeline
+
+const (
+	StructuredPackageName     = "book-ocr/structured"
+	StructuredProjectionName  = "book_ocr_structured"
+	KindStructuredDiscover    = "book-ocr/structured/discover-pages"
+	KindStructuredPage        = "book-ocr/structured/ocr-page"
+	KindStructuredAssemble    = "book-ocr/structured/assemble-markdown"
+	KindStructuredValidate    = "book-ocr/structured/validate-run"
+	QueueStructuredControl    = "structured-control"
+	QueueStructuredVision     = "structured-vision"
+	QueueStructuredAssemble   = "structured-assemble"
+	QueueStructuredValidation = "structured-validation"
+)
+
+type StructuredRunInput struct {
+	BookID            string   `json:"book_id"`
+	ImageDir          string   `json:"image_dir"`
+	PageGlob          string   `json:"page_glob,omitempty"`
+	StartPage         int      `json:"start_page,omitempty"`
+	EndPage           int      `json:"end_page,omitempty"`
+	WorkDir           string   `json:"work_dir"`
+	RunID             string   `json:"run_id,omitempty"`
+	Profile           string   `json:"profile,omitempty"`
+	ProfileRegistries []string `json:"profile_registries,omitempty"`
+	DryRun            bool     `json:"dry_run,omitempty"`
+	ExpectedPages     int      `json:"expected_pages,omitempty"`
+}
+
+type StructuredPageWorkflowInput struct {
+	BookID            string   `json:"book_id"`
+	RunID             string   `json:"run_id"`
+	PageNumber        int      `json:"page_number"`
+	ImagePath         string   `json:"image_path"`
+	WorkDir           string   `json:"work_dir"`
+	TurnsDB           string   `json:"turns_db,omitempty"`
+	TurnsDSN          string   `json:"turns_dsn,omitempty"`
+	Profile           string   `json:"profile,omitempty"`
+	ProfileRegistries []string `json:"profile_registries,omitempty"`
+	DryRun            bool     `json:"dry_run,omitempty"`
+}
+
+type StructuredPageSpec struct {
+	BookID     string `json:"book_id"`
+	PageNumber int    `json:"page_number"`
+	ImagePath  string `json:"image_path"`
+}
+
+type StructuredDiscoverResult struct {
+	BookID      string               `json:"book_id"`
+	PageCount   int                  `json:"page_count"`
+	PageStepIDs []string             `json:"page_step_ids"`
+	Pages       []StructuredPageSpec `json:"pages"`
+}
+
+type StructuredPageWorkflowResult struct {
+	BookID                string `json:"book_id"`
+	PageNumber            int    `json:"page_number"`
+	PageDir               string `json:"page_dir"`
+	RawResponsePath       string `json:"raw_response_path"`
+	StructuredJSONPath    string `json:"structured_json_path"`
+	RenderedMarkdownPath  string `json:"rendered_markdown_path"`
+	ValidationJSONPath    string `json:"validation_json_path"`
+	StructuredArtifactID  string `json:"structured_artifact_id,omitempty"`
+	StructuredArtifactURI string `json:"structured_artifact_uri,omitempty"`
+	RenderedArtifactID    string `json:"rendered_artifact_id,omitempty"`
+	RenderedArtifactURI   string `json:"rendered_artifact_uri,omitempty"`
+	ValidationArtifactID  string `json:"validation_artifact_id,omitempty"`
+	ValidationArtifactURI string `json:"validation_artifact_uri,omitempty"`
+	WarningCount          int    `json:"warning_count"`
+	TableCount            int    `json:"table_count"`
+	FigureCount           int    `json:"figure_count"`
+	RenderedBytes         int    `json:"rendered_bytes"`
+}
+
+type StructuredAssembleInput struct {
+	BookID  string `json:"book_id"`
+	WorkDir string `json:"work_dir"`
+}
+
+type StructuredAssembleResult struct {
+	BookID        string `json:"book_id"`
+	PageCount     int    `json:"page_count"`
+	MarkdownPath  string `json:"markdown_path"`
+	MarkdownRefID string `json:"markdown_ref_id,omitempty"`
+	MarkdownURI   string `json:"markdown_uri,omitempty"`
+	CharCount     int    `json:"char_count"`
+}
+
+type StructuredValidateInput struct {
+	BookID        string `json:"book_id"`
+	WorkDir       string `json:"work_dir"`
+	ExpectedPages int    `json:"expected_pages,omitempty"`
+}
+
+type StructuredValidateResult struct {
+	BookID                    string   `json:"book_id"`
+	PageCount                 int      `json:"page_count"`
+	ExpectedPages             int      `json:"expected_pages,omitempty"`
+	WarningCount              int      `json:"warning_count"`
+	AdjacentDuplicateCaptions []string `json:"adjacent_duplicate_captions,omitempty"`
+	ReportPath                string   `json:"report_path"`
+	ReportRefID               string   `json:"report_ref_id,omitempty"`
+	ReportURI                 string   `json:"report_uri,omitempty"`
+}
