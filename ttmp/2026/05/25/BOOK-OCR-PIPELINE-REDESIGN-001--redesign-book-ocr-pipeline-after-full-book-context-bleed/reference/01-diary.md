@@ -17,6 +17,7 @@ RelatedFiles:
         structured-page CLI wiring (commit cab6b6f)
         Live structured-page CLI and log-level flag (commit 8053bb7)
         structured-run dry-run CLI and assembly contract (commit 638f8b3)
+        structured-run artifact resume support (commit d9cc404)
     - Path: internal/ocrmvp/geppetto_ocr.go
       Note: Context-image root cause reference
     - Path: internal/ocrpipeline/client.go
@@ -37,6 +38,7 @@ RelatedFiles:
         Dry-run structured-page orchestration and artifact writing (commit cab6b6f)
         Parse repair and parse-failure artifact persistence (commit 8053bb7)
         Figure/table validation warnings (commit 913ccd7)
+        Caption repair from neighboring heading blocks (commit 3e089fc)
     - Path: internal/ocrpipeline/structured_ocr_test.go
       Note: |-
         Phase 1 dry-run tests (commit cab6b6f)
@@ -45,6 +47,7 @@ RelatedFiles:
       Note: |-
         Structured OCR data contracts
         Flexible structured JSON unmarshalling for live response drift (commit 8053bb7)
+        Nested figure and string list item parsing (commits 3e089fc
     - Path: internal/ocrvalidation/adjacent.go
       Note: Adjacent caption validation
     - Path: internal/ocrvalidation/anchors.go
@@ -60,6 +63,8 @@ RelatedFiles:
         Updated implementation progress
     - Path: ttmp/2026/05/25/BOOK-OCR-PIPELINE-REDESIGN-001--redesign-book-ocr-pipeline-after-full-book-context-bleed/experiments/001-report794-50-target-only-v5/01-summary.md
       Note: First-50 live target-only OCR evidence
+    - Path: ttmp/2026/05/25/BOOK-OCR-PIPELINE-REDESIGN-001--redesign-book-ocr-pipeline-after-full-book-context-bleed/experiments/002-report794-50-structured-live/01-summary.md
+      Note: First-50 live structured OCR evidence
     - Path: ttmp/2026/05/25/BOOK-OCR-PIPELINE-REDESIGN-001--redesign-book-ocr-pipeline-after-full-book-context-bleed/reference/01-diary.md
       Note: Live rerun diary
 ExternalSources: []
@@ -68,6 +73,7 @@ LastUpdated: 2026-05-25T00:00:00-04:00
 WhatFor: Use this diary to understand why the structured, target-page-only, turn-persisted OCR redesign ticket was created and what documentation was produced.
 WhenToUse: Read before implementing the redesigned pipeline or continuing the ticket.
 ---
+
 
 
 
@@ -1309,4 +1315,145 @@ rg -c '^\|' /tmp/book-ocr-structured-50-dry/assembled.md
 jq '.page_count' /tmp/book-ocr-structured-50-dry/validation-report.json
 sqlite3 /tmp/book-ocr-structured-50-dry/turns.db 'select count(*) from turns;'
 sqlite3 /tmp/book-ocr-structured-50-dry/turns.db 'select phase, count(*) from turn_block_membership group by phase;'
+```
+
+## Step 13: Harden caption/list parsing and run the first-50 live structured OCR pass
+
+I continued from Phase 5 by hardening two live response variants and then running the first 50 pages through the structured OCR path. The key parser repairs were nested `figure` objects, figure captions represented as nearby heading blocks, string list items, and string/leading-zero page numbers.
+
+The first-50 live structured run completed after two provider TLS interruptions using the new `structured-run --resume=true` behavior. The final assembled Markdown is open in `md-view`, and page 32 now contains deterministic Markdown tables generated from structured table blocks.
+
+### Prompt Context
+
+**User prompt (verbatim):** "go ahead"
+
+**Assistant interpretation:** Proceed with the recommended caption hardening, rerun the figure-page smoke, and then run the first-50 live structured OCR phase.
+
+**Inferred user intent:** The user wants the structured OCR implementation to continue through the next practical validation milestone rather than stopping at the Phase 4 dry-run.
+
+**Commit (code):** `3e089fc0fdbffb0536ddf29fd7aba1c071f8c701` — "Repair structured OCR figure captions"
+
+**Commit (code):** `79c4087173913b673bea415de6473ff53fcdb47f` — "Accept string list items in structured OCR"
+
+**Commit (code):** `d9cc404cf5ea65e7e3426aa352c3cb23d5a821c7` — "Resume structured OCR runs from page artifacts"
+
+### What I did
+
+- Added parsing support for model responses that put figure metadata under a nested `figure` object.
+- Added repair for figure captions emitted as a nearby heading immediately before/after the figure block.
+- Dropped duplicate caption-heading blocks when they only duplicate the repaired figure caption.
+- Added parsing support for list items emitted as strings instead of `{text: ...}` objects.
+- Added `structured-run --resume=true` so interrupted live runs reuse completed per-page artifacts.
+- Reran caption smoke pages:
+  - 13,
+  - 42,
+  - 115.
+- Ran the first-50 live structured OCR pass.
+- Opened the assembled live structured Markdown with `md-view`.
+- Wrote the experiment summary:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-PIPELINE-REDESIGN-001--redesign-book-ocr-pipeline-after-full-book-context-bleed/experiments/002-report794-50-structured-live/01-summary.md`
+
+### Why
+
+- The previous boundary smoke showed correct page-local figure placement, but captions were missing because the model used shapes outside the original Go schema.
+- A first-50 live run is the next evidence point for whether structured blocks improve tables and page boundaries in a realistic range.
+
+### What worked
+
+- Caption rerun after repair:
+  - page 013: `Figure 1-1: A Rudimentary User Interface`, no warnings.
+  - page 042: `Figure 2-9: Presenter Parts`, no warnings.
+  - page 115: `Figure 5-7: Reference Resolution`, no warnings.
+- First-50 live structured run completed at:
+  - `/tmp/book-ocr-structured-50-live`
+- Final artifacts:
+  - `/tmp/book-ocr-structured-50-live/assembled.md`
+  - `/tmp/book-ocr-structured-50-live/validation-report.json`
+  - `/tmp/book-ocr-structured-50-live/turns.db`
+- Counts:
+  - pages: `50`
+  - assembled bytes: `79,281`
+  - table markdown lines: `45`
+  - structured table blocks: `9`
+  - structured figure blocks: `17`
+  - figure blocks with captions: `17`
+  - validation warnings: `0`
+  - turns rows: `50`
+- `md-view` URL:
+  - `http://localhost:38789/render?file=/tmp/book-ocr-structured-50-live/assembled.md`
+- `go test ./... -count=1` passed.
+
+### What didn't work
+
+- The first live structured-run attempt failed at page 6 because list items were strings:
+  - `json: cannot unmarshal string into Go struct field .alias.blocks.alias.items of type ocrpipeline.ListItem`
+- The full run had two transient provider TLS failures:
+  - page 20: `Post "https://api.openai.com/v1/responses": remote error: tls: bad record MAC`
+  - page 42: `Post "https://api.openai.com/v1/responses": remote error: tls: bad record MAC`
+- The resume flag handled both interruptions by reusing completed page artifacts and continuing from the missing page.
+
+### What I learned
+
+- The model often gets the semantic information right but drifts in JSON shape. Limited structural repair is necessary for production replayability.
+- Structured OCR is now clearly better for table rendering: page 32 produces real Markdown tables without relying on freeform Markdown layout.
+- The first-50 structured output is not yet a full replacement for the freeform OCR because prose coverage appears shorter/lower-volume than the earlier freeform artifact. The architecture is right, but prompt/completeness validation still needs hardening.
+
+### What was tricky to build
+
+- The most important trick was preserving failed live observations. Page 6 exposed a parse-shape problem, but the raw response made the fix straightforward.
+- Resuming from per-page artifacts is a pragmatic stopgap before durable workflow integration. It avoids paying again for completed pages after transient provider failures.
+
+### What warrants a second pair of eyes
+
+- Review prose completeness in `/tmp/book-ocr-structured-50-live/assembled.md` against the freeform target-only output.
+- Review whether `structured-run --resume=true` should validate existing artifacts against the current code version/prompt before reuse.
+- Review the caption repair heuristic that drops duplicate figure-caption headings.
+
+### What should be done in the future
+
+- Add figure image embedding/resolution for structured figure blocks.
+- Add aggregate validation to `validation-report.json`.
+- Add workflow-runtime integration for durable retries instead of CLI-level resume.
+- Add prose coverage gates before a full 202-page structured run.
+
+### Code review instructions
+
+- Review caption/list repair:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/types.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/structured_ocr.go`
+- Review resume behavior:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/cmd/book-ocr/main.go`
+- Review live output:
+  - `/tmp/book-ocr-structured-50-live/assembled.md`
+  - `/tmp/book-ocr-structured-50-live/validation-report.json`
+
+### Technical details
+
+Successful first-50 command:
+
+```bash
+go run ./cmd/book-ocr structured-run \
+  --book-id report-794-structured-50-v1 \
+  --image-dir /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages \
+  --start-page 1 \
+  --end-page 50 \
+  --work-dir /tmp/book-ocr-structured-50-live \
+  --profile gpt-5-mini-low \
+  --profile-registries /tmp/book-ocr-hq-001/profiles-clean.yaml \
+  --dry-run=false \
+  --log-level warn \
+  --resume=true
+```
+
+Validation summary command:
+
+```bash
+python3 - <<'PY'
+import json, pathlib, re
+root=pathlib.Path('/tmp/book-ocr-structured-50-live')
+assembled=(root/'assembled.md').read_text()
+print('pages', assembled.count('<!-- page:'))
+print('bytes', len(assembled.encode()))
+print('table_lines', sum(1 for l in assembled.splitlines() if l.startswith('|')))
+PY
 ```
