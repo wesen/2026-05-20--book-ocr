@@ -74,6 +74,21 @@ Presenter <- query (GET-DB) - - - -> Application Data Base
 	}
 }
 
+func TestEmbedExtractedFiguresDoesNotSynthesizeForRenderedTables(t *testing.T) {
+	md := `<!-- page:048 -->
+
+Figure 2-12: PPSCalc -- Formula Moved
+
+|  | A | B | C |
+| --- | --- | --- | --- |
+| 1 | 100 | 20 | A1*B1 |
+`
+	out := synthesizeMissingFigureMarkers(md)
+	if strings.Contains(out, "[FIGURE:") {
+		t.Fatalf("did not expect synthesized marker for rendered table page:\n%s", out)
+	}
+}
+
 func TestEmbedExtractedFiguresDoesNotSynthesizeTableOfFiguresRows(t *testing.T) {
 	md := `<!-- page:008 -->
 

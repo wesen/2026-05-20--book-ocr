@@ -119,7 +119,7 @@ func synthesizeMissingFigureMarkers(markdown string) string {
 }
 
 func addMissingFigureMarkerToPage(pageText string) string {
-	if strings.Contains(pageText, "[FIGURE:") || strings.Contains(pageText, "![") {
+	if strings.Contains(pageText, "[FIGURE:") || strings.Contains(pageText, "![") || containsMarkdownTable(pageText) {
 		return pageText
 	}
 	lines := strings.Split(pageText, "\n")
@@ -148,6 +148,16 @@ func addMissingFigureMarkerToPage(pageText string) string {
 	out = append(out, insert)
 	out = append(out, lines[captionIndex+1:]...)
 	return strings.Join(out, "\n")
+}
+
+func containsMarkdownTable(markdown string) bool {
+	for _, line := range strings.Split(markdown, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "|") && strings.Contains(trimmed, "---") {
+			return true
+		}
+	}
+	return false
 }
 
 func looksLikeDiagramPage(lines []string, captionIndex int) bool {
