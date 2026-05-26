@@ -68,6 +68,7 @@ const (
 	BlockParagraph  BlockType = "paragraph"
 	BlockList       BlockType = "list"
 	BlockTable      BlockType = "table"
+	BlockCode       BlockType = "code"
 	BlockFigure     BlockType = "figure"
 	BlockFootnote   BlockType = "footnote"
 	BlockPageFooter BlockType = "page_footer"

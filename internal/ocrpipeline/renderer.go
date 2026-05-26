@@ -51,6 +51,8 @@ func renderBlock(out *strings.Builder, pageNumber int, block OCRBlock, figures F
 	case BlockTable:
 		renderTable(out, block.Table)
 		out.WriteString("\n")
+	case BlockCode:
+		renderCode(out, block.Text)
 	case BlockFigure:
 		renderFigure(out, pageNumber, block, figures, opts)
 	case BlockFootnote:
@@ -67,6 +69,16 @@ func renderBlock(out *strings.Builder, pageNumber int, block OCRBlock, figures F
 			out.WriteString("\n\n")
 		}
 	}
+}
+
+func renderCode(out *strings.Builder, text string) {
+	text = strings.TrimRight(text, "\n")
+	if strings.TrimSpace(text) == "" {
+		return
+	}
+	out.WriteString("```text\n")
+	out.WriteString(text)
+	out.WriteString("\n```\n\n")
 }
 
 func renderFigure(out *strings.Builder, pageNumber int, block OCRBlock, figures FigureResolver, opts RenderOptions) {

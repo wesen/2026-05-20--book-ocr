@@ -35,13 +35,15 @@ func TestRenderPageMarkdownOmitsFooterByDefault(t *testing.T) {
 	require.NotContains(t, got, "footer")
 }
 
-func TestRenderPageMarkdownTableAndBlank(t *testing.T) {
+func TestRenderPageMarkdownTableCodeAndBlank(t *testing.T) {
 	tablePage := StructuredPageOCR{PageNumber: 32, PageType: PageTypeTable, Blocks: []OCRBlock{
 		{ID: "p032-t001", Type: BlockTable, Table: &TableBlock{Headers: []string{"A", "B", "C"}, Rows: [][]string{{"100", "20", "A1*B1"}, {"75", "5", "A2*B2"}}}},
+		{ID: "p032-c001", Type: BlockCode, Text: "for each cell:\n  recompute(value)"},
 	}}
 	got := RenderPageMarkdown(tablePage, nil, DefaultRenderOptions())
 	require.Contains(t, got, "| A | B | C |")
 	require.Contains(t, got, "| 100 | 20 | A1*B1 |")
+	require.Contains(t, got, "```text\nfor each cell:\n  recompute(value)\n```")
 
 	blank := RenderPageMarkdown(StructuredPageOCR{PageNumber: 2, PageType: PageTypeBlank}, nil, DefaultRenderOptions())
 	require.Equal(t, "<!-- page:002 -->\n\n[BLANK PAGE]\n", blank)
