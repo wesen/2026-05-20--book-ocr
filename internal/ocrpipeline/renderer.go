@@ -118,7 +118,7 @@ func renderCode(out *strings.Builder, text string) {
 	if strings.TrimSpace(text) == "" {
 		return
 	}
-	out.WriteString("```text\n")
+	out.WriteString("```common-lisp\n")
 	out.WriteString(text)
 	out.WriteString("\n```\n\n")
 }

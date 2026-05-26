@@ -624,7 +624,10 @@ func requeueStructuredPages(paths workPaths, runID model.WorkflowID, pages []int
 		if _, err := tx.Exec(`DELETE FROM leases WHERE op_id = ?`, stepID); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(`UPDATE ops SET status = ?, retry_state_json = ?, next_attempt_at = NULL, updated_at = ? WHERE workflow_id = ? AND id = ?`, model.OpStatusReady, `{"Attempt":0,"NextAttemptAt":null,"LastError":""}`, stamp, runID, stepID); err != nil {
+		// Downstream ops must wait for the requeued page ops to finish. Mark them
+		// pending instead of ready; the scheduler will make them ready once their
+		// dependencies are succeeded again.
+		if _, err := tx.Exec(`UPDATE ops SET status = ?, retry_state_json = ?, next_attempt_at = NULL, updated_at = ? WHERE workflow_id = ? AND id = ?`, model.OpStatusPending, `{"Attempt":0,"NextAttemptAt":null,"LastError":""}`, stamp, runID, stepID); err != nil {
 			return err
 		}
 	}

@@ -17,6 +17,7 @@ Output contract:
 - Do not infer text from neighboring pages or from general knowledge.
 - Exclude standalone running page numbers, scanner borders, and footer folios unless they are semantically part of the page.
 - Preserve historical terminology exactly when visible, including "data base", "PSBase", "PPSCalc", "Dired", "Steamer", "Zmacs", and "Xerox Star".
+- Code listings in this book are Common Lisp / Lisp Machine Lisp; preserve Lisp parentheses, keywords, quotes, comments, line breaks, and indentation.
 
 Block contract:
 - Use type "heading" for visible headings and set level from 1 to 6.

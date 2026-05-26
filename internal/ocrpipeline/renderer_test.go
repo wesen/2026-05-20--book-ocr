@@ -13,7 +13,7 @@ func TestRenderPageMarkdownSuppressesTextualBoxedFigureWithFallback(t *testing.T
 	}}
 	figures := FigureMap{121: {"p121-f001": {Path: "figures/page_121_figure_01.png"}}}
 	got := RenderPageMarkdown(page, figures, DefaultRenderOptions())
-	require.Contains(t, got, "```text\n{ONE, TWO, THREE}\n```")
+	require.Contains(t, got, "```common-lisp\n{ONE, TWO, THREE}\n```")
 	require.NotContains(t, got, "page_121_figure_01.png")
 	require.NotContains(t, got, "[FIGURE:")
 }
@@ -67,7 +67,7 @@ func TestRenderPageMarkdownTableCodeAndBlank(t *testing.T) {
 	got := RenderPageMarkdown(tablePage, nil, DefaultRenderOptions())
 	require.Contains(t, got, "| A | B | C |")
 	require.Contains(t, got, "| 100 | 20 | A1*B1 |")
-	require.Contains(t, got, "```text\nfor each cell:\n  recompute(value)\n```")
+	require.Contains(t, got, "```common-lisp\nfor each cell:\n  recompute(value)\n```")
 
 	blank := RenderPageMarkdown(StructuredPageOCR{PageNumber: 2, PageType: PageTypeBlank}, nil, DefaultRenderOptions())
 	require.Equal(t, "<!-- page:002 -->\n\n[BLANK PAGE]\n", blank)
