@@ -330,3 +330,117 @@ Projection query:
 sqlite3 /tmp/book-ocr-structured-workflow-dry-smoke/projections/book_ocr_structured.db \
   'select status,count(*) from structured_pages group by status;'
 ```
+
+## Step 4: Validate workflow-backed structured OCR over 50 dry-run pages
+
+I ran the new workflow-backed `structured-run` command over the first 50 Report 794 pages in dry-run mode. This validates the durable workflow graph at the same page count used by the earlier direct structured runner, but now with workflow engine state, page steps, projections, external workflow artifacts, turn persistence, assembly, and validation.
+
+The run succeeded. The workflow engine recorded 53 succeeded ops: one discover step, fifty page OCR steps, one assemble step, and one validate step. The structured projection recorded all 50 pages as succeeded.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Continue working through the ticket tasks after implementing workflow support.
+
+**Inferred user intent:** The user wants proof that the workflow-backed structured OCR path works before live provider validation.
+
+**Commit (code):** N/A — validation/documentation only.
+
+### What I did
+
+- Ran `book-ocr structured-run` with:
+  - pages 1-50,
+  - `--dry-run`,
+  - `--expected-pages 50`,
+  - `--max-workers 4`.
+- Inspected assembled Markdown page markers.
+- Inspected workflow engine op status counts.
+- Inspected structured projection status counts.
+- Inspected turn DB counts.
+- Inspected artifact count.
+
+### Why
+
+- The workflow implementation should be validated at realistic page count before spending live provider calls.
+- This confirms that dynamic page step emission, dependency assembly, validation, projections, and artifacts work together.
+
+### What worked
+
+- Run succeeded at:
+  - `/tmp/book-ocr-structured-workflow-dry-50`
+- Page markers:
+  - `50`
+- Structured projection:
+  - `succeeded|50`
+- Engine ops:
+  - `succeeded|53`
+- Turn DB:
+  - `50` turns
+  - `input|100`
+  - `final|150`
+- Workflow artifact files:
+  - `152`
+- Assemble result:
+  - `/tmp/book-ocr-structured-workflow-dry-50/assembled.md`
+- Validation result:
+  - `/tmp/book-ocr-structured-workflow-dry-50/validation-report.json`
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- The workflow-backed path preserves the same local page artifact layout while also writing workflow artifacts and projections.
+- The engine op count matches the expected graph shape: discover + 50 page steps + assemble + validate.
+
+### What was tricky to build
+
+- Nothing new was built in this step, but this validation confirms the earlier dependency graph was wired correctly. If assemble had run before page dependencies, page count and dependency reads would have failed.
+
+### What warrants a second pair of eyes
+
+- Review artifact count expectations. There are per-page structured/rendered/validation artifacts plus assemble and validation artifacts, which accounts for the high count.
+
+### What should be done in the future
+
+- Run limited live workflow smoke with `gpt-5-mini-low` and verify automatic retry/resume behavior.
+
+### Code review instructions
+
+- Review output directory:
+  - `/tmp/book-ocr-structured-workflow-dry-50`
+- Review projection:
+  - `/tmp/book-ocr-structured-workflow-dry-50/projections/book_ocr_structured.db`
+- Review engine DB:
+  - `/tmp/book-ocr-structured-workflow-dry-50/engine.db`
+
+### Technical details
+
+Command:
+
+```bash
+go run ./cmd/book-ocr structured-run \
+  --book-id report-794-structured-workflow-dry-50 \
+  --image-dir /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages \
+  --start-page 1 \
+  --end-page 50 \
+  --work-dir /tmp/book-ocr-structured-workflow-dry-50 \
+  --dry-run \
+  --expected-pages 50 \
+  --max-workers 4 \
+  --log-level warn
+```
+
+Validation commands:
+
+```bash
+rg -c '<!-- page:' /tmp/book-ocr-structured-workflow-dry-50/assembled.md
+sqlite3 /tmp/book-ocr-structured-workflow-dry-50/projections/book_ocr_structured.db \
+  'select status,count(*) from structured_pages group by status;'
+sqlite3 /tmp/book-ocr-structured-workflow-dry-50/engine.db \
+  'select status,count(*) from ops group by status;'
+sqlite3 /tmp/book-ocr-structured-workflow-dry-50/turns.db \
+  'select count(*) from turns;'
+```

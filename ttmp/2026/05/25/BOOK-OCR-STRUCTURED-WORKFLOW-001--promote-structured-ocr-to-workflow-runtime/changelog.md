@@ -38,3 +38,12 @@ Implemented structured OCR workflow package, projection schema, workflow executo
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/workflow_projection.go — Projection schema
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/reference/01-diary.md — Implementation diary
 
+
+## 2026-05-25
+
+Validated workflow-backed structured OCR over pages 1-50 in dry-run mode; engine, projections, turns, artifacts, assemble, and validation all succeeded.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/reference/01-diary.md — Dry-run validation diary
+
