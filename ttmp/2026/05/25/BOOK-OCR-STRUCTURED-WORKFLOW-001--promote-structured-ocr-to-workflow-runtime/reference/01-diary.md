@@ -19,12 +19,16 @@ RelatedFiles:
         min-rendered-bytes CLI flag (commit 936952d)
         embed-figures CLI flags for structured-run (commit 600dbc7)
         structured-rerun-pages operator and PDF flags (commit 52eba49)
+        Targeted rerun downstream pending fix (commit c74f34e)
     - Path: internal/ocrpipeline/prompts.go
-      Note: Prompt rules for readable screenshot/code/table content (commit a576e96)
+      Note: |-
+        Prompt rules for readable screenshot/code/table content (commit a576e96)
+        Book-specific Common Lisp OCR prompt guidance (commit c74f34e)
     - Path: internal/ocrpipeline/renderer.go
       Note: |-
         Code block rendering (commit a576e96)
         Suppress duplicate image markers for table-like figure blocks (commit 8825cd2)
+        Common Lisp code fences and textual figure suppression (commit c74f34e)
     - Path: internal/ocrpipeline/structured_ocr.go
       Note: empty code/list/table validation warnings (commit 52eba49)
     - Path: internal/ocrpipeline/types.go
@@ -65,6 +69,7 @@ LastUpdated: 0001-01-01T00:00:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -1223,4 +1228,202 @@ Relevant backup before rerun:
 
 ```text
 /tmp/book-ocr-structured-workflow-full-live-w4-figures/engine.db.before-rerun-table-synthesis-fix.bak
+```
+
+## Step 12: Treat scanned Lisp listings as Common Lisp code blocks
+
+Manual PDF review found several pages where Common Lisp listings were OCR text in the Markdown but were not visually separated as code blocks in the PDF, or were still represented as figure images. I updated the renderer to emit structured code blocks as fenced `common-lisp` blocks, strengthened the prompt with the book-specific language identity, fixed targeted rerun ordering so downstream assembly waits for rerun pages, and reprocessed the affected pages.
+
+The affected examples included code/listing pages around the presentation-style chapters and menu-style interface implementation: clock presentation style, set notation, user-at-host template style, move-recognition rules, parser methods, document-icon graphics style, directory icon listing styles, and host-info template style.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Lots of code that is not properly formatted as code blocks (might be a pdf conversion issue?) 
+
+---
+
+The implementation of the menu-style interface consists primarily of presentation style descriptions.
+For example, the host information at the top of the screen is produced by the following template
+style:
+(def-template-presentation-style HOST-INFO HOST nil (“Host” (:name nil) ” Time: ” (:current-
+time digital-clock-no-border) “;” (:load-averages host-info-load-averages) “;” (:number-of-jobs nil)
+” jobs.”) :horizontal-layout :border-box)
+This style is similar to the other template styles discussed. One distinguishing feature here is the
+presentation style specified for the name and number of jobs properties: nil indicates that the data
+base network should be searched for the best applicable default style. The two other sub-styles
+named are straightforward templates.
+Implementing displays with associated menus has two parts: specifying the relevant command .set
+in the application data base and defining the presentation styles. The directory presentation will
+be used here as an example.
+The directory presentation and menu combination is a template-style composite presentation, and
+as a whole it presents the directory. It has two sub-presentations, the menu and the directory
+display. These must, by the nature of PSBase template presentation styles, present properties of
+the directory (or the directory itse
+
+The following is the presentation style description for the row of document icons in the directory
+display:
+(def-sequence-presentation-style ICON-DIRECTORY-FILE-GROUP-STYLE (LIST-PROPERTY DIREC-
+TORY :FILES FILE) nil t 999999 nil nil nil document-icon :horizontal-layout)
+The third line of this description, (list-property ...), specifies the property of the directory being
+presented, namely, the files property, and the kind of objects in the list, namely, file instances. The
+fourth line specifies that this is not the default style for such properties, and that, while it is an
+active presentation, it should not (in effect) be periodically updated – it will instead be updated
+automatically whenever the directory instance in the application data base is changed.
+This sequence has no prefix, infix, or suffix presentations (fifth line). The style used to present the
+elements of the files list is document-icon. The document icons will be positioned in a horizontal
+row.
+Finally, the following is the template style description that composes the above two styles into the
+overall opened-directory style:
+(def-template-presentation-style TOPS20-DIRECTORY-ICON-LISTING-STYLE DIRECTORY nil
+((:self tops20-directory-header) “” (:files icon-directory-file-group-style)) :vertical-layout :border-
+box)
+The third line of this template specifies that the directory (self) will be presented both by the whole
+composite and by the header line. The null string in the fourth line effectively produces a blank line
+separating the header from the document row. And, as mentioned previously, the files property of
+the directory, a list of files, will be pres
+
+editing pictures. (Whether the pictures are constructed from lines, circles, etc., as here, or from
+bitmap, or a combination, is an independent issue. The non-bitmap approach used here was chosen
+because it used existing PSBase facilities.)
+The presentation style description for the document icon is shown below:
+(def-graphics-presentation-style DOCUMENT-ICON FILE nil nil nil ((nil (LINE-PRESENTATION
+; Top :x1 (relative-to-parent-x 0) :y1 (relative-to-parent-y 0) :x2 (relative-to-parent-x 16) :y2
+(relative-to-parent-y 0))) (nil (LINE-PRESENTATION ; Left :x1 (relative-to-parent-x 0) :y1
+(relative-to-parent-y 0) :x2 (relative-to-parent-x 0) :y2 (relative-to-parent-y 30))) ... ((:PATH-
+NAME :STRING-FOR-EDITOR) (TEXT-PRESENTATION :x (relative-to-parent-x 2) :y (relative-to-
+parent-y 9) :font ‘fonts:h16 :mouse-trackable-p’:no-track :string (substring-or-null-string (send
+presented-domain-object ‘:component-walk’(:pathname :string-for-editor)) 0 4))) ((:PATHNAME
+:STRING-FOR-EDITOR) (TEXT-PRESENTATION :x (relative-to-parent-x 2) :y (relative-to-parent-y
+19) :font ‘fonts:h16 :mouse-trackable-p’:no-track :string (substring-or-null-string (send presented-
+domain-object ‘:component-walk’(:pathname :string-for-editor)) 4 8)))) nil)
+Just as with the example shown in section 5.4, the first two lines of this style description specify the
+name, document-icon, the application data base class to which it applies, file, and flags specifying
+here that it is not the default style for files, nor is it an active presentation. The first presentation
+description in the following list specifies the line across the top of the icon. The nil that starts the
+specification indicates that this line alone does not present anything. The description for the line
+down the left side of the icon is similar, as are the five line descriptions that have been elided.
+The style description ends with entries for the two lines of text presenting the file name.
+Each starts with a specification of the presented domain object, (:pathname :string
+
+This recognizer, still part of the general mechanism, checks for a parser specifically for the kind of
+presented domain object and invokes it.
+Figure 6-19: Application Data Base Management
+parts of a larger style). This approach is clearly limited; for instance, even if based on the property
+name, the specification really should include the kind of owning object or the kind of property value,
+since property name alone may be ambiguous.
+(defmethod (TEXT-PRESENTATION :PARSE-WORK-PHONE-PRESENTED-DOMAIN-OBJECT) ()
+string)
+(defmethod (TEXT-PRESENTATION :PARSE-REFERENCE-DATE-PRESENTED-DOMAIN-OBJECT)
+() (make-instance ‘date’:universal-time (time:parse-universal-time string 0 nil nil)))
+The first parser simply returns the string of the text presentation as the string to use for the value
+of the presented domain object’s property. In fact, most of the parsers for these interfaces have
+such trivial parsers, since most of these properties have string values. Here, for example, the
+user instance in the application data base has a work phone property; its value is not a data base
+instance, but is simply a string.
+The second parser is only slightly more complicated. The reference date property of a file instance
+has a value that is a date instance. The date instance in turn has a universal time property, encoding
+a time or date as a number. The Lisp machine provides a package of functions for manipulatin
+
+---
+
+There's more... Also, /tmp/pi-clipboard-cc2712c7-9997-4d7e-a452-632705679de1.png"
+
+**Assistant interpretation:** Several Common Lisp listings are not rendered as code blocks in the review PDF; inspect the supplied screenshot and examples, then repair the OCR/rendering workflow so these listings become proper code blocks.
+
+**Inferred user intent:** The final PDF should make code examples visually distinct, readable, and searchable as Common Lisp code rather than prose or figure images.
+
+**User prompt (verbatim):** "the code is common lisp btw. it might be a pdf transform issue though."
+
+**Assistant interpretation:** Use `common-lisp` as the fenced code language and verify whether the issue is renderer/PDF generation rather than model recognition alone.
+
+**Inferred user intent:** Improve PDF code formatting with language-appropriate code fences while preserving OCR fidelity.
+
+**User prompt (verbatim):** "continue"
+
+**Assistant interpretation:** Continue implementing and applying the Common Lisp code-block fix.
+
+**Inferred user intent:** Finish the repair pass and regenerate the review PDF.
+
+**Commit (code):** `c74f34e` — "Render structured code as Common Lisp"
+
+### What I did
+
+- Read the supplied screenshot showing source page 118 with a long `DOCUMENT-ICON` style definition.
+- Changed renderer code fences for structured code blocks from `text` to `common-lisp`.
+- Updated renderer tests to expect `common-lisp` fences.
+- Added a prompt note that this book's code listings are Common Lisp / Lisp Machine Lisp and that parentheses, keywords, quotes, comments, line breaks, and indentation must be preserved.
+- Fixed the targeted rerun operator so downstream assemble/validate ops are reset to `pending`, not `ready`, when page OCR ops are requeued. This prevents assembly from racing ahead with stale page artifacts.
+- Reprocessed likely affected code-heavy pages:
+  - 120, 121, 123, 138, 174, 176, 178, 180
+- Reassembled Markdown, regenerated `embedded-figures.md`, rendered `book.pdf`, and reopened it in Okular.
+
+### Why
+
+- The OCR model had already emitted several code blocks correctly, but the renderer used generic `text` fences.
+- Some pages still needed reprocessing with the stronger prompt so figure-like code screenshots/listings became code blocks.
+- The targeted rerun operator race could leave `assembled.md` stale if assembly ran before requeued pages completed.
+
+### What worked
+
+- Tests passed:
+  - `go test ./... -count=1`
+- The regenerated Markdown now contains Common Lisp fences for the reviewed examples:
+  - page 120 `def-graphics-presentation-style CLOCK ...`
+  - page 121 `def-sequence-presentation-style SET-NOTATION ...`
+  - page 123 `def-template-presentation-style USER-AT-HOST ...`
+  - page 138 `def-move-recognition-rule move-document-to-printer ...`
+  - page 174 `defmethod (TEXT-PRESENTATION ...) ...`
+  - page 176 `def-graphics-presentation-style DOCUMENT-ICON ...`
+  - page 178 directory style definitions
+  - page 180 `def-template-presentation-style HOST-INFO ...`
+- The code/listing image references for the supplied examples are gone from the embedded Markdown, except for truly graphical/icon screenshots that remain figures.
+
+### What didn't work
+
+- Earlier reruns exposed that the targeted operator had a race: it requeued pages and downstream assembly as `ready` simultaneously, allowing assembly to reuse stale page artifacts. This was fixed by marking downstream ops `pending` and letting the scheduler release them after page dependencies succeed.
+- Page 121's boxed `{ONE, TWO, THREE}` example required an additional textual fallback/suppression path because it was a simple boxed text presentation, not a code listing.
+
+### What I learned
+
+- Some PDF issues were model classification problems, but others were renderer and workflow-reset problems.
+- `pdftotext` plus `rg` is a fast validation loop for checking whether code examples are searchable after PDF rendering.
+- Common Lisp fences make the intended semantics explicit even if the PDF renderer's visual styling is plain.
+
+### What was tricky to build
+
+- The targeted rerun operator must preserve dependency semantics. Reprocessing succeeded pages is not enough; downstream steps must be invalidated without becoming runnable before the new page results exist.
+- The code examples are not uniform: some are standalone listings, some are inline snippets, some are boxed text presentations, and some are elided code fragments.
+
+### What warrants a second pair of eyes
+
+- Review whether the Common Lisp OCR normalization is acceptable, especially quote characters and elided long lines in page 176.
+- Review whether page 121's `{ONE, TWO, THREE}` should be plain text, a code fence, or a small table/inline code span in final output.
+
+### What should be done in the future
+
+- Add a validation report section for probable code lines outside code fences, using cues such as `def-`, `defmethod`, `:keyword`, and balanced Lisp parentheses.
+- Add a post-render PDF text audit for suspicious figure captions like "Code listing" or "definition" that still appear as image alt text.
+
+### Code review instructions
+
+- Review:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/renderer.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/prompts.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/cmd/book-ocr/main.go`
+- Validate with:
+  - `go test ./... -count=1`
+  - `rg '```common-lisp|def-template-presentation-style HOST-INFO|def-graphics-presentation-style DOCUMENT|defmethod \\(TEXT' /tmp/book-ocr-structured-workflow-full-live-w4-figures/embedded-figures.md`
+
+### Technical details
+
+Regenerated PDF:
+
+```text
+/tmp/book-ocr-structured-workflow-full-live-w4-figures/book.pdf
+```
+
+Backup before rerun:
+
+```text
+/tmp/book-ocr-structured-workflow-full-live-w4-figures/engine.db.before-rerun-common-lisp-pages.bak
 ```

@@ -122,3 +122,14 @@ Fixed duplicate image embedding for spreadsheet/table figures; reprocessed pages
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrquality/figures.go — Figure synthesis guard
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/reference/01-diary.md — Step 11 diary
 
+
+## 2026-05-26
+
+Rendered structured code as Common Lisp, fixed targeted rerun downstream ordering, reprocessed code-heavy pages, and regenerated the review PDF (commit c74f34e).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/cmd/book-ocr/main.go — Targeted rerun dependency fix
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/renderer.go — Code fence rendering
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/reference/01-diary.md — Step 12 diary
+
