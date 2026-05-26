@@ -7,6 +7,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestRenderPageMarkdownSuppressesSpreadsheetFigureImageWhenTableFollows(t *testing.T) {
+	page := StructuredPageOCR{SchemaVersion: "structured-ocr/v1", BookID: "report-794", PageNumber: 48, PageType: PageTypeTable, Blocks: []OCRBlock{
+		{ID: "p048-f001", Type: BlockFigure, Caption: "Figure 2-12: PPSCalc -- Formula Moved", Description: "Spreadsheet showing columns A B C and rows 1-3 with values and formulas."},
+		{ID: "p048-t001", Type: BlockTable, Table: &TableBlock{Headers: []string{"", "A", "B", "C"}, Rows: [][]string{{"1", "100", "20", "A1*B1"}}}},
+	}}
+	figures := FigureMap{48: {"p048-f001": {Path: "figures/page_048_figure_01.png"}}}
+	got := RenderPageMarkdown(page, figures, DefaultRenderOptions())
+	require.Contains(t, got, "Figure 2-12: PPSCalc -- Formula Moved")
+	require.Contains(t, got, "| 1 | 100 | 20 | A1*B1 |")
+	require.NotContains(t, got, "page_048_figure_01.png")
+	require.NotContains(t, got, "[FIGURE:")
+}
+
 func TestRenderPageMarkdownBodyAndFigure(t *testing.T) {
 	page := StructuredPageOCR{SchemaVersion: "structured-ocr/v1", BookID: "report-794", PageNumber: 13, PageType: PageTypeFigure, Blocks: []OCRBlock{
 		{ID: "p013-h001", Type: BlockHeading, Level: 2, Text: "Chapter 1"},

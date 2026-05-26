@@ -25,13 +25,17 @@ func RenderPageMarkdown(page StructuredPageOCR, figures FigureResolver, opts Ren
 		out.WriteString("[BLANK PAGE]\n")
 		return out.String()
 	}
-	for _, block := range page.Blocks {
-		renderBlock(&out, page.PageNumber, block, figures, opts)
+	for i, block := range page.Blocks {
+		suppressFigureImage := false
+		if block.Type == BlockFigure && i+1 < len(page.Blocks) && page.Blocks[i+1].Type == BlockTable {
+			suppressFigureImage = shouldSuppressFigureImageForFollowingTable(block)
+		}
+		renderBlock(&out, page.PageNumber, block, figures, opts, suppressFigureImage)
 	}
 	return strings.TrimRight(out.String(), "\n") + "\n"
 }
 
-func renderBlock(out *strings.Builder, pageNumber int, block OCRBlock, figures FigureResolver, opts RenderOptions) {
+func renderBlock(out *strings.Builder, pageNumber int, block OCRBlock, figures FigureResolver, opts RenderOptions, suppressFigureImage bool) {
 	switch block.Type {
 	case BlockHeading:
 		level := block.Level
@@ -54,7 +58,7 @@ func renderBlock(out *strings.Builder, pageNumber int, block OCRBlock, figures F
 	case BlockCode:
 		renderCode(out, block.Text)
 	case BlockFigure:
-		renderFigure(out, pageNumber, block, figures, opts)
+		renderFigure(out, pageNumber, block, figures, opts, suppressFigureImage)
 	case BlockFootnote:
 		fmt.Fprintf(out, "[^%s]: %s\n\n", block.ID, strings.TrimSpace(block.Text))
 	case BlockPageFooter:
@@ -71,6 +75,16 @@ func renderBlock(out *strings.Builder, pageNumber int, block OCRBlock, figures F
 	}
 }
 
+func shouldSuppressFigureImageForFollowingTable(block OCRBlock) bool {
+	text := strings.ToLower(strings.Join([]string{block.Caption, block.Description}, " "))
+	for _, cue := range []string{"ppscalc", "spreadsheet", "formula display", "value display", "formula moved", "preparing to copy formula", "grid", "table"} {
+		if strings.Contains(text, cue) {
+			return true
+		}
+	}
+	return false
+}
+
 func renderCode(out *strings.Builder, text string) {
 	text = strings.TrimRight(text, "\n")
 	if strings.TrimSpace(text) == "" {
@@ -81,13 +95,17 @@ func renderCode(out *strings.Builder, text string) {
 	out.WriteString("\n```\n\n")
 }
 
-func renderFigure(out *strings.Builder, pageNumber int, block OCRBlock, figures FigureResolver, opts RenderOptions) {
+func renderFigure(out *strings.Builder, pageNumber int, block OCRBlock, figures FigureResolver, opts RenderOptions, suppressImage bool) {
 	caption := strings.TrimSpace(block.Caption)
 	if caption != "" {
 		out.WriteString(caption)
 		out.WriteString("\n\n")
 	}
-	if figures != nil {
+	if suppressImage {
+		// The next block carries a structured transcription of this table-like figure.
+		// Keep the caption but avoid emitting a marker/image that would duplicate the
+		// readable table in review PDFs.
+	} else if figures != nil {
 		if ref, ok := figures.RefFor(pageNumber, block.ID); ok {
 			alt := strings.TrimSpace(ref.Alt)
 			if alt == "" {

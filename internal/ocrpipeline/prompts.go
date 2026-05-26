@@ -37,7 +37,7 @@ Table rules:
 - Preserve formulas, identifiers, punctuation, and numeric values exactly.
 - Do not render aligned plain text tables inside paragraph blocks.
 - Do not put table rows only in diagram_text. A grid with rows/columns must produce a table block.
-- If a captioned figure region contains a visible table/grid, emit a figure block for the caption/description and then an adjacent table block for the grid contents.
+- If a captioned figure region is primarily a visible table/grid/spreadsheet, emit the caption as a heading or paragraph and then an adjacent table block for the grid contents; do not emit a figure block for the same table unless there is non-tabular visual content that must remain as an image.
 
 Code/listing rules:
 - Program code, command listings, formal text examples, UI text transcripts, quoted text shown inside screenshots, and monospaced blocks are OCR text, not figure images.
