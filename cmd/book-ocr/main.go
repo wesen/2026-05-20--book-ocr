@@ -289,6 +289,7 @@ func runStructuredRun(args []string) error {
 	profile := fs.String("profile", "", "Optional Pinocchio profile slug for live structured OCR")
 	logLevel := fs.String("log-level", "info", "zerolog level: trace, debug, info, warn, error, disabled")
 	dryRun := fs.Bool("dry-run", true, "Use deterministic dry-run structured OCR")
+	resume := fs.Bool("resume", true, "Reuse existing per-page structured artifacts when present")
 	fs.Var(&registries, "profile-registries", "Pinocchio profile registry source (repeatable or comma-separated)")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -323,9 +324,15 @@ func runStructuredRun(args []string) error {
 	results := make([]ocrpipeline.StructuredPageRunResult, 0, len(pages))
 	var assembled strings.Builder
 	for _, page := range pages {
-		result, err := ocrpipeline.RunStructuredPage(ctx, ocrpipeline.StructuredOCRInput{BookID: *bookID, RunID: *runID, PageNumber: page.PageNumber, ImagePath: page.ImagePath, WorkDir: absWorkDir, Profile: *profile, ProfileRegistries: append([]string(nil), registries...), DryRun: *dryRun}, client)
+		result, reused, err := existingStructuredPageResult(absWorkDir, page.PageNumber)
 		if err != nil {
-			return fmt.Errorf("structured OCR page %03d: %w", page.PageNumber, err)
+			return err
+		}
+		if !*resume || !reused {
+			result, err = ocrpipeline.RunStructuredPage(ctx, ocrpipeline.StructuredOCRInput{BookID: *bookID, RunID: *runID, PageNumber: page.PageNumber, ImagePath: page.ImagePath, WorkDir: absWorkDir, Profile: *profile, ProfileRegistries: append([]string(nil), registries...), DryRun: *dryRun}, client)
+			if err != nil {
+				return fmt.Errorf("structured OCR page %03d: %w", page.PageNumber, err)
+			}
 		}
 		md, err := os.ReadFile(result.RenderedMD)
 		if err != nil {
@@ -336,7 +343,11 @@ func runStructuredRun(args []string) error {
 		}
 		assembled.Write(md)
 		results = append(results, result)
-		fmt.Printf("structured page %03d written to %s\n", result.PageNumber, result.PageDir)
+		if reused && *resume {
+			fmt.Printf("structured page %03d reused from %s\n", result.PageNumber, result.PageDir)
+		} else {
+			fmt.Printf("structured page %03d written to %s\n", result.PageNumber, result.PageDir)
+		}
 	}
 	if err := os.MkdirAll(absWorkDir, 0o755); err != nil {
 		return err
@@ -358,6 +369,32 @@ func runStructuredRun(args []string) error {
 	fmt.Printf("assembled markdown: %s\n", assembledPath)
 	fmt.Printf("validation report: %s\n", reportPath)
 	return nil
+}
+
+func existingStructuredPageResult(workDir string, pageNumber int) (ocrpipeline.StructuredPageRunResult, bool, error) {
+	pageDir := filepath.Join(workDir, "pages", fmt.Sprintf("page_%03d", pageNumber))
+	result := ocrpipeline.StructuredPageRunResult{
+		PageNumber:     pageNumber,
+		PageDir:        pageDir,
+		RawResponse:    filepath.Join(pageDir, "03-raw-response.json"),
+		StructuredJSON: filepath.Join(pageDir, "04-structured.json"),
+		RenderedMD:     filepath.Join(pageDir, "05-rendered.md"),
+		ValidationJSON: filepath.Join(pageDir, "06-validation.json"),
+	}
+	for _, path := range []string{result.StructuredJSON, result.RenderedMD, result.ValidationJSON} {
+		if _, err := os.Stat(path); err != nil {
+			if os.IsNotExist(err) {
+				return ocrpipeline.StructuredPageRunResult{}, false, nil
+			}
+			return ocrpipeline.StructuredPageRunResult{}, false, err
+		}
+	}
+	validationBytes, err := os.ReadFile(result.ValidationJSON)
+	if err != nil {
+		return ocrpipeline.StructuredPageRunResult{}, false, err
+	}
+	_ = json.Unmarshal(validationBytes, &result.Validation)
+	return result, true, nil
 }
 
 func runQualityPass(args []string) error {
