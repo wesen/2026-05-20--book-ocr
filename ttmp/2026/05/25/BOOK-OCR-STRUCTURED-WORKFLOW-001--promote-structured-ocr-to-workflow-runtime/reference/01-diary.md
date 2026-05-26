@@ -18,10 +18,13 @@ RelatedFiles:
         structured-pages status command (commit 9d42c5d)
         min-rendered-bytes CLI flag (commit 936952d)
         embed-figures CLI flags for structured-run (commit 600dbc7)
+        structured-rerun-pages operator and PDF flags (commit 52eba49)
     - Path: internal/ocrpipeline/prompts.go
       Note: Prompt rules for readable screenshot/code/table content (commit a576e96)
     - Path: internal/ocrpipeline/renderer.go
       Note: Code block rendering (commit a576e96)
+    - Path: internal/ocrpipeline/structured_ocr.go
+      Note: empty code/list/table validation warnings (commit 52eba49)
     - Path: internal/ocrpipeline/types.go
       Note: Structured code block type (commit a576e96)
     - Path: internal/ocrpipeline/workflow_executors.go
@@ -29,6 +32,7 @@ RelatedFiles:
         Discover/page/assemble/validate workflow executors (commit d4bf768)
         Short-page validation query and report generation (commit 936952d)
         Structured assembly figure embedding and artifact storage (commit 600dbc7)
+        PDF rendering during structured assembly (commit 52eba49)
     - Path: internal/ocrpipeline/workflow_package.go
       Note: Structured workflow package registration and retry policy (commit d4bf768)
     - Path: internal/ocrpipeline/workflow_projection.go
@@ -40,6 +44,7 @@ RelatedFiles:
         Structured workflow input/result contracts (commit d4bf768)
         Short-page validation result contracts (commit 936952d)
         Figure embedding workflow result/input fields (commit 600dbc7)
+        PDF fields in structured workflow inputs/results (commit 52eba49)
     - Path: ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/design-doc/01-workflow-backed-structured-ocr-design-and-implementation-guide.md
       Note: Primary workflow promotion design guide
     - Path: ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/experiments/001-report794-50-workflow-live-w4/01-summary.md
@@ -54,6 +59,7 @@ LastUpdated: 0001-01-01T00:00:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -954,4 +960,156 @@ Targeted rerun directory:
 
 ```text
 /tmp/book-ocr-structured-prompt-fix-targeted
+```
+
+## Step 10: Add targeted structured page rerun operator and workflow PDF rendering
+
+I added a targeted operator for the exact workflow repair path we needed after manual PDF review. Instead of rerunning the whole 202-page book, the new command requeues selected successful page OCR steps, requeues downstream assembly and validation, optionally enables PDF rendering in the assembly step, and resumes the workflow with the current prompt/schema code.
+
+I also added PDF rendering to structured workflow assembly itself. When `--render-pdf` is enabled, the assembly step renders the assembled Markdown (or embedded-figures Markdown when figures are enabled) through `pandoc`/`xelatex`, writes `book.pdf`, and stores it as a workflow artifact.
+
+### Prompt Context
+
+**User prompt (verbatim):** "go ahead. also show me the pdf when done, so i can o manual validation."
+
+**Assistant interpretation:** Continue by adding validation/rerun support, regenerate the affected pages, produce a PDF, and open it for manual validation.
+
+**Inferred user intent:** The user wants a tight review loop: fix only the bad pages in the nearly-good full-book artifact and immediately inspect the resulting PDF.
+
+**Commit (code):** `52eba495c26ebd1fd8e8c50cca4028867ccd49be` — "Render structured OCR PDF in workflow"
+
+### Prompt Context
+
+**User prompt (verbatim):** "in fact can you add pdf rendering to the workflow?
+
+don't forget to keep a diary as you work (using the well known recommended format, with things like "What worked / what didn't work""
+
+**Assistant interpretation:** Add PDF generation as part of the workflow rather than only as an ad hoc pandoc command, and keep the diary updated in the established format.
+
+**Inferred user intent:** Make PDF rendering reproducible and durable inside workflow artifacts while preserving a clear implementation record.
+
+### Prompt Context
+
+**User prompt (verbatim):** "hold on, we only want to rerun the broken pages, in the previous run, is that something the workflow would allow us to do?"
+
+**Assistant interpretation:** Stop the full rerun and determine whether the existing workflow can selectively reprocess only selected succeeded pages.
+
+**Inferred user intent:** Avoid unnecessary provider calls and keep the mostly-good full-book run as the base artifact.
+
+### Prompt Context
+
+**User prompt (verbatim):** "add the targeted operator, then rerun those pages in our previous almost perfect pdf"
+
+**Assistant interpretation:** Implement the missing targeted rerun operator and apply it to the previous full-book run for the manually identified pages.
+
+**Inferred user intent:** Patch the previous full-book artifact in place by reprocessing only pages 20, 30, 31, 83, 84, 86, and 96 with the improved prompt/schema, then regenerate Markdown and PDF.
+
+### What I did
+
+- Added structured workflow PDF fields:
+  - `RenderPDF`
+  - `PDFPath`
+  - `PandocPath`
+- Added assemble result PDF fields:
+  - `PDFPath`
+  - `PDFRefID`
+  - `PDFURI`
+- Added `--render-pdf`, `--pdf-path`, and `--pandoc-path` to `structured-run`.
+- Added `renderStructuredPDF`, which invokes `pandoc --pdf-engine=xelatex` with the same font/margin settings used in the earlier ad hoc PDF render.
+- Added `book-ocr structured-rerun-pages` with flags:
+  - `--work-dir`
+  - `--run-id`
+  - `--pages`
+  - `--render-pdf`
+  - `--pdf-path`
+  - `--pandoc-path`
+  - `--max-workers`
+- The operator requeues selected `structured-page-NNN` ops, requeues `assemble-structured-markdown` and `validate-structured-run`, marks the workflow running again, optionally patches the assemble op input to render PDF, and resumes workers.
+- Added empty block validation for empty code/list/table blocks in `ValidateStructuredPage`.
+- Stopped the accidental full-book rerun path and used the targeted operator on the previous full-book run.
+- Backed up the previous engine DB before targeted requeue:
+  - `/tmp/book-ocr-structured-workflow-full-live-w4-figures/engine.db.before-targeted-rerun-pages.bak`
+- Reprocessed pages:
+  - `20,30,31,83,84,86,96`
+- Opened the regenerated PDF in Okular.
+
+### Why
+
+- Manual review found only a small set of bad pages. Rerunning all 202 pages would waste provider calls and potentially introduce new regressions.
+- PDF rendering belongs in the workflow because the PDF is part of the review artifact set and should be produced from the same assembly inputs as Markdown.
+
+### What worked
+
+- Full tests passed:
+  - `go test ./... -count=1`
+- The targeted rerun operator successfully reprocessed the selected pages and reassembled the full book.
+- The previous full-book run ended in `succeeded` again.
+- The regenerated PDF exists and opened in Okular:
+  - `/tmp/book-ocr-structured-workflow-full-live-w4-figures/book.pdf`
+- Page 83 improved substantially: it now has a heading plus a populated `code` block with the visible Zmacs scroll-bar text.
+- Page 96 changed away from a pure figure to heading/paragraph text.
+
+### What didn't work
+
+- I initially started a fresh full-book rerun after adding PDF rendering, but the user correctly stopped that path because only selected pages needed reprocessing.
+- The current targeted operator directly updates workflow SQLite state. It works for this local workflow, but it should eventually become a first-class runtime/operator API rather than CLI-local SQL.
+- Pages 31 and 86 still classify as figure blocks after targeted rerun; based on visual review, page 31 is a model diagram and page 86 is mostly a screenshot, but they remain review targets in the PDF.
+
+### What I learned
+
+- The workflow graph can support targeted repair as long as selected page ops and downstream assembly/validation are reset consistently.
+- The operator needs to patch existing assemble input when a feature such as PDF rendering is added after the original run was created.
+- Manual review through PDF remains essential: structured block counts alone cannot decide whether screenshot text is sufficiently transcribed.
+
+### What was tricky to build
+
+- Reprocessing succeeded pages is different from retrying failed pages. The existing `retry` operator intentionally only handles failed ops, so the new operator had to reset succeeded page ops to `ready` and make the workflow `running` again.
+- Downstream assemble/validate ops also need to be reset, otherwise the page outputs change but the final Markdown/PDF stays stale.
+- Existing runs may have old assemble input JSON without `render_pdf`; the operator patches that input only when requested.
+
+### What warrants a second pair of eyes
+
+- Review the direct SQL state transition in `structured-rerun-pages`; it should be promoted into the workflow runtime as a supported reset/reprocess operation.
+- Review whether downstream artifacts should be garbage-collected when reassembling, because artifact IDs are replaced for deterministic IDs but stale extra artifacts may remain.
+- Review the regenerated PDF pages 31 and 86 to decide whether they need stronger screenshot-text extraction or are acceptable figure-only pages.
+
+### What should be done in the future
+
+- Add a runtime-level `ResetStep`/`ReprocessStep` operator instead of direct CLI SQL.
+- Add a `--reassemble-only` mode for cases where page artifacts are edited manually.
+- Add validation warnings for figure-only pages with suspicious OCR text density if an external OCR/text detector is available.
+
+### Code review instructions
+
+- Start with:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/cmd/book-ocr/main.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/workflow_types.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/workflow_executors.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/structured_ocr.go`
+- Validate with:
+  - `go test ./... -count=1`
+- Manual validation PDF:
+  - `/tmp/book-ocr-structured-workflow-full-live-w4-figures/book.pdf`
+
+### Technical details
+
+Targeted operator command:
+
+```bash
+book-ocr structured-rerun-pages \
+  --work-dir /tmp/book-ocr-structured-workflow-full-live-w4-figures \
+  --run-id book-ocr/structured-499f1718-bfb6-4135-a52f-56d35001d0bd \
+  --pages 20,30,31,83,84,86,96 \
+  --render-pdf \
+  --max-workers 2 \
+  --log-level warn
+```
+
+Regenerated artifacts:
+
+```text
+/tmp/book-ocr-structured-workflow-full-live-w4-figures/assembled.md
+/tmp/book-ocr-structured-workflow-full-live-w4-figures/embedded-figures.md
+/tmp/book-ocr-structured-workflow-full-live-w4-figures/book.pdf
+/tmp/book-ocr-structured-workflow-full-live-w4-figures/validation-report.json
 ```
