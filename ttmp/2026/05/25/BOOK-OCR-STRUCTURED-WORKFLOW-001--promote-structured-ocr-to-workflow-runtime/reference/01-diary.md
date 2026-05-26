@@ -12,6 +12,16 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: cmd/book-ocr/main.go
+      Note: Workflow-backed structured-run CLI wiring and resume registration (commit 325614b)
+    - Path: internal/ocrpipeline/workflow_executors.go
+      Note: Discover/page/assemble/validate workflow executors (commit d4bf768)
+    - Path: internal/ocrpipeline/workflow_package.go
+      Note: Structured workflow package registration and retry policy (commit d4bf768)
+    - Path: internal/ocrpipeline/workflow_projection.go
+      Note: Structured page projection schema and helpers (commit d4bf768)
+    - Path: internal/ocrpipeline/workflow_types.go
+      Note: Structured workflow input/result contracts (commit d4bf768)
     - Path: ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/design-doc/01-workflow-backed-structured-ocr-design-and-implementation-guide.md
       Note: Primary workflow promotion design guide
     - Path: ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/reference/01-diary.md
@@ -22,6 +32,7 @@ LastUpdated: 0001-01-01T00:00:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # Diary
@@ -196,4 +207,126 @@ remarquee upload bundle \
   --remote-dir "/ai/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001" \
   --toc-depth 2 \
   --non-interactive
+```
+
+## Step 3: Implement workflow package, projections, executors, and CLI wiring
+
+I implemented the first workflow-backed structured OCR slice. Structured OCR now has a workflow package with discover, page OCR, assemble, and validate executors. The `structured-run` command now starts a durable workflow run instead of looping over pages directly.
+
+This changes the operational model: page OCR work is now represented as workflow steps with retry policies, external artifacts, projection rows, and dependency-driven assembly/validation. The direct `structured-page` command remains available for debugging one page outside the workflow runtime.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Begin implementing the ticket tasks one by one after writing and uploading the guide.
+
+**Inferred user intent:** The user wants Option B implemented, not just documented: structured OCR should use the workflow runtime for retries and resume.
+
+**Commit (code):** `d4bf768a4c4829a31e8c3074b7b405f0c8f843f9` — "Add structured OCR workflow package"
+
+**Commit (code):** `325614b8888a489ca4b56fd3107cb394b84e3457` — "Wire structured OCR command to workflow runtime"
+
+### What I did
+
+- Added workflow types:
+  - `internal/ocrpipeline/workflow_types.go`
+- Added workflow package registration:
+  - `internal/ocrpipeline/workflow_package.go`
+- Added projection schema/helpers:
+  - `internal/ocrpipeline/workflow_projection.go`
+- Added workflow executors:
+  - `internal/ocrpipeline/workflow_executors.go`
+- Rewired `book-ocr structured-run` to:
+  - open a workflow runtime,
+  - register the structured workflow package,
+  - start a durable workflow run,
+  - loop `RunOnce` until terminal,
+  - print assemble and validation results.
+- Updated `resume` so it registers the structured workflow package as well as the freeform OCR package.
+- Added structured queues to `newRuntime`.
+
+### Why
+
+- The direct structured runner exited on transient page errors. The workflow runtime already knows how to retry page steps and persist run state, so structured OCR should use it.
+
+### What worked
+
+- Package tests passed:
+  - `go test ./internal/ocrpipeline -count=1`
+- Full tests passed:
+  - `go test ./... -count=1`
+- A 3-page workflow-backed dry-run succeeded:
+  - `/tmp/book-ocr-structured-workflow-dry-smoke`
+- The workflow wrote:
+  - `engine.db`,
+  - `turns.db`,
+  - per-page artifacts,
+  - `assembled.md`,
+  - `validation-report.json`,
+  - projection DB `projections/book_ocr_structured.db`.
+- Projection query showed structured page success rows:
+  - `succeeded|3`
+
+### What didn't work
+
+- I initially queried the projection file with the wrong extension:
+  - `/tmp/book-ocr-structured-workflow-dry-smoke/projections/book_ocr_structured.sqlite`
+- The actual projection file created by `workflow.NewSQLiteProjectionStore` is:
+  - `/tmp/book-ocr-structured-workflow-dry-smoke/projections/book_ocr_structured.db`
+
+### What I learned
+
+- `RunStructuredPage` is a clean executor boundary. The workflow layer can call it without duplicating Geppetto, rendering, parsing, or turn-store behavior.
+- The workflow package can keep the local artifact layout while also storing workflow artifacts for operator tools.
+
+### What was tricky to build
+
+- The discover executor emits both the page steps and downstream aggregate steps. The validate step depends on assemble, while assemble depends on all page OCR steps.
+- The command previously had `--resume=true` artifact skip behavior. Workflow-backed resume is now provided by the engine DB and `book-ocr resume`, not by skipping files in a direct loop.
+
+### What warrants a second pair of eyes
+
+- Review whether parse errors should stay permanent or become retryable with a low retry count.
+- Review whether structured workflow should continue using `ocrmvp.DiscoverPageImages`, or whether discovery should be moved into a shared package.
+- Review projection table fields before relying on them in operator UI/tools.
+
+### What should be done in the future
+
+- Run pages 1-50 in workflow-backed dry-run mode and inspect DB/projections/artifacts.
+- Run a limited live workflow smoke and verify automatic retry or manual resume.
+
+### Code review instructions
+
+- Start with:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/workflow_executors.go`
+- Then review:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/workflow_package.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/workflow_projection.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/cmd/book-ocr/main.go`
+- Validate with:
+  - `go test ./... -count=1`
+
+### Technical details
+
+Smoke command:
+
+```bash
+go run ./cmd/book-ocr structured-run \
+  --book-id report-794-structured-workflow-dry \
+  --image-dir /home/manuel/code/wesen/claw-stuff/output/books/presentation-based-uis/pages \
+  --start-page 1 \
+  --end-page 3 \
+  --work-dir /tmp/book-ocr-structured-workflow-dry-smoke \
+  --dry-run \
+  --expected-pages 3 \
+  --max-workers 2 \
+  --log-level warn
+```
+
+Projection query:
+
+```bash
+sqlite3 /tmp/book-ocr-structured-workflow-dry-smoke/projections/book_ocr_structured.db \
+  'select status,count(*) from structured_pages group by status;'
 ```
