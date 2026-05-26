@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/rs/zerolog"
 
 	"github.com/go-go-golems/book-ocr/internal/ocrmvp"
@@ -71,6 +73,8 @@ func run(args []string) error {
 		return runStructuredPage(subArgs)
 	case "structured-run":
 		return runStructuredRun(subArgs)
+	case "structured-rerun-pages":
+		return structuredRerunPages(subArgs)
 	case "vlm-separation":
 		return vlmseparation.ExecuteRoot(context.Background(), subArgs)
 	case "help", "-h", "--help":
@@ -95,6 +99,7 @@ func printUsage() {
   ocr-mvp quality-pass --markdown PATH --output-dir DIR [--expected-pages N]
   ocr-mvp structured-page --book-id BOOK --page N --image PATH --work-dir DIR --dry-run
   ocr-mvp structured-run --book-id BOOK --image-dir DIR --start-page N --end-page M --work-dir DIR --dry-run
+  ocr-mvp structured-rerun-pages --work-dir DIR --run-id RUN --pages 20,30,31 --render-pdf
   ocr-mvp vlm-separation benchmark [flags]
 
 Run flags include --book-id, --image-dir, --work-dir, --profile, --profile-registries, --prompt-version, --context-window, --log-level, --dry-run, and --max-workers.
@@ -485,6 +490,175 @@ func runQualityPass(args []string) error {
 		case <-time.After(*pollInterval):
 		}
 	}
+}
+
+func structuredRerunPages(args []string) error {
+	fs := flag.NewFlagSet("structured-rerun-pages", flag.ContinueOnError)
+	workDir := fs.String("work-dir", defaultWorkDir, "Directory containing engine.db")
+	runID := fs.String("run-id", "", "Workflow run ID")
+	pagesArg := fs.String("pages", "", "Comma-separated page numbers to rerun")
+	renderPDF := fs.Bool("render-pdf", false, "Render PDF during reassembly")
+	pdfPath := fs.String("pdf-path", "", "Optional PDF output path; defaults to <work-dir>/book.pdf")
+	pandocPath := fs.String("pandoc-path", "", "Optional pandoc executable path")
+	logLevel := fs.String("log-level", "info", "zerolog level: trace, debug, info, warn, error, disabled")
+	maxWorkers := fs.Int("max-workers", 2, "Maximum concurrent workflow workers")
+	pollInterval := fs.Duration("poll-interval", 250*time.Millisecond, "Worker polling interval")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if err := configureLogLevel(*logLevel); err != nil {
+		return err
+	}
+	if strings.TrimSpace(*runID) == "" {
+		return fmt.Errorf("--run-id is required")
+	}
+	pages, err := parsePageList(*pagesArg)
+	if err != nil {
+		return err
+	}
+	paths, err := resolveWorkDir(*workDir, false)
+	if err != nil {
+		return err
+	}
+	if err := requeueStructuredPages(paths, model.WorkflowID(*runID), pages, *renderPDF, *pdfPath, *pandocPath); err != nil {
+		return err
+	}
+	fmt.Printf("requeued structured pages %v in run %s\n", pages, *runID)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	structuredClient := ocrpipeline.StructuredOCRClient(ocrpipeline.NewGeppettoStructuredOCRClient())
+	rt, err := newRuntime(ctx, paths, *maxWorkers, *pollInterval)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = rt.Close() }()
+	if err := ocrpipeline.RegisterStructuredWorkflow(rt, ocrpipeline.StructuredWorkflowConfig{Client: structuredClient}); err != nil {
+		return err
+	}
+	for {
+		cycle, err := rt.RunOnce(ctx)
+		if err != nil {
+			return err
+		}
+		wf, err := rt.Workflow(ctx, model.WorkflowID(*runID))
+		if err != nil {
+			return err
+		}
+		fmt.Printf("status=%s processed=%d succeeded=%d failed=%d retried=%d\n", wf.Status, cycle.Processed, cycle.Succeeded, cycle.Failed, cycle.Retried)
+		if isTerminal(wf.Status) {
+			if wf.Status != model.WorkflowStatusSucceeded {
+				return fmt.Errorf("workflow finished with status %s", wf.Status)
+			}
+			if result, err := rt.Result(ctx, model.WorkflowID(*runID), "assemble-structured-markdown"); err == nil && result != nil {
+				fmt.Printf("assemble result: %s\n", string(result.Data))
+			}
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(*pollInterval):
+		}
+	}
+}
+
+func parsePageList(value string) ([]int, error) {
+	parts := strings.Split(value, ",")
+	seen := map[int]bool{}
+	var pages []int
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		var page int
+		if _, err := fmt.Sscanf(part, "%d", &page); err != nil || page <= 0 {
+			return nil, fmt.Errorf("invalid page number %q", part)
+		}
+		if !seen[page] {
+			seen[page] = true
+			pages = append(pages, page)
+		}
+	}
+	if len(pages) == 0 {
+		return nil, fmt.Errorf("--pages is required")
+	}
+	sort.Ints(pages)
+	return pages, nil
+}
+
+func requeueStructuredPages(paths workPaths, runID model.WorkflowID, pages []int, renderPDF bool, pdfPath string, pandocPath string) error {
+	db, err := sql.Open("sqlite3", paths.engineDB)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = db.Close() }()
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	rollback := true
+	defer func() {
+		if rollback {
+			_ = tx.Rollback()
+		}
+	}()
+	stamp := time.Now().UTC().Format(time.RFC3339Nano)
+	if _, err := tx.Exec(`UPDATE workflows SET status = ?, updated_at = ? WHERE id = ?`, model.WorkflowStatusRunning, stamp, runID); err != nil {
+		return err
+	}
+	for _, page := range pages {
+		stepID := fmt.Sprintf("structured-page-%03d", page)
+		if _, err := tx.Exec(`DELETE FROM leases WHERE op_id = ?`, stepID); err != nil {
+			return err
+		}
+		res, err := tx.Exec(`UPDATE ops SET status = ?, retry_state_json = ?, next_attempt_at = NULL, updated_at = ? WHERE workflow_id = ? AND id = ?`, model.OpStatusReady, `{"Attempt":0,"NextAttemptAt":null,"LastError":""}`, stamp, runID, stepID)
+		if err != nil {
+			return err
+		}
+		if n, _ := res.RowsAffected(); n == 0 {
+			return fmt.Errorf("structured page op %s not found", stepID)
+		}
+	}
+	for _, stepID := range []string{"assemble-structured-markdown", "validate-structured-run"} {
+		if _, err := tx.Exec(`DELETE FROM leases WHERE op_id = ?`, stepID); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(`UPDATE ops SET status = ?, retry_state_json = ?, next_attempt_at = NULL, updated_at = ? WHERE workflow_id = ? AND id = ?`, model.OpStatusReady, `{"Attempt":0,"NextAttemptAt":null,"LastError":""}`, stamp, runID, stepID); err != nil {
+			return err
+		}
+	}
+	if renderPDF {
+		var inputJSON string
+		if err := tx.QueryRow(`SELECT input_json FROM ops WHERE workflow_id = ? AND id = ?`, runID, "assemble-structured-markdown").Scan(&inputJSON); err != nil {
+			return err
+		}
+		var input map[string]any
+		if err := json.Unmarshal([]byte(inputJSON), &input); err != nil {
+			return err
+		}
+		input["render_pdf"] = true
+		if strings.TrimSpace(pdfPath) != "" {
+			input["pdf_path"] = pdfPath
+		} else if _, ok := input["pdf_path"]; !ok {
+			input["pdf_path"] = filepath.Join(paths.root, "book.pdf")
+		}
+		if strings.TrimSpace(pandocPath) != "" {
+			input["pandoc_path"] = pandocPath
+		}
+		updated, err := json.Marshal(input)
+		if err != nil {
+			return err
+		}
+		if _, err := tx.Exec(`UPDATE ops SET input_json = ? WHERE workflow_id = ? AND id = ?`, string(updated), runID, "assemble-structured-markdown"); err != nil {
+			return err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	rollback = false
+	return nil
 }
 
 func retryStep(args []string) error {
