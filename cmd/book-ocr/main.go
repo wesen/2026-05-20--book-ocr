@@ -284,12 +284,14 @@ func runStructuredRun(args []string) error {
 	pageGlob := fs.String("page-glob", "page_*.png", "Glob used inside image-dir to discover page images")
 	startPage := fs.Int("start-page", 0, "Optional first page number to process")
 	endPage := fs.Int("end-page", 0, "Optional last page number to process")
-	workDir := fs.String("work-dir", ".structured-ocr-run", "Directory for structured OCR run artifacts")
-	runID := fs.String("run-id", "structured-run", "Run identifier used in turn conv_id")
+	workDir := fs.String("work-dir", ".structured-ocr-run", "Directory for structured OCR workflow DB, artifacts, and outputs")
+	runID := fs.String("run-id", "", "Optional stable workflow run ID")
 	profile := fs.String("profile", "", "Optional Pinocchio profile slug for live structured OCR")
 	logLevel := fs.String("log-level", "info", "zerolog level: trace, debug, info, warn, error, disabled")
 	dryRun := fs.Bool("dry-run", true, "Use deterministic dry-run structured OCR")
-	resume := fs.Bool("resume", true, "Reuse existing per-page structured artifacts when present")
+	maxWorkers := fs.Int("max-workers", 2, "Maximum concurrent workflow workers")
+	pollInterval := fs.Duration("poll-interval", 250*time.Millisecond, "Worker polling interval")
+	expectedPages := fs.Int("expected-pages", 0, "Expected page marker count for validation; 0 disables exact check")
 	fs.Var(&registries, "profile-registries", "Pinocchio profile registry source (repeatable or comma-separated)")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -307,11 +309,7 @@ func runStructuredRun(args []string) error {
 	if err != nil {
 		return err
 	}
-	absWorkDir, err := filepath.Abs(*workDir)
-	if err != nil {
-		return err
-	}
-	pages, err := ocrmvp.DiscoverPageImages(ocrmvp.RunInput{BookID: *bookID, ImageDir: absImageDir, PageGlob: *pageGlob, StartPage: *startPage, EndPage: *endPage})
+	paths, err := resolveWorkDir(*workDir, true)
 	if err != nil {
 		return err
 	}
@@ -321,54 +319,51 @@ func runStructuredRun(args []string) error {
 	if *dryRun {
 		client = ocrpipeline.DryRunStructuredOCRClient{}
 	}
-	results := make([]ocrpipeline.StructuredPageRunResult, 0, len(pages))
-	var assembled strings.Builder
-	for _, page := range pages {
-		result, reused, err := existingStructuredPageResult(absWorkDir, page.PageNumber)
-		if err != nil {
-			return err
-		}
-		if !*resume || !reused {
-			result, err = ocrpipeline.RunStructuredPage(ctx, ocrpipeline.StructuredOCRInput{BookID: *bookID, RunID: *runID, PageNumber: page.PageNumber, ImagePath: page.ImagePath, WorkDir: absWorkDir, Profile: *profile, ProfileRegistries: append([]string(nil), registries...), DryRun: *dryRun}, client)
-			if err != nil {
-				return fmt.Errorf("structured OCR page %03d: %w", page.PageNumber, err)
-			}
-		}
-		md, err := os.ReadFile(result.RenderedMD)
-		if err != nil {
-			return err
-		}
-		if assembled.Len() > 0 {
-			assembled.WriteString("\n")
-		}
-		assembled.Write(md)
-		results = append(results, result)
-		if reused && *resume {
-			fmt.Printf("structured page %03d reused from %s\n", result.PageNumber, result.PageDir)
-		} else {
-			fmt.Printf("structured page %03d written to %s\n", result.PageNumber, result.PageDir)
-		}
-	}
-	if err := os.MkdirAll(absWorkDir, 0o755); err != nil {
-		return err
-	}
-	assembledPath := filepath.Join(absWorkDir, "assembled.md")
-	if err := os.WriteFile(assembledPath, []byte(assembled.String()), 0o644); err != nil {
-		return err
-	}
-	report := structuredRunReport{BookID: *bookID, PageCount: len(results), AssembledPath: assembledPath, Pages: results}
-	reportJSON, err := json.MarshalIndent(report, "", "  ")
+	rt, err := newRuntime(ctx, paths, *maxWorkers, *pollInterval)
 	if err != nil {
 		return err
 	}
-	reportPath := filepath.Join(absWorkDir, "validation-report.json")
-	if err := os.WriteFile(reportPath, append(reportJSON, '\n'), 0o644); err != nil {
+	defer func() { _ = rt.Close() }()
+	if err := ocrpipeline.RegisterStructuredWorkflow(rt, ocrpipeline.StructuredWorkflowConfig{Client: client}); err != nil {
 		return err
 	}
-	fmt.Printf("structured run pages: %d\n", len(results))
-	fmt.Printf("assembled markdown: %s\n", assembledPath)
-	fmt.Printf("validation report: %s\n", reportPath)
-	return nil
+	runOpts := []workflow.RunOption{workflow.WithRunName("Structured OCR: " + *bookID)}
+	if strings.TrimSpace(*runID) != "" {
+		runOpts = append(runOpts, workflow.WithRunID(*runID))
+	}
+	handle, err := rt.StartRun(ctx, ocrpipeline.StructuredPackageName, ocrpipeline.StructuredRunInput{BookID: *bookID, ImageDir: absImageDir, PageGlob: *pageGlob, StartPage: *startPage, EndPage: *endPage, WorkDir: paths.root, RunID: string(*runID), Profile: *profile, ProfileRegistries: append([]string(nil), registries...), DryRun: *dryRun, ExpectedPages: *expectedPages}, runOpts...)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("started structured run %s in %s\n", handle.ID, paths.root)
+	for {
+		cycle, err := rt.RunOnce(ctx)
+		if err != nil {
+			return err
+		}
+		wf, err := rt.Workflow(ctx, handle.ID)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("status=%s processed=%d succeeded=%d failed=%d retried=%d\n", wf.Status, cycle.Processed, cycle.Succeeded, cycle.Failed, cycle.Retried)
+		if isTerminal(wf.Status) {
+			if wf.Status != model.WorkflowStatusSucceeded {
+				return fmt.Errorf("workflow finished with status %s", wf.Status)
+			}
+			if result, err := rt.Result(ctx, handle.ID, "assemble-structured-markdown"); err == nil && result != nil {
+				fmt.Printf("assemble result: %s\n", string(result.Data))
+			}
+			if result, err := rt.Result(ctx, handle.ID, "validate-structured-run"); err == nil && result != nil {
+				fmt.Printf("validation result: %s\n", string(result.Data))
+			}
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(*pollInterval):
+		}
+	}
 }
 
 func existingStructuredPageResult(workDir string, pageNumber int) (ocrpipeline.StructuredPageRunResult, bool, error) {
@@ -533,12 +528,16 @@ func resumeRun(args []string) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	client := ocrmvp.OCRClient(ocrmvp.NewGeppettoOCRClient())
+	structuredClient := ocrpipeline.StructuredOCRClient(ocrpipeline.NewGeppettoStructuredOCRClient())
 	rt, err := newRuntime(ctx, paths, *maxWorkers, *pollInterval)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = rt.Close() }()
 	if err := ocrmvp.Register(rt, ocrmvp.Config{Client: client}); err != nil {
+		return err
+	}
+	if err := ocrpipeline.RegisterStructuredWorkflow(rt, ocrpipeline.StructuredWorkflowConfig{Client: structuredClient}); err != nil {
 		return err
 	}
 	fmt.Printf("resuming run %s in %s\n", *runID, paths.root)
@@ -707,10 +706,14 @@ func newRuntime(ctx context.Context, paths workPaths, maxWorkers int, pollInterv
 		MaxWorkers:      maxWorkers,
 		PollInterval:    pollInterval,
 		Queues: map[model.QueueKey]workflow.QueueConfig{
-			ocrmvp.QueueControl:     {MaxWorkers: 1},
-			ocrmvp.QueueOCR:         {MaxWorkers: maxWorkers},
-			ocrmvp.QueueAssemble:    {MaxWorkers: 1},
-			ocrquality.QueueQuality: {MaxWorkers: maxWorkers},
+			ocrmvp.QueueControl:                   {MaxWorkers: 1},
+			ocrmvp.QueueOCR:                       {MaxWorkers: maxWorkers},
+			ocrmvp.QueueAssemble:                  {MaxWorkers: 1},
+			ocrquality.QueueQuality:               {MaxWorkers: maxWorkers},
+			ocrpipeline.QueueStructuredControl:    {MaxWorkers: 1},
+			ocrpipeline.QueueStructuredVision:     {MaxWorkers: maxWorkers},
+			ocrpipeline.QueueStructuredAssemble:   {MaxWorkers: 1},
+			ocrpipeline.QueueStructuredValidation: {MaxWorkers: 1},
 		},
 	})
 }
