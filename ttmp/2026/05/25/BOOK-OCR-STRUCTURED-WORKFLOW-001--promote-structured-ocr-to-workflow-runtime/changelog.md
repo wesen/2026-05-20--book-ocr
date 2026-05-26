@@ -90,3 +90,13 @@ Phase 6: connected structured figure blocks to figure image embedding during ass
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/workflow_executors.go — Figure embedding implementation
 - /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/reference/01-diary.md — Figure embedding diary
 
+
+## 2026-05-26
+
+Tightened structured OCR figure-versus-readable-text classification after PDF review; added code blocks and prompt rules for screenshot text/tables/listings (commit a576e96).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/prompts.go — Classification contract
+- /home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/ttmp/2026/05/25/BOOK-OCR-STRUCTURED-WORKFLOW-001--promote-structured-ocr-to-workflow-runtime/reference/01-diary.md — Review findings and follow-ups
+

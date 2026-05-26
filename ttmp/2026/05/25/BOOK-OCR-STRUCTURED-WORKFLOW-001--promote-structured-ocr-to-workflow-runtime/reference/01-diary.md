@@ -18,6 +18,12 @@ RelatedFiles:
         structured-pages status command (commit 9d42c5d)
         min-rendered-bytes CLI flag (commit 936952d)
         embed-figures CLI flags for structured-run (commit 600dbc7)
+    - Path: internal/ocrpipeline/prompts.go
+      Note: Prompt rules for readable screenshot/code/table content (commit a576e96)
+    - Path: internal/ocrpipeline/renderer.go
+      Note: Code block rendering (commit a576e96)
+    - Path: internal/ocrpipeline/types.go
+      Note: Structured code block type (commit a576e96)
     - Path: internal/ocrpipeline/workflow_executors.go
       Note: |-
         Discover/page/assemble/validate workflow executors (commit d4bf768)
@@ -48,6 +54,7 @@ LastUpdated: 0001-01-01T00:00:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -863,4 +870,88 @@ go run ./cmd/book-ocr structured-run \
   --embed-figures \
   --max-workers 2 \
   --log-level warn
+```
+
+## Step 9: Tighten figure-versus-readable-text classification
+
+After reviewing the full-book PDF, the user found pages where readable screenshot/text/table/code-like content was treated as figures instead of being transcribed. I tightened the structured OCR contract so screenshots, boxed displays, command/code listings, quoted text windows, and visible tabular content are not automatically treated as image-only figures.
+
+The change adds a first-class `code` block type and renderer support for fenced text blocks. It also updates the prompt to require readable text/code/table content inside screenshots to be emitted as paragraph/list/code/table blocks, with figure blocks reserved for visual content that cannot be faithfully represented as text.
+
+### Prompt Context
+
+**User prompt (verbatim):** "page 20, 30, 31, 83, 84, 86, 96, haven't been properly recognized as text (or text with code + tables), and instead kept as figures. This points to a prompt issue to keep things as figures when code is recognized or a table is recognized."
+
+**Assistant interpretation:** The full-book structured run overuses figure blocks for regions that contain readable text, code/listings, or tables; adjust the structured OCR schema/prompt so the model decomposes readable content instead of hiding it behind figure images.
+
+**Inferred user intent:** Improve the next OCR pass so final Markdown contains searchable/editable text for screenshots and boxed listings where possible, not only cropped figure images.
+
+**Commit (code):** `a576e968f61f8ba35dace5633d0bc9564a54baf2` — "Tighten structured OCR text figure classification"
+
+### What I did
+
+- Added `BlockCode = "code"` to the structured OCR block types.
+- Added deterministic renderer support for fenced `text` code blocks.
+- Updated renderer tests to cover table plus code rendering.
+- Updated the structured OCR prompt to clarify:
+  - screenshots are not automatically figures,
+  - readable screenshot text should be transcribed,
+  - code/listings must use the `text` field and must not be empty,
+  - tables/grids must become table blocks,
+  - figure blocks should only cover remaining visual content.
+- Ran targeted live page reruns for pages 20, 30, 31, 83, 84, 86, and 96 under `/tmp/book-ocr-structured-prompt-fix-targeted`.
+- Ran `go test ./... -count=1`.
+
+### Why
+
+- The embedded PDF made it clear that figure extraction alone is not enough; if a screenshot contains readable text, the Markdown must include that text.
+- Searchable text/code/table output is the reason for structured OCR. Figure crops are supplementary provenance/review artifacts.
+
+### What worked
+
+- Tests passed.
+- The prompt/schema now has a place to put listing-like content (`code`).
+- A targeted rerun changed page 83 from a pure figure to a heading plus code block shape, proving the model noticed the content class change.
+
+### What didn't work
+
+- The first targeted rerun for page 83 emitted an empty code block, so the prompt still needs stronger enforcement and perhaps validation against empty non-blank code/table/list blocks.
+- Pages 86 and 96 remained figure blocks in the targeted rerun; visual inspection suggests they are largely screenshot/diagram pages, but they should be reviewed page-by-page before deciding whether to force text extraction.
+
+### What I learned
+
+- The problematic class is not simply "figure versus not figure". Some pages need both: a figure/caption for visual context and separate text/code/table blocks for readable content inside the screenshot.
+- Empty structured blocks are a validation gap. The parser/validator should warn when a non-blank block type lacks required content.
+
+### What was tricky to build
+
+- The existing schema did not distinguish paragraph text from line-preserving listings. Adding a code block type is a small schema change, but it affects prompt contract, parser tolerance, renderer behavior, and tests.
+- The model may comply with block type selection but still omit the content. That requires validation, not only prompt text.
+
+### What warrants a second pair of eyes
+
+- Review whether `code` should be rendered as plain fenced `text` or whether some pages need language-specific fences.
+- Review pages 83, 86, and 96 visually against the new targeted artifacts before deciding whether further prompt changes should force screenshot text extraction.
+
+### What should be done in the future
+
+- Add validation warnings for empty `code`, empty `table`, empty `list`, and figure-only pages that contain OCR-detectable text density.
+- Rerun the affected pages after the prompt update and patch the full-book artifact or run a full reprocess.
+- Consider an explicit `screenshot_text` block or a figure-with-transcription structure if mixed screenshot pages remain hard for the model.
+
+### Code review instructions
+
+- Start with:
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/prompts.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/types.go`
+  - `/home/manuel/workspaces/2026-05-20/book-ocr/2026-05-20--book-ocr/internal/ocrpipeline/renderer.go`
+- Validate with:
+  - `go test ./... -count=1`
+
+### Technical details
+
+Targeted rerun directory:
+
+```text
+/tmp/book-ocr-structured-prompt-fix-targeted
 ```
