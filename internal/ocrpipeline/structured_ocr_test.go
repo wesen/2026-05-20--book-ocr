@@ -90,3 +90,39 @@ func TestParseStructuredOCRResponseRepairsCommonLiveShape(t *testing.T) {
 	require.Equal(t, "p032-b001", page.Blocks[0].ID)
 	require.Equal(t, []string{"Columns: A | B | C", "Row 1: A1 = 100"}, page.Blocks[0].DiagramText)
 }
+
+func TestParseStructuredOCRResponseRepairsNestedFigureAndHeadingCaption(t *testing.T) {
+	raw := `{
+  "schema_version": "structured-ocr/v1",
+  "book_id": "report-794",
+  "page_number": "042",
+  "page_type": "figure",
+  "blocks": [
+    {"id":"p042-h001","type":"heading","level":2,"text":"Figure 2-9: Presenter Parts"},
+    {"id":"p042-f001","type":"figure","figure":{"caption":"Figure 2-9: Presenter Parts","description":"Presenter diagram","diagram_text":["Presentation Editor"]}}
+  ]
+}`
+	page, err := ParseStructuredOCRResponse(raw)
+	require.NoError(t, err)
+	require.Len(t, page.Blocks, 1)
+	require.Equal(t, "Figure 2-9: Presenter Parts", page.Blocks[0].Caption)
+	require.Equal(t, "Presenter diagram", page.Blocks[0].Description)
+	require.Equal(t, []string{"Presentation Editor"}, page.Blocks[0].DiagramText)
+}
+
+func TestParseStructuredOCRResponseRepairsFigureCaptionFromHeading(t *testing.T) {
+	raw := `{
+  "schema_version": "structured-ocr/v1",
+  "book_id": "report-794",
+  "page_number": 115,
+  "page_type": "figure",
+  "blocks": [
+    {"id":"p115-h001","type":"heading","level":1,"text":"Figure 5-7: Reference Resolution"},
+    {"id":"p115-f001","type":"figure","caption":"","description":"Reference resolution diagram"}
+  ]
+}`
+	page, err := ParseStructuredOCRResponse(raw)
+	require.NoError(t, err)
+	require.Len(t, page.Blocks, 1)
+	require.Equal(t, "Figure 5-7: Reference Resolution", page.Blocks[0].Caption)
+}

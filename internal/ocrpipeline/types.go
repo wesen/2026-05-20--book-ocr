@@ -93,11 +93,27 @@ func (b *OCRBlock) UnmarshalJSON(data []byte) error {
 	var raw struct {
 		alias
 		DiagramText any `json:"diagram_text,omitempty"`
+		Figure      *struct {
+			Caption     string `json:"caption,omitempty"`
+			Description string `json:"description,omitempty"`
+			DiagramText any    `json:"diagram_text,omitempty"`
+		} `json:"figure,omitempty"`
 	}
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
 	}
 	*b = OCRBlock(raw.alias)
+	if raw.Figure != nil {
+		if strings.TrimSpace(b.Caption) == "" {
+			b.Caption = raw.Figure.Caption
+		}
+		if strings.TrimSpace(b.Description) == "" {
+			b.Description = raw.Figure.Description
+		}
+		if raw.DiagramText == nil {
+			raw.DiagramText = raw.Figure.DiagramText
+		}
+	}
 	switch v := raw.DiagramText.(type) {
 	case nil:
 	case string:

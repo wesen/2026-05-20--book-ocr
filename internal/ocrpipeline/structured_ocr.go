@@ -156,6 +156,7 @@ func normalizeStructuredJSONText(raw string) string {
 }
 
 var leadingZeroJSONNumberRE = regexp.MustCompile(`(:\s*)0+(\d+)`)
+var figureCaptionLineRE = regexp.MustCompile(`(?i)^\s*Figure\s+\d+(?:[-.]\d+)?\s*:`)
 
 func fixLeadingZeroJSONNumbers(jsonText string) string {
 	return leadingZeroJSONNumberRE.ReplaceAllString(jsonText, `${1}${2}`)
@@ -166,7 +167,43 @@ func repairStructuredPage(page *StructuredPageOCR) {
 		if strings.TrimSpace(page.Blocks[i].ID) == "" {
 			page.Blocks[i].ID = fmt.Sprintf("p%03d-b%03d", page.PageNumber, i+1)
 		}
+		if page.Blocks[i].Type == BlockFigure && strings.TrimSpace(page.Blocks[i].Caption) == "" {
+			if caption, ok := nearbyFigureCaption(page.Blocks, i); ok {
+				page.Blocks[i].Caption = caption
+			}
+		}
 	}
+	page.Blocks = dropDuplicateFigureCaptionHeadings(page.Blocks)
+}
+
+func nearbyFigureCaption(blocks []OCRBlock, figureIndex int) (string, bool) {
+	for _, idx := range []int{figureIndex - 1, figureIndex + 1} {
+		if idx < 0 || idx >= len(blocks) {
+			continue
+		}
+		candidate := strings.TrimSpace(blocks[idx].Text)
+		if figureCaptionLineRE.MatchString(candidate) {
+			return candidate, true
+		}
+	}
+	return "", false
+}
+
+func dropDuplicateFigureCaptionHeadings(blocks []OCRBlock) []OCRBlock {
+	out := make([]OCRBlock, 0, len(blocks))
+	for i, block := range blocks {
+		if block.Type == BlockHeading && figureCaptionLineRE.MatchString(strings.TrimSpace(block.Text)) {
+			if i+1 < len(blocks) && blocks[i+1].Type == BlockFigure && NormalizeSpace(blocks[i+1].Caption) == NormalizeSpace(block.Text) {
+				continue
+			}
+		}
+		out = append(out, block)
+	}
+	return out
+}
+
+func NormalizeSpace(s string) string {
+	return strings.Join(strings.Fields(strings.ToLower(s)), " ")
 }
 
 func RunStructuredPage(ctx context.Context, input StructuredOCRInput, client StructuredOCRClient) (StructuredPageRunResult, error) {
