@@ -1,5 +1,7 @@
 package ocrpipeline
 
+import "github.com/go-go-golems/book-ocr/internal/ocrvalidation"
+
 const (
 	StructuredPackageName     = "book-ocr/structured"
 	StructuredProjectionName  = "book_ocr_structured"
@@ -53,6 +55,10 @@ type StructuredPageWorkflowInput struct {
 	// the built-in (Report-794) defaults.
 	Prompt *PromptSpec    `json:"prompt,omitempty"`
 	Render *RenderOptions `json:"render,omitempty"`
+	// PageTypeHint and Strategy come from the page.classify seam and persist
+	// with the op so reruns route identically.
+	PageTypeHint string `json:"page_type_hint,omitempty"`
+	Strategy     string `json:"strategy,omitempty"`
 }
 
 type StructuredPageSpec struct {
@@ -136,6 +142,7 @@ type StructuredValidateResult struct {
 	WarningCount              int                          `json:"warning_count"`
 	AdjacentDuplicateCaptions []string                     `json:"adjacent_duplicate_captions,omitempty"`
 	ShortPages                []StructuredShortPageWarning `json:"short_pages,omitempty"`
+	PluginWarnings            []ocrvalidation.Warning      `json:"plugin_warnings,omitempty"`
 	MinRenderedBytes          int                          `json:"min_rendered_bytes,omitempty"`
 	ReportPath                string                       `json:"report_path"`
 	ReportRefID               string                       `json:"report_ref_id,omitempty"`

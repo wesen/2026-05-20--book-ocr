@@ -14,20 +14,30 @@ const (
 	OpOCRPage        = "ocr.page"
 	OpPromptRender   = "prompt.render"
 	OpFiguresSegment = "figures.segment"
+	OpResponseParse  = "response.parse"
+	OpValidatePage   = "validate.page"
+	OpValidateBook   = "validate.book"
+	OpPageClassify   = "page.classify"
 )
 
+// ErrDeclined is the error code a plugin uses to defer to the built-in
+// implementation (e.g. a response.parse plugin that doesn't recognize the
+// format).
+const ErrDeclined = "E_DECLINED"
+
 // KnownSeams lists every op the host can dispatch today.
-var KnownSeams = []string{OpOCRPage, OpPromptRender, OpFiguresSegment}
+var KnownSeams = []string{OpOCRPage, OpPromptRender, OpFiguresSegment, OpResponseParse, OpValidatePage, OpValidateBook, OpPageClassify}
 
 // OCRPageInput is the ocr.page request payload (op schema ocr.page/v1). The
 // image travels by path, not bytes: plugins are local processes and open the
 // file themselves.
 type OCRPageInput struct {
-	OpSchema   string `json:"op_schema"`
-	BookID     string `json:"book_id"`
-	PageNumber int    `json:"page_number"`
-	ImagePath  string `json:"image_path"`
-	DryRun     bool   `json:"dry_run"`
+	OpSchema     string `json:"op_schema"`
+	BookID       string `json:"book_id"`
+	PageNumber   int    `json:"page_number"`
+	ImagePath    string `json:"image_path"`
+	DryRun       bool   `json:"dry_run"`
+	PageTypeHint string `json:"page_type_hint,omitempty"`
 }
 
 // OCRPageOutput is the ocr.page response payload. Page must be a
@@ -81,4 +91,58 @@ type FiguresSegmentOutput struct {
 	Crop       CropRect `json:"crop"`
 	Method     string   `json:"method,omitempty"`
 	Confidence float64  `json:"confidence,omitempty"`
+}
+
+// ResponseParseInput is the response.parse request (response.parse/v1).
+type ResponseParseInput struct {
+	OpSchema    string `json:"op_schema"`
+	BookID      string `json:"book_id"`
+	PageNumber  int    `json:"page_number"`
+	RawResponse string `json:"raw_response"`
+}
+
+// PluginWarning is the wire form of a validation finding.
+type PluginWarning struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+	Page    int    `json:"page,omitempty"`
+}
+
+// ValidatePageInput is the validate.page request (validate.page/v1).
+type ValidatePageInput struct {
+	OpSchema   string          `json:"op_schema"`
+	BookID     string          `json:"book_id"`
+	PageNumber int             `json:"page_number"`
+	Structured json.RawMessage `json:"structured"`
+	Markdown   string          `json:"markdown"`
+}
+
+// ValidateBookInput is the validate.book request (validate.book/v1). Content
+// travels by path: a validator that needs the text reads the files.
+type ValidateBookInput struct {
+	OpSchema      string `json:"op_schema"`
+	BookID        string `json:"book_id"`
+	AssembledPath string `json:"assembled_path"`
+	PageNumbers   []int  `json:"page_numbers"`
+}
+
+// ValidateOutput is shared by validate.page and validate.book.
+type ValidateOutput struct {
+	Warnings []PluginWarning `json:"warnings"`
+}
+
+// PageClassifyInput is the page.classify request (page.classify/v1).
+type PageClassifyInput struct {
+	OpSchema   string `json:"op_schema"`
+	ImagePath  string `json:"image_path"`
+	PageNumber int    `json:"page_number"`
+}
+
+// PageClassifyOutput routes a page: PageType is a hint forwarded to the OCR
+// client; Strategy names the plugin binding (Spec.ID) that should OCR this
+// page, empty for the default binding.
+type PageClassifyOutput struct {
+	PageType   string  `json:"page_type"`
+	Strategy   string  `json:"strategy,omitempty"`
+	Confidence float64 `json:"confidence,omitempty"`
 }

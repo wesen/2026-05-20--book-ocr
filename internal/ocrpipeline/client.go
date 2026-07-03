@@ -28,6 +28,16 @@ type StructuredOCRInput struct {
 	// Render overrides the default rendering options when non-nil; populated
 	// from the book profile.
 	Render *RenderOptions
+	// PageTypeHint and Strategy come from the page.classify seam: the hint is
+	// forwarded to the OCR client, the strategy selects a specific ocr.page
+	// plugin binding.
+	PageTypeHint string
+	Strategy     string
+	// Parser optionally overrides raw-response parsing (response.parse seam).
+	Parser ResponseParser
+	// PageValidators run after the built-in page validation; their warnings
+	// are appended (validate.page seam).
+	PageValidators []PageValidator
 }
 
 type StructuredOCRResult struct {

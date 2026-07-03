@@ -42,6 +42,7 @@ type managedPlugin struct {
 type Manager struct {
 	plugins []managedPlugin
 	bySeam  map[string]*managedPlugin
+	byID    map[string]*managedPlugin
 }
 
 // NewManager starts every spec and fail-fast validates that each claimed seam
@@ -53,7 +54,7 @@ func NewManager(ctx context.Context, specs []Spec, meta runtime.RequestMeta) (*M
 		return nil, nil
 	}
 	factory := runtime.NewFactory(runtime.FactoryOptions{HandshakeTimeout: 5 * time.Second})
-	m := &Manager{bySeam: map[string]*managedPlugin{}}
+	m := &Manager{bySeam: map[string]*managedPlugin{}, byID: map[string]*managedPlugin{}}
 	for _, spec := range specs {
 		if strings.TrimSpace(spec.Path) == "" {
 			m.closeAll(ctx)
@@ -68,8 +69,13 @@ func NewManager(ctx context.Context, specs []Spec, meta runtime.RequestMeta) (*M
 			m.closeAll(ctx)
 			return nil, fmt.Errorf("start plugin %q (%s): %w", spec.ID, spec.Path, err)
 		}
+		if _, dup := m.byID[spec.ID]; dup {
+			m.closeAll(ctx)
+			return nil, fmt.Errorf("duplicate plugin id %q", spec.ID)
+		}
 		mp := &managedPlugin{spec: spec, client: client}
 		m.plugins = append(m.plugins, *mp)
+		m.byID[spec.ID] = mp
 		for _, seam := range spec.Seams {
 			if !knownSeam(seam) {
 				m.closeAll(ctx)
@@ -114,6 +120,29 @@ func (m *Manager) Call(ctx context.Context, seam string, input any, output any) 
 	return mp.client.Call(ctx, seam, input, output)
 }
 
+// HasPlugin reports whether a specific plugin (by Spec.ID) is running and
+// advertises the given op — used by strategy routing from page.classify.
+func (m *Manager) HasPlugin(id string, op string) bool {
+	if m == nil {
+		return false
+	}
+	mp, ok := m.byID[id]
+	return ok && mp.client.SupportsOp(op)
+}
+
+// CallPlugin dispatches an op to a specific plugin by Spec.ID, bypassing seam
+// binding — used by strategy routing.
+func (m *Manager) CallPlugin(ctx context.Context, id string, op string, input any, output any) error {
+	if m == nil {
+		return fmt.Errorf("no plugin manager configured")
+	}
+	mp, ok := m.byID[id]
+	if !ok {
+		return fmt.Errorf("no plugin with id %q", id)
+	}
+	return mp.client.Call(ctx, op, input, output)
+}
+
 // PluginIDFor names the plugin bound to a seam (for provenance strings).
 func (m *Manager) PluginIDFor(seam string) string {
 	if m == nil {
@@ -154,6 +183,7 @@ func (m *Manager) closeAll(ctx context.Context) {
 	}
 	m.plugins = nil
 	m.bySeam = map[string]*managedPlugin{}
+	m.byID = map[string]*managedPlugin{}
 }
 
 // ParseSeamBinding parses one --plugin flag value of the form seam=path.

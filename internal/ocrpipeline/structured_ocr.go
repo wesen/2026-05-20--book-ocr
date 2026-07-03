@@ -265,10 +265,27 @@ func RunStructuredPage(ctx context.Context, input StructuredOCRInput, client Str
 		return StructuredPageRunResult{}, err
 	}
 
-	parsed, err := ParseStructuredOCRResponse(result.RawResponse)
-	if err != nil {
-		_ = os.WriteFile(paths["error"], []byte(err.Error()+"\n"), 0o644)
-		return StructuredPageRunResult{PageNumber: input.PageNumber, PageDir: pageDir, RawResponse: paths["raw"], TurnsDSN: turnStore.DSN()}, err
+	var parsed StructuredPageOCR
+	handled := false
+	if input.Parser != nil {
+		var perr error
+		parsed, handled, perr = input.Parser.ParseResponse(result.RawResponse, input)
+		if handled && perr != nil {
+			err := fmt.Errorf("parse structured ocr json (plugin parser): %w", perr)
+			_ = os.WriteFile(paths["error"], []byte(err.Error()+"\n"), 0o644)
+			return StructuredPageRunResult{PageNumber: input.PageNumber, PageDir: pageDir, RawResponse: paths["raw"], TurnsDSN: turnStore.DSN()}, err
+		}
+		if handled {
+			repairStructuredPage(&parsed)
+		}
+	}
+	if !handled {
+		var perr error
+		parsed, perr = ParseStructuredOCRResponse(result.RawResponse)
+		if perr != nil {
+			_ = os.WriteFile(paths["error"], []byte(perr.Error()+"\n"), 0o644)
+			return StructuredPageRunResult{PageNumber: input.PageNumber, PageDir: pageDir, RawResponse: paths["raw"], TurnsDSN: turnStore.DSN()}, perr
+		}
 	}
 	if parsed.PageNumber != input.PageNumber {
 		err := fmt.Errorf("structured OCR page mismatch: input page %03d response page %03d", input.PageNumber, parsed.PageNumber)
@@ -281,6 +298,14 @@ func RunStructuredPage(ctx context.Context, input StructuredOCRInput, client Str
 	}
 	rendered := RenderPageMarkdown(parsed, nil, renderOpts)
 	validation := ValidateStructuredPage(parsed, rendered)
+	for _, validator := range input.PageValidators {
+		warnings, verr := validator.ValidatePage(parsed, rendered)
+		if verr != nil {
+			validation.Warnings = append(validation.Warnings, ocrvalidation.Warning{Code: "plugin_validator_error", Message: verr.Error(), Page: input.PageNumber})
+			continue
+		}
+		validation.Warnings = append(validation.Warnings, warnings...)
+	}
 	structuredJSON, err := json.MarshalIndent(parsed, "", "  ")
 	if err != nil {
 		return StructuredPageRunResult{}, err

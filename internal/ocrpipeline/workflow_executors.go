@@ -3,6 +3,7 @@ package ocrpipeline
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -18,7 +19,7 @@ import (
 	"github.com/go-go-golems/scraper/pkg/workflow"
 )
 
-func StructuredDiscoverExecutor(projectionName string) workflow.Executor {
+func StructuredDiscoverExecutor(projectionName string, classifier PageClassifier) workflow.Executor {
 	return workflow.NewTypedExecutor(KindStructuredDiscover, func(ctx context.Context, step *workflow.StepContext, input StructuredRunInput) error {
 		input = normalizeStructuredRunInput(input)
 		if err := validateStructuredRunInput(input); err != nil {
@@ -52,6 +53,13 @@ func StructuredDiscoverExecutor(projectionName string) workflow.Executor {
 		pageSpecs := make([]StructuredPageSpec, 0, len(pages))
 		for _, page := range pages {
 			pageInput := StructuredPageWorkflowInput{BookID: input.BookID, RunID: firstNonEmpty(input.RunID, string(step.Workflow().ID)), PageNumber: page.PageNumber, ImagePath: page.ImagePath, WorkDir: input.WorkDir, TurnsDB: filepath.Join(input.WorkDir, "turns.db"), Profile: input.Profile, ProfileRegistries: append([]string(nil), input.ProfileRegistries...), DryRun: input.DryRun, Prompt: promptSpec, Render: renderOpts}
+			if classifier != nil {
+				pageType, strategy, err := classifier.ClassifyPage(page.ImagePath, page.PageNumber)
+				if err != nil {
+					return workflow.Retryable("structured_classify_failed", err)
+				}
+				pageInput.PageTypeHint, pageInput.Strategy = pageType, strategy
+			}
 			stepID := structuredPageStepID(page.PageNumber)
 			if err := seedStructuredPage(ctx, projection, pageInput, stepID); err != nil {
 				return workflow.Retryable("structured_projection_page_seed_failed", err)
@@ -79,7 +87,7 @@ func StructuredDiscoverExecutor(projectionName string) workflow.Executor {
 	})
 }
 
-func StructuredPageExecutor(projectionName string, client StructuredOCRClient) workflow.Executor {
+func StructuredPageExecutor(projectionName string, client StructuredOCRClient, parser ResponseParser, pageValidators []PageValidator) workflow.Executor {
 	if client == nil {
 		client = DryRunStructuredOCRClient{}
 	}
@@ -91,7 +99,7 @@ func StructuredPageExecutor(projectionName string, client StructuredOCRClient) w
 		if err := markStructuredPageRunning(ctx, projection, input); err != nil {
 			return workflow.Retryable("structured_projection_update_failed", err)
 		}
-		pageResult, err := RunStructuredPage(ctx, StructuredOCRInput{BookID: input.BookID, RunID: input.RunID, PageNumber: input.PageNumber, ImagePath: input.ImagePath, WorkDir: input.WorkDir, TurnsDB: input.TurnsDB, TurnsDSN: input.TurnsDSN, Profile: input.Profile, ProfileRegistries: input.ProfileRegistries, DryRun: input.DryRun, Prompt: input.Prompt, Render: input.Render}, client)
+		pageResult, err := RunStructuredPage(ctx, StructuredOCRInput{BookID: input.BookID, RunID: input.RunID, PageNumber: input.PageNumber, ImagePath: input.ImagePath, WorkDir: input.WorkDir, TurnsDB: input.TurnsDB, TurnsDSN: input.TurnsDSN, Profile: input.Profile, ProfileRegistries: input.ProfileRegistries, DryRun: input.DryRun, Prompt: input.Prompt, Render: input.Render, PageTypeHint: input.PageTypeHint, Strategy: input.Strategy, Parser: parser, PageValidators: pageValidators}, client)
 		if err != nil {
 			code := classifyStructuredPageErrorCode(err)
 			_ = markStructuredPageError(ctx, projection, input, code, err)
@@ -248,7 +256,7 @@ func StructuredAssembleExecutor(projectionName string, segmenter ocrquality.Figu
 	})
 }
 
-func StructuredValidateExecutor(projectionName string) workflow.Executor {
+func StructuredValidateExecutor(projectionName string, bookValidators []BookValidator) workflow.Executor {
 	return workflow.NewTypedExecutor(KindStructuredValidate, func(ctx context.Context, step *workflow.StepContext, input StructuredValidateInput) error {
 		var assemble StructuredAssembleResult
 		if len(step.Step().DependsOn) > 0 {
@@ -273,8 +281,16 @@ func StructuredValidateExecutor(projectionName string) workflow.Executor {
 		if err != nil {
 			return workflow.Retryable("structured_projection_short_page_query_failed", err)
 		}
+		var pluginWarnings []ocrvalidation.Warning
+		for _, validator := range bookValidators {
+			extra, verr := validator.ValidateBook(input.BookID, assemble.MarkdownPath, pages)
+			if verr != nil {
+				return workflow.Retryable("structured_book_validator_failed", verr)
+			}
+			pluginWarnings = append(pluginWarnings, extra...)
+		}
 		reportPath := filepath.Join(input.WorkDir, "validation-report.json")
-		result := StructuredValidateResult{BookID: input.BookID, PageCount: len(pages), ExpectedPages: input.ExpectedPages, WarningCount: len(warnings) + len(shortPages), AdjacentDuplicateCaptions: adjacent, ShortPages: shortPages, MinRenderedBytes: input.MinRenderedBytes, ReportPath: reportPath}
+		result := StructuredValidateResult{BookID: input.BookID, PageCount: len(pages), ExpectedPages: input.ExpectedPages, WarningCount: len(warnings) + len(shortPages) + len(pluginWarnings), AdjacentDuplicateCaptions: adjacent, ShortPages: shortPages, PluginWarnings: pluginWarnings, MinRenderedBytes: input.MinRenderedBytes, ReportPath: reportPath}
 		reportBytes, err := json.MarshalIndent(result, "", "  ")
 		if err != nil {
 			return err
@@ -379,6 +395,14 @@ func renderStructuredPDF(ctx context.Context, workDir, markdownPath, pdfPath, pa
 }
 
 func classifyStructuredPageError(err error) error {
+	// An explicit plugin retryability verdict beats string matching.
+	var hinter RetryHinter
+	if errors.As(err, &hinter) {
+		if hinter.RetryableHint() {
+			return workflow.Retryable("structured_plugin_retryable", err)
+		}
+		return workflow.Permanent("structured_plugin_permanent", err)
+	}
 	code := classifyStructuredPageErrorCode(err)
 	switch code {
 	case "structured_image_read_failed", "structured_parse_failed", "structured_page_mismatch":

@@ -103,30 +103,70 @@ func pluginSpecsFromProfile(profilePath string) ([]plugin.Spec, bool, error) {
 	return specs, hasOCRPage, nil
 }
 
-// setupPluginSeams starts the plugin manager (nil when no bindings) and
-// composes the OCR client and figure segmenter for the structured workflow.
-func setupPluginSeams(ctx context.Context, specs []plugin.Spec, workDir string, dryRun bool, baseClient ocrpipeline.StructuredOCRClient) (*plugin.Manager, ocrpipeline.StructuredOCRClient, ocrquality.FigureSegmenter, error) {
+// pluginSeamSet bundles everything the plugin manager contributes to a
+// structured workflow registration.
+type pluginSeamSet struct {
+	mgr            *plugin.Manager
+	client         ocrpipeline.StructuredOCRClient
+	segmenter      ocrquality.FigureSegmenter
+	parser         ocrpipeline.ResponseParser
+	pageValidators []ocrpipeline.PageValidator
+	bookValidators []ocrpipeline.BookValidator
+	classifier     ocrpipeline.PageClassifier
+}
+
+func (s *pluginSeamSet) close() {
+	if s != nil {
+		s.mgr.Close(context.Background())
+	}
+}
+
+func (s *pluginSeamSet) workflowConfig() ocrpipeline.StructuredWorkflowConfig {
+	return ocrpipeline.StructuredWorkflowConfig{
+		Client:         s.client,
+		Segmenter:      s.segmenter,
+		Parser:         s.parser,
+		PageValidators: s.pageValidators,
+		BookValidators: s.bookValidators,
+		Classifier:     s.classifier,
+	}
+}
+
+// setupPluginSeams starts the plugin manager (nil manager when no bindings)
+// and composes every seam adapter for the structured workflow.
+func setupPluginSeams(ctx context.Context, specs []plugin.Spec, workDir string, dryRun bool, baseClient ocrpipeline.StructuredOCRClient) (*pluginSeamSet, error) {
 	mgr, err := plugin.NewManager(ctx, specs, devctlruntime.RequestMeta{RepoRoot: workDir, DryRun: dryRun})
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
-	client := baseClient
+	seams := &pluginSeamSet{mgr: mgr, client: baseClient}
 	if mgr.Has(plugin.OpPromptRender) {
-		if geppetto, ok := client.(*ocrpipeline.GeppettoStructuredOCRClient); ok {
+		if geppetto, ok := baseClient.(*ocrpipeline.GeppettoStructuredOCRClient); ok {
 			geppetto.Prompts = plugin.NewPromptRenderer(mgr)
 		}
 	}
 	if mgr.Has(plugin.OpOCRPage) {
-		client = plugin.NewStructuredOCRClient(mgr, baseClient)
+		seams.client = plugin.NewStructuredOCRClient(mgr, baseClient)
 	}
-	var segmenter ocrquality.FigureSegmenter
 	if mgr.Has(plugin.OpFiguresSegment) {
-		segmenter = plugin.NewFigureSegmenter(mgr)
+		seams.segmenter = plugin.NewFigureSegmenter(mgr)
+	}
+	if mgr.Has(plugin.OpResponseParse) {
+		seams.parser = plugin.NewResponseParser(mgr)
+	}
+	if mgr.Has(plugin.OpValidatePage) {
+		seams.pageValidators = append(seams.pageValidators, plugin.NewPageValidator(mgr))
+	}
+	if mgr.Has(plugin.OpValidateBook) {
+		seams.bookValidators = append(seams.bookValidators, plugin.NewBookValidator(mgr))
+	}
+	if mgr.Has(plugin.OpPageClassify) {
+		seams.classifier = plugin.NewPageClassifier(mgr)
 	}
 	for _, prov := range mgr.Provenance() {
 		fmt.Printf("plugin %s (%s) ops=%v\n", prov.ID, prov.Name, prov.Ops)
 	}
-	return mgr, client, segmenter, nil
+	return seams, nil
 }
 
 func main() {
@@ -415,17 +455,17 @@ func runStructuredRun(args []string) error {
 	if *dryRun {
 		client = ocrpipeline.DryRunStructuredOCRClient{}
 	}
-	mgr, client, segmenter, err := setupPluginSeams(ctx, pluginSpecs, paths.root, *dryRun, client)
+	seams, err := setupPluginSeams(ctx, pluginSpecs, paths.root, *dryRun, client)
 	if err != nil {
 		return err
 	}
-	defer mgr.Close(context.Background())
+	defer seams.close()
 	rt, err := newRuntime(ctx, paths, *maxWorkers, *pollInterval)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = rt.Close() }()
-	if err := ocrpipeline.RegisterStructuredWorkflow(rt, ocrpipeline.StructuredWorkflowConfig{Client: client, Segmenter: segmenter}); err != nil {
+	if err := ocrpipeline.RegisterStructuredWorkflow(rt, seams.workflowConfig()); err != nil {
 		return err
 	}
 	runOpts := []workflow.RunOption{workflow.WithRunName("Structured OCR: " + *bookID)}
@@ -440,7 +480,7 @@ func runStructuredRun(args []string) error {
 	if *dryRun {
 		mode = "dry-run (deterministic fake OCR, no model calls)"
 	} else if hasOCRPagePlugin {
-		mode = fmt.Sprintf("plugin (ocr.page via %s)", mgr.PluginIDFor(plugin.OpOCRPage))
+		mode = fmt.Sprintf("plugin (ocr.page via %s)", seams.mgr.PluginIDFor(plugin.OpOCRPage))
 	}
 	fmt.Printf("mode=%s profile=%q pages=%d-%d max-workers=%d\n", mode, *profile, *startPage, *endPage, *maxWorkers)
 	fmt.Printf("started structured run %s in %s\n", handle.ID, paths.root)
@@ -627,17 +667,17 @@ func structuredRerunPages(args []string) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	structuredClient := ocrpipeline.StructuredOCRClient(ocrpipeline.NewGeppettoStructuredOCRClient())
-	mgr, structuredClient, segmenter, err := setupPluginSeams(ctx, pluginSpecs, paths.root, false, structuredClient)
+	seams, err := setupPluginSeams(ctx, pluginSpecs, paths.root, false, structuredClient)
 	if err != nil {
 		return err
 	}
-	defer mgr.Close(context.Background())
+	defer seams.close()
 	rt, err := newRuntime(ctx, paths, *maxWorkers, *pollInterval)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = rt.Close() }()
-	if err := ocrpipeline.RegisterStructuredWorkflow(rt, ocrpipeline.StructuredWorkflowConfig{Client: structuredClient, Segmenter: segmenter}); err != nil {
+	if err := ocrpipeline.RegisterStructuredWorkflow(rt, seams.workflowConfig()); err != nil {
 		return err
 	}
 	for {

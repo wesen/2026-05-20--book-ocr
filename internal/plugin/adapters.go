@@ -36,13 +36,24 @@ func (c *StructuredOCRClient) OCRPage(ctx context.Context, input ocrpipeline.Str
 		}
 		return c.fallback.OCRPage(ctx, input, imageBytes)
 	}
-	req := OCRPageInput{OpSchema: "ocr.page/v1", BookID: input.BookID, PageNumber: input.PageNumber, ImagePath: input.ImagePath, DryRun: input.DryRun}
+	req := OCRPageInput{OpSchema: "ocr.page/v1", BookID: input.BookID, PageNumber: input.PageNumber, ImagePath: input.ImagePath, DryRun: input.DryRun, PageTypeHint: input.PageTypeHint}
+	// page.classify may route this page to a specific ocr.page plugin
+	// binding; empty strategy uses the default seam binding.
+	pluginID := c.mgr.PluginIDFor(OpOCRPage)
+	call := func(out any) error { return c.mgr.Call(ctx, OpOCRPage, req, out) }
+	if strategy := strings.TrimSpace(input.Strategy); strategy != "" {
+		if !c.mgr.HasPlugin(strategy, OpOCRPage) {
+			return ocrpipeline.StructuredOCRResult{}, fmt.Errorf("page %d routed to unknown ocr.page strategy %q", input.PageNumber, strategy)
+		}
+		pluginID = strategy
+		call = func(out any) error { return c.mgr.CallPlugin(ctx, strategy, OpOCRPage, req, out) }
+	}
 	var out OCRPageOutput
-	if err := c.mgr.Call(ctx, OpOCRPage, req, &out); err != nil {
-		return ocrpipeline.StructuredOCRResult{}, fmt.Errorf("plugin ocr.page (%s): %w", c.mgr.PluginIDFor(OpOCRPage), err)
+	if err := call(&out); err != nil {
+		return ocrpipeline.StructuredOCRResult{}, wrapCallError(fmt.Errorf("plugin ocr.page (%s): %w", pluginID, err))
 	}
 	if len(out.Page) == 0 {
-		return ocrpipeline.StructuredOCRResult{}, fmt.Errorf("plugin ocr.page (%s) returned no page object", c.mgr.PluginIDFor(OpOCRPage))
+		return ocrpipeline.StructuredOCRResult{}, fmt.Errorf("plugin ocr.page (%s) returned no page object", pluginID)
 	}
 	raw := strings.TrimSpace(out.RawResponse)
 	if raw == "" {
@@ -57,7 +68,7 @@ func (c *StructuredOCRClient) OCRPage(ctx context.Context, input ocrpipeline.Str
 		return ocrpipeline.StructuredOCRResult{}, err
 	}
 	inputTurn := &turns.Turn{ID: ocrpipeline.PageTurnID(input.PageNumber, 1, "structured-ocr")}
-	turns.AppendBlock(inputTurn, turns.NewSystemTextBlock(fmt.Sprintf("ocr.page delegated to plugin %q", c.mgr.PluginIDFor(OpOCRPage))))
+	turns.AppendBlock(inputTurn, turns.NewSystemTextBlock(fmt.Sprintf("ocr.page delegated to plugin %q", pluginID)))
 	mediaType := mime.TypeByExtension(strings.ToLower(filepath.Ext(input.ImagePath)))
 	if mediaType == "" {
 		mediaType = "application/octet-stream"

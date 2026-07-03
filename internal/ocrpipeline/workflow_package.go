@@ -17,6 +17,15 @@ type StructuredWorkflowConfig struct {
 	// Segmenter computes figure crops during assembly; nil selects the
 	// built-in ink-band heuristic.
 	Segmenter ocrquality.FigureSegmenter
+	// Parser optionally overrides raw-response parsing (response.parse seam).
+	Parser ResponseParser
+	// PageValidators / BookValidators append plugin warnings to the built-in
+	// validation (validate.page / validate.book seams).
+	PageValidators []PageValidator
+	BookValidators []BookValidator
+	// Classifier runs per discovered page and stamps a page-type hint and
+	// strategy into the page input (page.classify seam).
+	Classifier PageClassifier
 }
 
 func RegisterStructuredWorkflow(rt *workflow.Runtime, cfg StructuredWorkflowConfig) error {
@@ -33,10 +42,10 @@ func RegisterStructuredWorkflow(rt *workflow.Runtime, cfg StructuredWorkflowConf
 		return err
 	}
 	for _, executor := range []workflow.Executor{
-		StructuredDiscoverExecutor(cfg.ProjectionName),
-		StructuredPageExecutor(cfg.ProjectionName, cfg.Client),
+		StructuredDiscoverExecutor(cfg.ProjectionName, cfg.Classifier),
+		StructuredPageExecutor(cfg.ProjectionName, cfg.Client, cfg.Parser, cfg.PageValidators),
 		StructuredAssembleExecutor(cfg.ProjectionName, cfg.Segmenter),
-		StructuredValidateExecutor(cfg.ProjectionName),
+		StructuredValidateExecutor(cfg.ProjectionName, cfg.BookValidators),
 	} {
 		if err := rt.RegisterExecutor(executor); err != nil {
 			return err
