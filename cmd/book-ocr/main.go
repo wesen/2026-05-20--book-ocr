@@ -88,22 +88,36 @@ func run(args []string) error {
 
 func printUsage() {
 	fmt.Fprintf(os.Stderr, `Usage:
-  ocr-mvp run [flags]
-  ocr-mvp [run flags]              # backwards-compatible shorthand for run
-  ocr-mvp status --work-dir DIR --run-id RUN_ID
-  ocr-mvp retry --work-dir DIR --run-id RUN_ID --step-id STEP_ID
-  ocr-mvp resume --work-dir DIR --run-id RUN_ID
-  ocr-mvp cancel --work-dir DIR --run-id RUN_ID
-  ocr-mvp pages --work-dir DIR --book-id BOOK_ID [--status STATUS]
-  ocr-mvp structured-pages --work-dir DIR --book-id BOOK_ID [--status STATUS]
-  ocr-mvp quality-pass --markdown PATH --output-dir DIR [--expected-pages N]
-  ocr-mvp structured-page --book-id BOOK --page N --image PATH --work-dir DIR --dry-run
-  ocr-mvp structured-run --book-id BOOK --image-dir DIR --start-page N --end-page M --work-dir DIR --dry-run
-  ocr-mvp structured-rerun-pages --work-dir DIR --run-id RUN --pages 20,30,31 --render-pdf
-  ocr-mvp vlm-separation benchmark [flags]
+  book-ocr run [flags]
+  book-ocr [run flags]              # backwards-compatible shorthand for run
+  book-ocr status --work-dir DIR --run-id RUN_ID
+  book-ocr retry --work-dir DIR --run-id RUN_ID --step-id STEP_ID
+  book-ocr resume --work-dir DIR --run-id RUN_ID
+  book-ocr cancel --work-dir DIR --run-id RUN_ID
+  book-ocr pages --work-dir DIR --book-id BOOK_ID [--status STATUS]
+  book-ocr structured-pages --work-dir DIR --book-id BOOK_ID [--status STATUS]
+  book-ocr quality-pass --markdown PATH --output-dir DIR [--expected-pages N]
+  book-ocr structured-page --book-id BOOK --page N --image PATH --work-dir DIR [--dry-run]
+  book-ocr structured-run --book-id BOOK --image-dir DIR --start-page N --end-page M --work-dir DIR [--dry-run]
+  book-ocr structured-rerun-pages --work-dir DIR --run-id RUN --pages 20,30,31 --render-pdf
+  book-ocr vlm-separation benchmark [flags]
+
+Structured commands run live model inference by default and require --profile;
+pass --dry-run for the deterministic offline mode.
 
 Run flags include --book-id, --image-dir, --work-dir, --profile, --profile-registries, --prompt-version, --context-window, --log-level, --dry-run, and --max-workers.
 `)
+}
+
+// requireProfileForLiveRun guards the live-by-default structured commands: a
+// live run without an explicit profile would silently resolve to whatever the
+// local Pinocchio default is, which is never what an operator wants for a
+// full-book run.
+func requireProfileForLiveRun(dryRun bool, profile string) error {
+	if dryRun || strings.TrimSpace(profile) != "" {
+		return nil
+	}
+	return fmt.Errorf("live structured OCR requires --profile (or pass --dry-run for the deterministic offline mode)")
 }
 
 func runWorkflow(args []string) error {
@@ -223,12 +237,15 @@ func runStructuredPage(args []string) error {
 	runID := fs.String("run-id", "structured-page", "Run identifier used in turn conv_id")
 	profile := fs.String("profile", "", "Optional Pinocchio profile slug for live structured OCR")
 	logLevel := fs.String("log-level", "info", "zerolog level: trace, debug, info, warn, error, disabled")
-	dryRun := fs.Bool("dry-run", true, "Use deterministic dry-run structured OCR")
+	dryRun := fs.Bool("dry-run", false, "Use deterministic dry-run structured OCR instead of live inference")
 	fs.Var(&registries, "profile-registries", "Pinocchio profile registry source (repeatable or comma-separated)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if err := configureLogLevel(*logLevel); err != nil {
+		return err
+	}
+	if err := requireProfileForLiveRun(*dryRun, *profile); err != nil {
 		return err
 	}
 	if strings.TrimSpace(*bookID) == "" {
@@ -296,7 +313,7 @@ func runStructuredRun(args []string) error {
 	runID := fs.String("run-id", "", "Optional stable workflow run ID")
 	profile := fs.String("profile", "", "Optional Pinocchio profile slug for live structured OCR")
 	logLevel := fs.String("log-level", "info", "zerolog level: trace, debug, info, warn, error, disabled")
-	dryRun := fs.Bool("dry-run", true, "Use deterministic dry-run structured OCR")
+	dryRun := fs.Bool("dry-run", false, "Use deterministic dry-run structured OCR instead of live inference")
 	maxWorkers := fs.Int("max-workers", 2, "Maximum concurrent workflow workers")
 	pollInterval := fs.Duration("poll-interval", 250*time.Millisecond, "Worker polling interval")
 	expectedPages := fs.Int("expected-pages", 0, "Expected page marker count for validation; 0 disables exact check")
@@ -318,6 +335,9 @@ func runStructuredRun(args []string) error {
 	}
 	if strings.TrimSpace(*imageDir) == "" {
 		return fmt.Errorf("--image-dir is required")
+	}
+	if err := requireProfileForLiveRun(*dryRun, *profile); err != nil {
+		return err
 	}
 	absImageDir, err := filepath.Abs(*imageDir)
 	if err != nil {
@@ -349,6 +369,11 @@ func runStructuredRun(args []string) error {
 	if err != nil {
 		return err
 	}
+	mode := "LIVE (model calls will be billed)"
+	if *dryRun {
+		mode = "dry-run (deterministic fake OCR, no model calls)"
+	}
+	fmt.Printf("mode=%s profile=%q pages=%d-%d max-workers=%d\n", mode, *profile, *startPage, *endPage, *maxWorkers)
 	fmt.Printf("started structured run %s in %s\n", handle.ID, paths.root)
 	for {
 		cycle, err := rt.RunOnce(ctx)
@@ -587,12 +612,51 @@ func parsePageList(value string) ([]int, error) {
 	return pages, nil
 }
 
+// knownEngineMigrations pins the engine schema requeueStructuredPages was
+// written against (scraper v0.0.4). The direct SQL below re-implements
+// scheduler invariants by hand; if a scraper upgrade adds a migration we have
+// not reviewed, refuse to mutate the run instead of corrupting it. Delete this
+// guard (and the SQL) once the runtime grows a first-class RequeueSteps API —
+// see ttmp WORKFLOW-RUNTIME-HARDENING-001.
+var knownEngineMigrations = []string{"001_engine_core.sql", "002_engine_runtime.sql"}
+
+func guardEngineSchema(db *sql.DB) error {
+	rows, err := db.Query(`SELECT name FROM schema_migrations ORDER BY version`)
+	if err != nil {
+		return fmt.Errorf("reading engine schema_migrations: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	var names []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return err
+		}
+		names = append(names, name)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	if len(names) != len(knownEngineMigrations) {
+		return fmt.Errorf("engine.db schema %v differs from the schema structured-rerun-pages was written against %v; refusing direct SQL requeue (update book-ocr or use a matching scraper version)", names, knownEngineMigrations)
+	}
+	for i, name := range names {
+		if name != knownEngineMigrations[i] {
+			return fmt.Errorf("engine.db schema %v differs from the schema structured-rerun-pages was written against %v; refusing direct SQL requeue (update book-ocr or use a matching scraper version)", names, knownEngineMigrations)
+		}
+	}
+	return nil
+}
+
 func requeueStructuredPages(paths workPaths, runID model.WorkflowID, pages []int, renderPDF bool, pdfPath string, pandocPath string) error {
 	db, err := sql.Open("sqlite3", paths.engineDB)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = db.Close() }()
+	if err := guardEngineSchema(db); err != nil {
+		return err
+	}
 	tx, err := db.Begin()
 	if err != nil {
 		return err
