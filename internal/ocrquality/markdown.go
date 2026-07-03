@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-var pageMarkerPattern = regexp.MustCompile(`(?m)^<!-- page:(\d{3}) -->\s*$`)
+var pageMarkerPattern = regexp.MustCompile(`(?m)^<!-- page:(\d+) -->\s*$`)
 
 type MarkdownPage struct {
 	Number int

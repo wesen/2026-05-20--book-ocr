@@ -21,6 +21,10 @@ type FigureExtractionOptions struct {
 	ImageDir  string
 	OutputDir string
 	Margin    int
+	// PageGlob locates page images in ImageDir (default "page_*.png"); page
+	// numbers are inferred from the last digit run in each filename, so any
+	// zero-padding width works.
+	PageGlob string
 	// Segmenter computes figure crop rectangles; nil selects the built-in
 	// InkBandSegmenter.
 	Segmenter FigureSegmenter
@@ -62,6 +66,7 @@ func EmbedExtractedFigures(markdown string, opts FigureExtractionOptions) (strin
 	}
 
 	markdown = synthesizeMissingFigureMarkers(markdown)
+	pageImages := indexPageImages(opts.ImageDir, opts.PageGlob)
 
 	var out strings.Builder
 	var figures []FigureExtraction
@@ -78,7 +83,12 @@ func EmbedExtractedFigures(markdown string, opts FigureExtractionOptions) (strin
 		if match := figureMarkerLinePattern.FindStringSubmatch(strings.TrimSpace(line)); len(match) == 2 && currentPage > 0 {
 			figureIndex++
 			desc := strings.TrimSpace(match[1])
-			figure, err := extractPageFigure(currentPage, figureIndex, desc, opts)
+			pagePath, ok := pageImages[currentPage]
+			if !ok {
+				// Legacy fallback for directories that don't match the glob.
+				pagePath = filepath.Join(opts.ImageDir, fmt.Sprintf("page_%03d.png", currentPage))
+			}
+			figure, err := extractPageFigure(currentPage, figureIndex, desc, pagePath, opts)
 			if err != nil {
 				return "", nil, err
 			}
@@ -211,8 +221,7 @@ func isMostlyUpperOrLabel(s string) bool {
 	return letters >= 4 && upper*2 >= letters
 }
 
-func extractPageFigure(pageNumber, figureIndex int, desc string, opts FigureExtractionOptions) (FigureExtraction, error) {
-	pagePath := filepath.Join(opts.ImageDir, fmt.Sprintf("page_%03d.png", pageNumber))
+func extractPageFigure(pageNumber, figureIndex int, desc string, pagePath string, opts FigureExtractionOptions) (FigureExtraction, error) {
 	file, err := os.Open(pagePath)
 	if err != nil {
 		return FigureExtraction{}, err

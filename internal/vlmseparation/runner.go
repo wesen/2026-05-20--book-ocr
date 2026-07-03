@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -194,7 +196,24 @@ func (r *Runner) buildTrialInput(trial Trial) TrialInput {
 	return TrialInput{TrialID: trial.ID, RunID: trial.RunID, BookID: r.Config.BookID, Scenario: trial.Scenario, TargetPage: trial.TargetPage, PreviousPage: trial.PreviousPage, NextPage: trial.NextPage, TargetImagePath: pagePath(r.Config.ImageDir, trial.TargetPage), PreviousImagePath: existingPagePath(r.Config.ImageDir, trial.PreviousPage), NextImagePath: existingPagePath(r.Config.ImageDir, trial.NextPage), PreviousText: fmt.Sprintf("Previous page %03d text context placeholder.", trial.PreviousPage), NextText: fmt.Sprintf("Next page %03d text context placeholder.", trial.NextPage), SessionID: sessionID(trial.TargetPage, trial.Scenario.Name), TurnID: turnID(trial.ID), Oracle: OracleForPage(trial.TargetPage)}
 }
 
+var pageFileNumberRE = regexp.MustCompile(`(\d+)`)
+
+// pagePath resolves the image file for a page by globbing page_*.png and
+// matching on the last digit run of the filename, so any zero-padding width
+// works; falls back to the historical page_%03d.png construction.
 func pagePath(imageDir string, page int) string {
+	matches, err := filepath.Glob(filepath.Join(imageDir, "page_*.png"))
+	if err == nil {
+		for _, match := range matches {
+			nums := pageFileNumberRE.FindAllString(filepath.Base(match), -1)
+			if len(nums) == 0 {
+				continue
+			}
+			if n, err := strconv.Atoi(nums[len(nums)-1]); err == nil && n == page {
+				return match
+			}
+		}
+	}
 	return filepath.Join(imageDir, fmt.Sprintf("page_%03d.png", page))
 }
 func existingPagePath(imageDir string, page int) string {
