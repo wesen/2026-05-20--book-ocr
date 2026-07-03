@@ -27,7 +27,7 @@ Record the Wilensky *Planning and Understanding* pilot: analyzing the Internet A
 
 ## Step 1: PDF analysis
 
-The source is a 200-page IA/LuraDocument digitization (2012) of the 1983 book: scanned page images with a hidden Courier OCR text layer. Sampling with pdftotext showed near-clean prose (page 18 preface), but also the defect signatures that shaped the plugin: literal backslashes for unrecognized 'v' ("reser\ed"), punctuation-only noise lines ("- . ,"), running headers and folios interleaved with content, and no structure of any kind.
+The source is a 200-page IA/LuraDocument digitization (2012) of the 1983 book: scanned page images with a hidden Courier OCR text layer. Sampling with pdftotext showed near-clean prose (page 18 preface), but also the defect signatures that shaped the plugin: literal backslashes for unrecognized 'v' (`reser\ed`), punctuation-only noise lines ("- . ,"), running headers and folios interleaved with content, and no structure of any kind.
 
 ### Prompt Context
 
@@ -49,7 +49,7 @@ The source is a 200-page IA/LuraDocument digitization (2012) of the 1983 book: s
 
 ## Step 2: The text-layer plugin and the pandoc failure
 
-One Python plugin (scripts/textlayer_plugin.py) serves two seams: ocr.page (pdftotext -> cleanup -> paragraph/heading blocks) and prompt.render (cleaned draft embedded in the prompt as untrusted reference). The first full run of variant A failed at the very last step: pandoc/XeLaTeX died on "reser\ed" - the text layer's literal backslash reached assembled.md and became a LaTeX control sequence.
+One Python plugin (scripts/textlayer_plugin.py) serves two seams: ocr.page (pdftotext -> cleanup -> paragraph/heading blocks) and prompt.render (cleaned draft embedded in the prompt as untrusted reference). The first full run of variant A failed at the very last step: pandoc/XeLaTeX died on `reser\ed` - the text layer's literal backslash reached assembled.md and became a LaTeX control sequence.
 
 ### What I did
 - Surveyed backslash occurrences (two in 24 pages, both misread 'v'); added backslash->v to the plugin cleanup (both a correction and a sanitizer); reran variant A to completion.
