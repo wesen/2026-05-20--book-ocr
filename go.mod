@@ -1,13 +1,13 @@
 module github.com/go-go-golems/book-ocr
 
-go 1.26.3
+go 1.26.4
 
 require (
 	github.com/go-go-golems/geppetto v0.11.28
-	github.com/go-go-golems/glazed v1.2.14
+	github.com/go-go-golems/glazed v1.3.6
 	github.com/go-go-golems/pinocchio v0.10.26
 	github.com/go-go-golems/sanitize v0.0.1
-	github.com/go-go-golems/scraper v0.0.0
+	github.com/go-go-golems/scraper v0.0.4
 	github.com/google/uuid v1.6.0
 	github.com/mattn/go-sqlite3 v1.14.42
 	github.com/rs/zerolog v1.35.1
@@ -41,7 +41,8 @@ require (
 	github.com/dop251/goja v0.0.0-20260311135729-065cd970411c // indirect
 	github.com/dop251/goja_nodejs v0.0.0-20260212111938-1f56ff5bcf14 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
-	github.com/go-go-golems/go-go-goja v0.4.16 // indirect
+	github.com/go-go-golems/go-go-goja v0.8.3 // indirect
+	github.com/go-go-golems/logcopter v0.1.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -121,5 +122,3 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
-
-replace github.com/go-go-golems/scraper => ../scraper
