@@ -1,0 +1,5 @@
+go 1.26.4
+
+use /home/manuel/code/wesen/2026-05-20--book-ocr
+
+replace github.com/go-go-golems/scraper => /home/manuel/code/wesen/go-go-golems/scraper

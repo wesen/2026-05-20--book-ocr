@@ -23,6 +23,10 @@ topics:
       description: Geppetto inference engine, turns, blocks, and provider abstraction
     - slug: pinocchio
       description: Pinocchio profile registry, CLI helpers, and turn persistence
+    - slug: book-ocr
+      description: The book-ocr application and repository
+    - slug: productization
+      description: Work to turn a prototype into a shippable product
 docTypes:
     - slug: design-doc
       description: Structured rationale and architecture notes
