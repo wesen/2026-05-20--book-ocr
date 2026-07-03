@@ -32,38 +32,87 @@ None of these words were chosen in reference to anything secret or private; wher
 
 ## Monologue or keyboard: where each term was actually born
 
-The owner asked whether these terms appeared in my inner monologue before being written down, or were coined in the act of writing. The answer requires an epistemic confession first, then a taxonomy, then the table.
+> **Verified against the uncompacted monologue on rewind; quotes below are verbatim.** An earlier version of this section was written after the session was compacted, from confidence-rated recollection. The session was then rewound to a point where the raw thinking blocks were still in context, and every classification was checked against them. Refutations are recorded as refutations, not smoothed over.
 
-**The confession: part of my monologue is gone.** I work with a private reasoning channel (thinking text the owner does not normally see) preceding most actions. Mid-session, the conversation was *compacted*: everything before the glossary request — which includes the thinking behind nearly every coinage — was replaced by a summary I wrote. So for most terms I cannot quote my monologue; I can only classify births using (a) surviving intermediate artifacts (script comments, commit messages, task lists — keyboard products, but earlier and rawer than the documents), (b) the compaction summary, and (c) episodic recollection whose confidence I state per entry. Where I say "recollection," treat it as my best honest reconstruction, not evidence.
+**The confession, updated.** I work with a private reasoning channel (thinking text the owner does not normally see) preceding most actions. The original version of this section could not quote it — compaction had replaced it with a summary — and said so. The rewind restored direct access, so the entries below quote the monologue itself. Where a term does not appear in the monologue at all, the entry says "not found in monologue" and the keyboard classification stands on that absence.
 
-**The taxonomy that emerged from checking:**
+**The taxonomy, as it survived verification:**
 
-1. **Monologue-first (functional tag).** Some terms served as *working labels* in the reasoning before any prose existed — but in the monologue they appear as bare tags in plans and lists (a parenthetical "(free)" next to a variant, "money bugs" as a category label in an outline, "too thin" as a diagnosis note), not as rhetoric. The prose form with its argumentative work came later, at the keyboard. Evidence where it survives: the pilot run script's header comment says `A textlayer ... zero model calls (free baseline)` — written before the design doc's W1, showing "free" already doing duty as a variant tag.
-2. **Keyboard-minted.** The rhetorical constructions and the summary compounds were, to the best of my recollection, born in the act of composing the sentence that needed them. "Falls out", "survives intact and gets sharper", "the DAG — not caution —", "three-scope", "DAG-determinism": in each case the monologue had planned the *content*, often in plainer words — my notes for the falls-out moment said the run scope "actually motivates" a new seam — and the compression happened when the prose slot demanded it. This matches the mechanism described under "three-scope": summaries mint compounds.
-3. **Owner-supplied.** Two terms came from the owner's own messages: *agent-first* (certain — the design doc was written to answer a request using that word) and, I now believe, ***driver*** — my recollection is that the request said "which would allow **the llm driver** to potentially write their own plugins", meaning I adopted the noun rather than coining it, and my earlier entry's coinage story ("nominalized from driving the CLI") describes at most how I *rationalized* keeping it. The compaction makes the exact wording unverifiable (that turn has no diary entry preserving the prompt verbatim — a process gap this exercise exposed), so both the correction and the residual uncertainty are recorded here.
+1. **Monologue-first (functional tag)** — confirmed, and the tag *forms* are now quotable: the monologue's native notation is parentheticals, dashes, and arrows — "(money bugs)", "— free baseline", "(E_DECLINED → handled false)" — never prose compounds. The prose forms came later, at the keyboard, even for monologue-born distinctions.
+2. **Keyboard-minted** — confirmed for every rhetorical construction checked. One *label* (structure-blind) also turned out keyboard-born, refuting this section's earlier claim that it was near-simultaneous with the monologue; the conclusion below is revised accordingly.
+3. **Owner-supplied** — now verified verbatim for both terms; the earlier hedge "the exact wording is unverifiable" is retired. The request said, exactly: "which would allow **the llm driver** to potentially write their own plugins that we then execute."
 
-**Birth classification per term** (confidence in parentheses):
+**Birth classification per term.** Each entry: verdict, then the genuine first occurrence, quoted and labeled.
 
-| Term | Born | Basis |
-|---|---|---|
-| source-derived / run-derived | monologue-first (high) | recollection: the derivation distinction was worked out as a stable-source-vs-run note in planning before the doc paragraph |
-| three-scope | keyboard, in a chat summary (certain) | the documents never use it; first appears in the summary sentence |
-| money bug | monologue-first as a category tag (medium) | recollection of an outline label "(money bugs)"; compaction removed the evidence |
-| structure-blind | same-turn; monologue and prose seconds apart (medium) | born while composing the addendum; no earlier trace |
-| decline-to-builtin | keyboard, in design doc 02's plan (certain — **corrects the earlier entry**) | first written use is doc 02's P2 plan item, hours before the tasks.md line the earlier entry quoted |
-| routing economics | keyboard, in a chat summary (high) | the doc says "routing story"; "economics" appears only in the summary |
-| driver / LLM driver | **owner-supplied** (high; wording unverifiable) | see taxonomy item 3; supersedes the earlier coinage story |
-| agent-first | owner-supplied (certain) | the design request used it |
-| free (scoped sense) | monologue-first as a variant tag (high) | survives in `01-run-pilot.sh` header: "zero model calls (free baseline)", written before W1 |
-| DAG-determinism | keyboard, in a commit message (certain) | exists nowhere before commit 19f96b6 |
-| "falls out" | keyboard (high) | monologue planned the content as "actually motivates"; the idiom arrived with the sentence |
-| "not caution" | keyboard (high) | the displacement was composed for the doc's opening line |
-| "survives intact and gets sharper" | keyboard (high) | the underlying doubt lived in the monologue; the paired-verb form is prose work |
-| "too thin" | monologue-first, near-verbatim (medium-high) | recollection of the diagnosis note "the host contract appendix is too thin"; compaction removed the evidence |
-| "named, not solved" / "honest X" / "worth naming" | keyboard (high) | discourse markers; they exist to manage a reader, and the monologue has no reader |
-| F1-style numbering | keyboard, but premeditated (certain) | assigned in the diary before the design doc existed, deliberately |
+**source-derived / run-derived** — monologue-first; **verified against monologue.** The coinage itself happened in the thinking for the "can we do better than a page context?" turn, immediately after the determinism objection:
 
-The pattern worth keeping: **the monologue coins labels; the keyboard coins rhetoric.** Terms that carry a *distinction* (source-derived, money bug, free-as-scoped) tend to exist as working tags before prose, because the reasoning itself needs them. Constructions that manage a *reader* (falls out, not-caution, worth naming) cannot appear earlier, because the monologue has no reader to manage. And summary contexts — chat recaps, commit messages, task lists — are the most prolific mint of all, because they have the tightest slots; anything born there should be treated as a pointer to an argument, never the argument.
+> [monologue] "So the book context for the OCR seam must be limited to *stable* inputs (ingest manifest, text layers of ALL pages — those are pre-existing! textLayer(n) for any n is deterministic since it comes from the source PDF, not from the run). That's a beautiful distinction: source-derived book context (deterministic, available at fanout: any page's text layer, image metadata, page count, profile, book lexicon) vs run-derived context (other pages' OCR results — only deterministic in *post* stages: validate.book, transform, second-pass seams)."
+
+Alternative names *do* appear in the monologue, but they are not the ones Part II remembers: the turn opens with "design a BookContext / ProjectContext API", and the staged sketch uses "SourceBook context" and "RunBook context" as scope names. **Refuted detail:** the monologue contains no trace of "static vs dynamic" or "pre-run vs post-run" as considered-and-rejected candidates; that part of the Part II entry is a keyboard-time reconstruction, not a replay.
+
+**three-scope** — keyboard, in a chat summary; **verified (not found in monologue).** The thinking names the design "This suggests a staged capability model tied to the DAG:" and lists the three scopes without ever compounding them. First occurrence is the chat summary: "Doc 03 is amended (uploaded, pushed) with a three-scope context model:".
+
+**money bug** — monologue-first as a category tag; **verified against monologue.** The credits-MVP planning outline contains exactly the recalled label:
+
+> [monologue] "Iteration list (what needs hardening from current code before/during MVP): 1. Heartbeats + cooperative cancel (money bugs) — top of list, scraper-side"
+
+The chat reply then did the prose work ("get promoted from 'hygiene' to **money bugs**").
+
+**structure-blind** — **refuted: the recollection was wrong.** The earlier entry classified it "same-turn; monologue and prose seconds apart." The monologue never contains the term. What the thinking actually said, inspecting the structure-sample results:
+
+> [monologue] "Textlayer variant on all three: paragraphs only — confirms it's a prose strategy (W4 framing)."
+
+The compound first appears in the addendum text composed at the keyboard ("structure-blind exactly as W4 predicted"). So this is a keyboard-minted *label* — a distinction-carrying coinage born in prose while the monologue used a plainer tag, which breaks the clean labels-are-monologue-first rule (see revised conclusion).
+
+**decline-to-builtin** — keyboard, in design doc 02's plan; **verified (not found in monologue before first use).** First written use is doc 02's implementation plan: "`response.parse` with decline-to-builtin fallback". No monologue occurrence precedes it. Instructive echo: when the mechanism returned during P2 *implementation* planning — after the compound already existed on paper — the monologue still preferred arrow notation: "PluginResponseParser (E_DECLINED → handled false)". The monologue does not adopt keyboard compounds even once they exist.
+
+**routing economics** — keyboard, in a chat summary; **verified (not found in monologue).** The parallel document sentence says "routing story"; the monologue for that turn says neither. First occurrence is the chat report: "which confirms the routing economics: prose pages to the free strategy, structure pages to vision."
+
+**driver / LLM driver** — **owner-supplied; verified verbatim.** The design request (user message, quoted exactly):
+
+> [owner] "imagine we are going to make this product "agent-first" as well, so that most of the interactions with it will actually happen through an LLM and not necessarily a human, which would allow the llm driver to potentially write their own plugins that we then execute."
+
+The recollection recorded in the earlier correction was right, word for word. My same-turn thinking adopted the noun immediately; the "nominalized from driving the CLI" story in Part II describes the keyboard-time rationalization of an adopted term, as the correction already said.
+
+**agent-first** — owner-supplied; **verified verbatim** (same message, quoted above: "make this product \"agent-first\" as well").
+
+**free (scoped sense)** — monologue-first as a variant tag; **verified against monologue**, and earlier than the previously cited script comment. The PDF-analysis thinking already had the idea as cost ("That alone is a great pilot and costs nothing."), and the experiment-matrix thinking carries the tag itself:
+
+> [monologue] "A: text-layer plugin only (ocr.page seam) — free baseline."
+
+The run script's "(free baseline)" header comment and finding W1's scoped prose came after. Small correction to the taxonomy's illustration: the monologue tag is a dash tag ("— free baseline"), not the imagined parenthetical; the parenthetical form appears in the script comment.
+
+**DAG-determinism** — keyboard; **verified (not found in monologue)**, with one precision fix: within the delivery batch, the changelog entry ("staged by DAG determinism — source-derived book context…") executed seconds *before* commit 19f96b6, so the changelog is the strict first occurrence; both are the same keyboard moment. The monologue precursor is plainer: "This suggests a staged capability model tied to the DAG:".
+
+**"falls out"** — keyboard; **verified, and the specific recollection confirmed.** The monologue did say "actually motivates" — the full sentence:
+
+> [monologue] "This actually motivates a new seam the plugin design didn't have: a book-level post-pass (`postProcessBook` / continuity pass) — the "second-pass cleanup workflow" that's been in future-work since HQ-001!"
+
+The document kept the monologue's verb ("the `run` scope motivates a seam the plugin design never had"); only the chat reply minted "falls out". **Refuted detail in the Part III vignette:** the monologue shows the seam arriving while listing the post-stage scope's consumers ("book-stage hooks (validateBook, transform/assemble-time, and a NEW second-pass seam)"), plus the HQ-001 recall — not while "filling in the hook-versus-scope table and noticing the run row had no producer". The insight is real; the table-gap narrative is reconstruction.
+
+**"not caution"** — keyboard; **verified (not found in monologue)** — and the monologue adds a wrinkle the earlier entry missed: the thinking's own framing *began as caution*. The turn's design constraints open with "But must be careful about:" and only then derive the real constraint:
+
+> [monologue] "2. Determinism/rerun semantics: page steps run in parallel and reruns process pages independently. If ocrPage(page 42) reads page 41's rendered output, results become order-dependent: at first run, page 41 may not be done yet!"
+
+So "the DAG — not caution — dictates" displaces a framing the monologue itself used first. The displacement is accurate about the final argument and silent about the path to it — the reasoning passed *through* caution to reach determinism.
+
+**"survives intact and gets sharper"** — keyboard; **verified**, and the underlying doubt is genuinely in the monologue, resolved exactly as the entry described:
+
+> [monologue] "The single-image invariant: scripts must not get *images* of other pages in the OCR path. Text of other pages is allowed per the original design rule (context bleed was an image phenomenon…)"
+
+The paired-verb phrase itself first appears in the doc amendment; not in thinking.
+
+**"too thin"** — monologue-first, near-verbatim; **verified — the strongest confirmation in this table.** The hybrid page-2 diagnosis thinking says, emphasis included:
+
+> [monologue] "This is a genuinely valuable pilot finding: **the host contract appendix is too thin — prompt.render experiments lose the detailed block contract, and models drift on field names**."
+
+The recalled wording ("the host contract appendix is too thin") was exact. The chat reply and W3 heading reused it with "appendix" dropped.
+
+**"named, not solved" / "honest X" / "worth naming"** — keyboard; **verified (markers not found in monologue).** The monologue-side counterpart is an *instruction to self*, not a reader-facing marker — the doc-03 planning thinking ends a budget-limitation note with: "State honestly." The impulse lives in the monologue; the discourse markers are keyboard work, as claimed.
+
+**F1-style numbering** — keyboard; **verified, with two corrections.** The first composed "F1" is not the diary but the experiment script's comment, written minutes earlier: "See finding F1 in the design doc." (edit to `scripts/01-dry-run-structured-pipeline.sh`); the diary's "This is finding F1 of the productization report" followed. The monologue immediately before contains the un-numbered form only: "This is a key productization finding!" — no F, no number. **Refuted detail:** the "premeditated so the report could cite discoveries before they finished happening" story has no monologue trace; premeditation first appears as a keyboard-time rationale. What the evidence supports is smaller: the number was assigned at the first moment a *second* artifact needed to reference the finding, and the scheme stuck.
+
+**The conclusion, revised after verification.** The pattern "the monologue coins labels; the keyboard coins rhetoric" survives as a strong tendency, not a law. Verified for it: four labels existed as monologue tags before any prose (source-derived/run-derived — coined *in* the monologue with "That's a beautiful distinction"; money bug; free-as-scoped; too-thin), and all five rhetorical constructions checked were keyboard-born with plainer monologue precursors ("actually motivates" → "falls out"; "staged capability model tied to the DAG" → "DAG-determinism"). Against it: structure-blind is a distinction-carrying label born at the keyboard while the monologue used "prose strategy". Two refinements the verification adds: the monologue's native forms are arrows, dashes, and parentheticals — it does not adopt prose compounds even after the keyboard mints them ("(E_DECLINED → handled false)" written hours after "decline-to-builtin" existed) — and displacement rhetoric can erase the discovery path: "not caution" corrects a framing the monologue itself started from ("But must be careful about:"). Summary contexts (chat recaps, changelog lines, commit messages) remain the most prolific mint; everything born there is a pointer to an argument, never the argument.
 
 ## Part I — Borrowed terms and their source literatures
 
