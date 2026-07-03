@@ -26,16 +26,9 @@ builds:
     goarch:
       - amd64
       - arm64
-  - id: book-ocr-darwin
-    env:
-      - CGO_ENABLED=1
-    main: ./cmd/book-ocr
-    binary: book-ocr
-    goos:
-      - darwin
-    goarch:
-      - amd64
-      - arm64
+# Darwin builds need CGO (go-sqlite3) and therefore a macOS runner or the
+# GoReleaser Pro split/merge pipeline; disabled until one of those exists.
+# macOS users: go install github.com/go-go-golems/book-ocr/cmd/book-ocr@latest
 checksum:
   name_template: 'checksums.txt'
 snapshot:
