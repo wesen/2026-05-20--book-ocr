@@ -168,6 +168,8 @@ func run(args []string) error {
 		return structuredRerunPages(subArgs)
 	case "ingest":
 		return runIngest(subArgs)
+	case "init":
+		return runInit(subArgs)
 	case "report":
 		return runReport(subArgs)
 	case "vlm-separation":
@@ -196,6 +198,7 @@ func printUsage() {
   book-ocr structured-run --book-id BOOK --image-dir DIR --start-page N --end-page M --work-dir DIR [--dry-run]
   book-ocr structured-rerun-pages --work-dir DIR --run-id RUN --pages 20,30,31 --render-pdf
   book-ocr ingest --pdf BOOK.pdf --out-dir DIR [--dpi 300] [--grayscale]
+  book-ocr init --book-id BOOK (--pdf BOOK.pdf | --image-dir DIR) [--out-dir DIR]
   book-ocr report --work-dir DIR [--book-id BOOK]
   book-ocr vlm-separation benchmark [flags]
 
