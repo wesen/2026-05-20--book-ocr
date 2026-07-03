@@ -32,3 +32,14 @@ Fixed F1: dropped replace ../scraper, pinned published scraper v0.0.4 (local che
 
 - /home/manuel/code/wesen/2026-05-20--book-ocr/go.mod — F1 fix — published dependency instead of path replace
 
+
+## 2026-07-03
+
+Implementation session: golden renderer+prompt harness; Phase-1 wins (live-by-default with profile guard, usage fix, engine schema guard for rerun); plugin track P1 (internal/plugin on devctl runtime, ocr.page/prompt.render/figures.segment seams, --plugin CLI + profile plugins section, tests + E2E smoke); Phase 2 core (PolicyFromProfile, profiles/report-794.yaml + generic profile, byte-identical equivalence proofs, second-book E2E with zero Go changes); Phase 3 core (ingest via pdftoppm + report); CI build+vet+tests. Seven code commits.
+
+### Related Files
+
+- /home/manuel/code/wesen/2026-05-20--book-ocr/cmd/book-ocr/phase3.go — ingest and report commands
+- /home/manuel/code/wesen/2026-05-20--book-ocr/internal/ocrpipeline/policy.go — Profile-to-policy compiler
+- /home/manuel/code/wesen/2026-05-20--book-ocr/internal/plugin/manager.go — Plugin host core
+

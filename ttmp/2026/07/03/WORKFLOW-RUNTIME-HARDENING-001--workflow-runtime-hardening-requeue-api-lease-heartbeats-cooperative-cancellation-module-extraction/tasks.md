@@ -9,6 +9,6 @@
 
 ## book-ocr-side
 
-- [ ] Item 5 (interim, no release needed): schema-version guard in structured-rerun-pages (refuse unknown schema_migrations) — implemented under BOOK-OCR-PRODUCT-001
+- [x] Item 5 (interim, no release needed): schema-version guard in structured-rerun-pages (refuse unknown schema_migrations) — implemented under BOOK-OCR-PRODUCT-001
 - [ ] Adopt RequeueSteps after Item 1 ships: replace requeueStructuredPages SQL, delete guard
 - [ ] Extend workflow_retry_test with rerun-through-API and slow-executor (heartbeat) scenarios as each item ships

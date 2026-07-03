@@ -364,3 +364,192 @@ The user green-lit step 1 of the plan. It turned out better than expected: scrap
 go.mod before: go 1.26.3 / require scraper v0.0.0 / replace scraper => ../scraper
 go.mod after:  go 1.26.4 / require scraper v0.0.4   (replace removed)
 ```
+
+## Step 8: Golden renderer harness + Phase-1 quick wins (implementation begins)
+
+Implementation started on the approved order. Two commits: the golden-file regression harness that pins renderer behavior before the Phase-2 refactor, and the Phase-1 operational fixes (live-by-default with a profile guard, correct usage text, engine schema guard for rerun).
+
+### Prompt Context
+
+**User prompt (verbatim):** "Create a new docmgr ticket for these points, and we'll address them later. Create a detailed analysis / design / implementation guide that is for a new intern, explaining all the parts of the system needed to understand what it is, with prose paragraphs and bullet point sand pseudocode and diagrams and api references and file references. It should be very clear and technical. Store in the ticket and the nupload to remarkable. Then let's move on with the golden-file, plugins track, phase 2 - 3. etc... Add tasks to the (current) ticket and then implement, commit at appropriate intervals, and keep a diary (see skill)."
+
+**Assistant interpretation:** Park the cross-repo runtime items in a new ticket with an intern guide (done: WORKFLOW-RUNTIME-HARDENING-001, uploaded to reMarkable), then execute the implementation queue in BOOK-OCR-PRODUCT-001 with commits and diary.
+
+**Inferred user intent:** Turn the analysis into working code, keeping the paper trail.
+
+**Commit (code):** 03c76... "Add golden-file regression harness for the structured renderer"; then "Make live inference explicit and guard rerun against engine schema drift"
+
+### What I did
+- `internal/ocrpipeline/renderer_golden_test.go` + 12 fixtures under `testdata/golden/` (page JSON, optional `.opts.json`/`.figures.json` sidecars, `.golden.md` outputs, `-update` regeneration). Covers heading clamping, wrapping, lists (incl. bare-string items), headered/ragged tables, code fencing + empty-code skip, figure marker vs image vs both suppression paths, boxed-items fallback, footnote/footer, blank page, diagram text.
+- `cmd/book-ocr/main.go`: `--dry-run` default false on structured-run/structured-page; `requireProfileForLiveRun` guard; mode banner (LIVE vs dry-run); usage strings `ocr-mvp` → `book-ocr`; `guardEngineSchema` comparing `schema_migrations` names against `{001_engine_core.sql, 002_engine_runtime.sql}` before any rerun SQL.
+
+### Why
+- Goldens are the insurance for Phase 2 and the plugin identity tests; the dry-run flip closes the "first real run silently produces fake output" trap (F6); the schema guard is Item 5 of WORKFLOW-RUNTIME-HARDENING-001 and got urgent when book-ocr switched to published scraper versions.
+
+### What worked
+- Goldens exposed and pinned a subtle existing behavior: the tolerant OCRBlock decoder trims whitespace from diagram_text lines.
+- Guard verified both ways: doctored migration row → refusal with exact names in the error; clean copy → requeue + reassembly succeed. (Rerun stays dry-run-safe because the page executor swaps to DryRunStructuredOCRClient when the persisted step input has DryRun=true, workflow_executors.go:71.)
+
+### What didn't work
+- First golden run failed with a confusing "directory not found" — the persistent shell was still cd'd into the fixtures dir; `go test` must run from the repo root.
+- Guessed migration names ("engine core") were wrong; the real recorded names include the .sql suffix — verified against a live engine.db before committing.
+
+### What I learned
+- Assembled artifact paths in rerun output point at the *original* work dir (WorkDir is baked into op input_json at StartRun) — a pre-existing quirk worth a future task, not a regression.
+
+### What was tricky to build
+- Nothing structural; the main care point was checking real `schema_migrations` contents rather than trusting file names.
+
+### What warrants a second pair of eyes
+- The `--dry-run` default flip is a behavior change for anyone with scripts that relied on implicit dry-run. The mode banner + profile guard are the mitigations.
+
+### What should be done in the future
+- Delete guardEngineSchema together with requeueStructuredPages when RequeueSteps ships upstream.
+
+### Code review instructions
+- `go test ./internal/ocrpipeline -run Golden -count=1`; read two goldens against fixtures; `go run ./cmd/book-ocr structured-run --book-id x --image-dir /tmp` (expect profile error); the two guard experiments from "What worked".
+
+### Technical details
+- Golden regeneration: `go test ./internal/ocrpipeline -run Golden -update`.
+
+## Step 9: Implemented plugin track P1 (ocr.page, prompt.render, figures.segment)
+
+The plugin seams went from design doc 02 to working code. `internal/plugin` imports devctl's `pkg/runtime`+`pkg/protocol` (published v0.0.7 — local checkout exactly at the tag, so D1's import path was clean) and adapts plugins onto the existing strategy interfaces. A Python test plugin OCR'd pages 1–2 of Report 794 through the full workflow.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 8)
+
+**Assistant interpretation:** Execute plugin track P1 per design doc 02.
+
+**Inferred user intent:** Recompile-free OCR experimentation, working today.
+
+**Commit (code):** "Add NDJSON-stdio plugin seams: ocr.page, prompt.render, figures.segment"
+
+### What I did
+- `internal/plugin/{ops.go, manager.go, adapters.go}`: op schemas (`ocr.page/v1` etc.), Manager (spawn, handshake, fail-fast seam-vs-capability validation, first-wins binding, provenance, process-group shutdown), and adapters implementing `ocrpipeline.StructuredOCRClient`, `ocrpipeline.PromptRenderer` (new interface), and `ocrquality.FigureSegmenter` (new interface; `ink-band-v1` extracted as the built-in).
+- CLI: repeatable `--plugin seam=path` on structured-run and structured-rerun-pages; an ocr.page binding lifts the `--profile` requirement; mode banner reports plugin mode.
+- Tests: seam validation, unknown seam, stdout contamination, nil-manager behavior, binding parsing, full RunStructuredPage through a Python plugin (artifact contract + delegation audit turn), page-number gate against a deliberately lying plugin, fallback when seam unbound, host-appended schema contract, plugin-driven figure extraction.
+
+### Why
+- The adapters attach at existing interfaces (D2), so the workflow package needed zero changes beyond threading a segmenter through the assemble executor.
+
+### What worked
+- Whole track passed first full-suite run; CLI smoke produced plugin-authored assembled.md for real Report-794 page images.
+
+### What didn't work
+- My first page-gate test was toothless (the plugin echoed the requested page, so the gate could never fire); fixed by teaching the test plugin to lie for book_id "wrong-page-book".
+
+### What I learned
+- devctl Client exposes Spec()/Handshake(), making provenance trivial.
+- The audit-turn design (system block "delegated to plugin X" + request JSON + the single image) keeps CountTurnImages==1 checkable on the plugin path.
+
+### What was tricky to build
+- Deciding what the 01/02 turn artifacts mean when no model conversation exists: they record what the host handed the plugin, not a fake prompt.
+
+### What warrants a second pair of eyes
+- Error classification of plugin failures currently falls through to the generic classifier; plugin `retryable` hints in error details are not yet mapped (P2 refinement).
+
+### What should be done in the future
+- P2 seams (response.parse, validate.*, page.classify); map plugin error retryable hints onto workflow.Retryable/Permanent.
+
+### Code review instructions
+- Start at `internal/plugin/manager.go` and `adapters.go`; run `go test ./internal/plugin -count=1`; smoke: `go run ./cmd/book-ocr structured-run ... --plugin ocr.page=$PWD/internal/plugin/testdata/test_plugin.py`.
+
+### Technical details
+- devctl dependency: v0.0.7. Binding resolution: first-wins per seam; CLI flags precede profile bindings.
+
+## Step 10: Phase 2 — profile-driven generalization, Report-794 byte-identical
+
+All book-specific policy moved behind `bookprofile`: prompt lexicon/language-note/example into `PromptSpec`, code fence language + figure-suppression cues + boxed-set fallback into extended `RenderOptions`, compiled from a profile by `PolicyFromProfile`. The discover executor resolves `--book-profile` once and stamps the compiled policy into every page input, so policy persists in engine.db and targeted reruns behave identically. `profiles/report-794.yaml` is pinned in-sync with `Report794()` by test; `profiles/generic-technical-book.yaml` is the new-book starting point.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 8)
+
+**Assistant interpretation:** Execute Phase 2 with the goldens as the safety net.
+
+**Inferred user intent:** A new book must be a YAML file, not a code change.
+
+**Commit (code):** "Thread book-profile policy through the structured pipeline"
+
+### What I did
+- Snapshot-first: added a prompt golden (system + user prompt bytes) before touching prompts.go; then refactored prompt assembly to be spec-driven and verified byte-identity.
+- Renderer: cue lists/fence-language/fallback moved into RenderOptions with Report-794 defaults; goldens unchanged.
+- Threading: StructuredRunInput.BookProfile → discover resolves + stamps → page input carries `prompt`/`render` JSON → RunStructuredPage renders with it; profile plugins: section merges with CLI bindings (CLI wins).
+- Equivalence tests: Report-794 profile == builtin defaults (prompt bytes + rendered bytes); generic profile ⇒ plain fences, no lexicon, no suppression.
+
+### Why
+- The stamping design (policy in op input_json) beats config threading: resume and structured-rerun-pages replay the original policy with zero extra plumbing.
+
+### What worked
+- Exit criterion demonstrated live: `structured-run --book-profile profiles/generic-technical-book.yaml --plugin ocr.page=test_plugin.py` produced a two-page book with plain ``` fences — a non-Report-794 book, zero Go changes.
+- Prompt refactor was byte-identical on the first golden run (the Oxford-comma preserve-terms line was the only tricky formatting).
+
+### What didn't work
+- First smoke run appeared to fail with a missing assembled.md — an artifact of piping `go run` through `head -4` (SIGPIPE kills the run). Clean rerun succeeded; worth remembering when smoke-testing long-running CLIs.
+
+### What I learned
+- The tolerant OCRBlock decoder + goldens made this refactor safe to do quickly; the pinned bytes caught nothing because nothing drifted — which is the point.
+
+### What was tricky to build
+- Keeping three prompt-producing paths coherent: builtin spec, profile spec, and plugin prompt.render (which gets the host contract appended). Precedence: plugin renderer > input.Prompt > DefaultPromptSpec.
+
+### What warrants a second pair of eyes
+- DefaultPromptSpec/DefaultRenderOptions still carry Report-794 values as the *no-profile* default (deliberate compatibility choice). Flipping the default to generic should happen with the next major version.
+
+### What should be done in the future
+- Move ocrquality QA/page-naming hardcodes (F4) onto the profile (they already half-read it); type-aware min-rendered-bytes.
+
+### Code review instructions
+- `internal/ocrpipeline/{prompts.go, policy.go, renderer.go}`, `internal/bookprofile/profile.go`; run `go test ./internal/ocrpipeline ./internal/bookprofile -count=1`; regenerate nothing — goldens must pass as-is.
+
+### Technical details
+- Profile YAML pinned by `go test ./internal/bookprofile -run ProfileYAML` (`-update-profiles` to regenerate).
+
+## Step 11: Phase 3 (ingest, report) and CI hardening
+
+The onboarding gap closed: `book-ocr ingest` turns a PDF into the pipeline's `page_NNNN.png` layout via pdftoppm (with a provenance manifest), and `book-ocr report` summarizes a run from its projection and turn store. CI now builds, vets, and tests — and passes from a clean clone since the scraper replace fix.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 8)
+
+**Assistant interpretation:** Continue down the queue: Phase 3 essentials and CI.
+
+**Inferred user intent:** A stranger with a PDF can reach a validated artifact set.
+
+**Commit (code):** "Add ingest and report commands; strengthen CI pipeline"
+
+### What I did
+- `cmd/book-ocr/phase3.go`: runIngest (pdftoppm wrapper, page renaming to `page_%04d.png`, sha256 manifest) and runReport (status counts, warning/table/figure/byte totals, warning codes, turn count).
+- `.github/workflows/push.yml`: build + vet + `go test -count=1`.
+- E2E: generated a 2-page PDF with pandoc → ingest at 150 dpi → structured-run dry-run over the ingested images → assembled.md. The full PDF→book loop now exists.
+
+### Why
+- Ingest was finding F8; report was the minimal F8 observability item (token pricing deferred — open question 5 of design doc 01).
+
+### What worked
+- pdftoppm 24.02 present; rename normalization handles poppler's variable zero-padding.
+- report against the second-book run: 2 pages succeeded, 2 persisted turns.
+
+### What didn't work
+- N/A this step.
+
+### What I learned
+- The existing go-template CI was already correct — it had simply never passed because of F1; the fix was the dependency, not the workflow.
+
+### What was tricky to build
+- Nothing; both commands are thin by design.
+
+### What warrants a second pair of eyes
+- ingest uses 4-digit page names while legacy paths hardcode 3-digit `page_%03d` in a few places (F4, still open) — discovery itself is width-agnostic, but `ocrquality/figures.go:212` and `vlmseparation` are not. Books >999 pages will hit this; tracked in the Phase-2 leftovers.
+
+### What should be done in the future
+- `book-ocr init` (profile bootstrap via discovery) — the remaining Phase-3 item; retire the 3-digit hardcodes (F4); per-profile pricing table for report.
+
+### Code review instructions
+- `cmd/book-ocr/phase3.go`; smoke: `book-ocr ingest --pdf x.pdf --out-dir d && book-ocr structured-run --image-dir d --dry-run ...` then `book-ocr report --work-dir ...`.
+
+### Technical details
+- Manifest: `{source, source_sha256, dpi, grayscale, page_count, page_prefix, created_at, tool}`.

@@ -18,12 +18,21 @@
 - [x] Write plugin-seams design doc (02): seams S1–S8, decisions D1–D4, plugin track P1–P3
 - [x] Re-upload updated bundle to reMarkable
 
+## Implementation queue (2026-07-03 session, in order)
+
+- [x] Golden-file renderer regression harness (fixtures for every block type incl. figure suppression; pins behavior before Phase-2 refactor)
+- [x] Phase-1 quick wins: flip --dry-run default to false (+ --live docs), fix ocr-mvp usage strings, engine schema-version guard in structured-rerun-pages
+- [x] Plugin P1: internal/plugin manager on devctl pkg/runtime+protocol; ocr.page + prompt.render seams; FigureSegmenter extraction + figures.segment; profile plugins: section; --plugin override; adversarial + identity tests
+- [x] Phase 2 (core): CodePolicy/RenderPolicy/PromptSpec in bookprofile, prompts/renderer threaded via PolicyFromProfile + discover-time stamping, profiles/report-794.yaml pinned in sync; goldens stayed byte-identical (leftovers: ocrquality QA/page-naming F4, generic dry-run fixtures, Cobra CLI)
+- [x] Phase 3: book-ocr ingest (pdftoppm) + report (tokens/warnings from projection+turns)
+- [x] CI workflow (build + vet + tests; E2E dry-run covered by package tests)
+
 ## Productization roadmap (from the design doc — future work)
 
-- [ ] Phase 1: publish/tag workflow runtime, drop go.mod replace (F1); CI from clean clone (F9); flip --dry-run default + fix ocr-mvp usage strings (F6); goreleaser v0.1.0
-- [ ] Phase 2: profile-driven generalization — extend bookprofile (CodePolicy/RenderPolicy/LexiconPolicy), thread profile through prompts/renderer/QA (F2–F4), golden Report-794 regression tests, generic dry-run fixtures, Cobra/Glazed CLI
+- [x] Phase 1 (except goreleaser tag): scraper v0.0.4 published dep (F1), CI green from clean clone (F9), --dry-run default flipped + usage fixed (F6); TODO: goreleaser v0.1.0 tag
+- [x] Phase 2 (core): profile-driven prompts+renderer via PolicyFromProfile, profiles/report-794.yaml + generic-technical-book.yaml, golden equivalence proofs (leftovers: ocrquality QA/page-naming F4, Cobra/Glazed CLI, generic dry-run fixtures)
 - [ ] Phase 3: book-ocr ingest (pdftoppm) + init (profile bootstrap via discovery) + report (tokens/cost) + user docs (F8)
 - [ ] Phase 4: first-class RequeueSteps rerun API (F5), audit command (F7), review-PDF mode, lease heartbeat/cancellation upstream requests, optional local review UI
-- [ ] Plugin track P1: internal/plugin manager (import devctl pkg/runtime), ocr.page + prompt.render + figures.segment seams, profile plugins: section, reference plugins
+- [x] Plugin track P1: internal/plugin manager (import devctl pkg/runtime), ocr.page + prompt.render + figures.segment seams, profile plugins: section, reference plugins
 - [ ] Plugin track P2: response.parse, validate.page/book chain, page.classify routing
 - [ ] Plugin track P3: markdown.transform, ingest.pages hook, plugin cookbook doc
