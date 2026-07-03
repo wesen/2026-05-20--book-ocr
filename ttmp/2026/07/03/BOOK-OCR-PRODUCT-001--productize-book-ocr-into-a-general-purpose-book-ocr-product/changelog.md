@@ -59,3 +59,8 @@ Second implementation session: F4 page-naming fix (glob-based image resolution +
 
 Released v0.1.0 (OSS goreleaser, linux amd64+arm64 deb/rpm/tar.gz) after converting the Pro-only release pipeline; verified scraper's operator web UI serves a book-ocr engine.db via scraper api serve --engine-db.
 
+
+## 2026-07-03
+
+Added design doc 03: goja scripting as the in-process extension surface. Key findings: capability-allowlist sandbox by construction (xgoja app posture); geppetto JS module (in the already-pinned v0.11.28) provides LLM/VLM calls with user credentials + turn-store parity; goja-text supplies the parse/validate toolkit; interrupt watchdog must be host-built; no memory cap (honest gap). Scripts mirror the plugin seams one-to-one; plugins remain for polyglot/CV and memory-isolated hosted execution. Plan G1-G4.
+
