@@ -54,3 +54,8 @@ Second implementation session: F4 page-naming fix (glob-based image resolution +
 - /home/manuel/code/wesen/2026-05-20--book-ocr/internal/ocrpipeline/hooks.go — Seam interfaces incl. RetryHinter
 - /home/manuel/code/wesen/2026-05-20--book-ocr/internal/plugin/adapters_p2.go — P2 seam adapters
 
+
+## 2026-07-03
+
+Released v0.1.0 (OSS goreleaser, linux amd64+arm64 deb/rpm/tar.gz) after converting the Pro-only release pipeline; verified scraper's operator web UI serves a book-ocr engine.db via scraper api serve --engine-db.
+

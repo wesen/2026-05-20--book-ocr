@@ -648,3 +648,43 @@ The P2 seams landed with per-page strategy routing as the headline: a page.class
 
 ### Technical details
 - Smoke: profile with plugins [main: ocr.page+page.classify+validate.page+validate.book, alt-ocr: ocr.page]; assembled.md shows "ALT strategy output for page 2" between default-binding pages 1 and 3; validation-report.json plugin_warnings: [{code: book_checked, message: "[plugin/main] checked 3 pages"}].
+
+## Step 14: v0.1.0 released; scraper web UI verified against a book-ocr work dir
+
+Pushed main + tag. The first release run failed in 32s — the template's release.yaml used GoReleaser Pro split/merge across linux+macOS runners and the repo has no GORELEASER_KEY secret. Converted to a single-runner OSS pipeline (linux amd64+arm64, deb/rpm/tar.gz; darwin disabled with a go-install note), retagged, and v0.1.0 published cleanly in 3m27s. Also answered "do we have a web UI?" empirically: scraper's operator UI reads any engine.db.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, go ahead. do we already have a webUI, btw?"
+
+**Assistant interpretation:** Push the release, and determine what web UI exists today.
+
+**Inferred user intent:** Ship v0.1.0; understand the review-UI gap.
+
+**Commit (code):** "Convert release pipeline to OSS goreleaser, linux-only artifacts"
+
+### What I did
+- Pushed main + v0.1.0; diagnosed the Pro-key failure from the run log; rewrote release.yaml (OSS distribution, one ubuntu job) and commented out the darwin CGO build in .goreleaser.yaml; deleted/re-pushed the tag; release published with 6 linux assets.
+- Noted Secret Scanning also fails on multi-commit pushes ("BASE and HEAD commits are the same" — trufflehog action quirk, not a leak).
+- Web UI probe: `scraper api serve --engine-db /tmp/book-ocr-p2-smoke/engine.db --sites-dir ... --events-sessionstream-db ...` served our structured run at /api/v1/workflows (full run + input JSON) — the React UI (EngineOverview/Workflows/WorkflowDetail/QueueMonitor pages) consumes exactly this API.
+
+### What worked
+- Release green on the second tag push; the API returned the book-ocr run verbatim.
+
+### What didn't work
+- First probe: scraper has no `serve` subcommand (it's `api serve`); then two relative default DB paths (`state/sites`, `state/runtime-events-sessionstream.db`) had to be pointed at writable dirs; and the ops endpoint needs the workflow ID URL-escaped (book-ocr run IDs contain a slash).
+
+### What I learned
+- book-ocr has no web UI of its own; scraper's operator UI works read-mostly against a book-ocr work dir out of the box, but it shows workflow/step/artifact state — not the OCR review UX (page thumbnails, source-vs-render, rerun buttons) that design doc 01 defers to Phase 4 as `book-ocr serve`.
+
+### What warrants a second pair of eyes
+- Whether to fix the trufflehog workflow (fetch-depth/base config) or drop it.
+
+### What should be done in the future
+- Phase-4 `book-ocr serve` for the review UX; possibly reuse scraper's web components for the workflow-state half.
+
+### Code review instructions
+- `.github/workflows/release.yaml` + `.goreleaser.yaml` diff; https://github.com/wesen/2026-05-20--book-ocr/releases/tag/v0.1.0
+
+### Technical details
+- Assets: book-ocr_0.1.0_linux_{amd64,arm64}.{tar.gz,deb,rpm} + checksums.
