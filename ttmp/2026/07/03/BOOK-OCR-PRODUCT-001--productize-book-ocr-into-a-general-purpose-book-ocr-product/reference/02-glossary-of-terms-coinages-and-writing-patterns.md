@@ -94,53 +94,183 @@ None of these words were chosen in reference to anything secret or private; wher
 
 ## Part II — Coinages specific to this project
 
-**source-derived vs run-derived** — The load-bearing pair in the script-context design. *Source-derived*: data fully determined by the input artifact (the PDF, the profile) before any OCR runs — e.g. any page's text layer. *Run-derived*: data produced by this run's execution — e.g. page 41's rendered Markdown. I coined the pair because the sandbox question ("which context may a hook read?") reduces to a determinism question, and I wanted the names themselves to carry the answer: source-derived data is order-independent and therefore safe everywhere; run-derived data is only stable after the stage that produces it. The words are ordinary; the *distinction* is the invention, and naming it let one table replace a page of case-by-case argument.
+Each entry has three parts: the definition, **what I was actually thinking or doing at the moment the term appeared** (reconstructed from memory of this session — where I am reconstructing rather than replaying, I say so), and the exact first written use.
 
-**three-scope / layered context (page, book, run)** — The `bookocr` module's context object, organized as three nested visibility scopes. "Scope" is borrowed from lexical scoping in programming languages (a name is visible in some region and not others); "layered" from layered architecture. Coined as a structure, not a metaphor: each hook sees exactly the scopes whose contents are deterministic at its DAG position.
+**source-derived vs run-derived** — *Source-derived*: data fully determined by the input artifact (the PDF, the profile) before any OCR runs. *Run-derived*: data produced by this run's execution. The distinction is the invention; the words are ordinary.
 
-**money bug** — A correctness bug whose consequences become financial once usage is metered: lease expiry causing duplicate model calls, cancellation not stopping in-flight inference. Coined during the credits-MVP analysis to explain a *priority inversion*: these were known, tolerable hygiene items for a personal tool, and the coinage marks the exact moment they change category. Built on the plain-English pattern of "X bug" (heisenbug, security bug).
+*What I was thinking:* The owner had just asked "can we do better than a page context? we have context for the entire book/project, no?" and my immediate internal objection was a race: page steps run in parallel, so during `ocrPage(42)`, page 41 may be unfinished — and a targeted rerun months later sees a completely different neighborhood, which breaks the promise that reruns reproduce pages. I was about to write "scripts can only get book context in post-stages" when the exception surfaced: the text layer doesn't have this problem, because it comes from the PDF, which exists *before* the run. That flipped the design question from "when is data available?" to "what does the data derive from?" — availability is racy, derivation is causal. I considered "static vs dynamic" (rejected: both words are saturated in programming), and "pre-run vs post-run" (rejected: temporal framing invites "well page 41 IS done by now" arguments), and chose derivation because it makes the determinism argument inherent to the noun: if it derives from the source, no execution order can change it.
 
-**structure-blind** — Description of the text-layer strategy: it reproduces prose but cannot perceive layout (headings, tables, figures) because the PDF text layer contains none. Coined on the model of "color-blind": capable in general, insensitive to one specific dimension.
+*First written use* (design doc 03, "The context model: page, book, run"):
 
-**decline-to-builtin** — The `response.parse` seam's fallback semantics: a plugin answers `E_DECLINED` and the built-in parser takes over, so plugins handle only formats they recognize. Coined to name the *protocol outcome that is not an error* — ordinary error vocabulary ("fail", "reject") would wrongly imply something went wrong.
+> **`book`** — *source-derived* context, immutable from the moment discovery completes and therefore safe everywhere: the compiled profile view (lexicon, policies), the ingest manifest (source hash, DPI, page count), and crucially `book.textLayer(n)` / `book.imageInfo(n)` for **any** page — the text layer comes from the source PDF, not from the run, so reading page 41's text layer while OCRing page 42 is deterministic regardless of execution order.
 
-**routing economics** — The cost consequence of `page.classify` strategy routing: prose pages to the free text-layer strategy, structure pages to the paid vision model. Coined by compounding; the underlying observation (per-page marginal cost differs by strategy, so routing is a cost decision) needed a two-word handle for the credits discussion.
+**three-scope / layered context (page, book, run)** — The `bookocr` module's context as three nested visibility scopes, each hook seeing exactly the scopes deterministic at its DAG position.
 
-**driver / LLM driver** — The agent operating the product: reading outputs, acting on errors, writing plugins/scripts. Chosen over "user" (which implies a human) and "agent" alone (overloaded). The image is of *driving* the CLI — the term came from describing this session itself ("an LLM drove the CLI end to end"), then hardened into a role name. Not a reference to device drivers, though the resonance (a component that operates another through a defined interface) is apt and welcome.
+*What I was thinking:* While structuring the same amendment, the three context kinds arranged themselves like lexical scopes — an inner scope sees the outer ones, and visibility is a property of *where you stand*, which is exactly how the hook table works (where you stand in the DAG determines what you may read). "Layered" went into the doc; "three-scope" appeared only afterwards, while writing the chat summary, where I needed the whole design as a two-word noun phrase. It is a summary artifact, not a design term — which is itself worth knowing about my summaries: they mint compounds the documents never used.
 
-**agent-first** — A product designed so that the primary operator is an LLM driver, with humans second. Coined on the established "-first" template (mobile-first, API-first, offline-first): the suffix signals a design-priority inversion, which is exactly the claim.
+*First written use* (chat, reporting the amendment):
 
-**free (as in "free validation oracle", "free baseline")** — Zero *marginal model cost*, not zero effort: the text layer costs no inference tokens because the source PDF already contains it. The economic sense from "free as in beer", scoped deliberately to the metered resource. Flagged here because the word does real argumentative work in the pilot findings and could read as sloppy if taken to mean "no work at all".
+> Doc 03 is amended (uploaded, pushed) with a three-scope context model:
 
-**DAG-determinism ("staged by DAG determinism")** — Shorthand for the rule that a hook's readable context is determined by its position in the workflow graph such that every read is order-independent. A compression of the full argument in doc 03's context-model section; the phrase exists so tables and summaries can cite the rule without restating it.
+**money bug** — A correctness bug whose consequences become financial once usage is metered.
 
-**ink-band, context bleed, hard-cut** — Inherited, not coined by me, but glossed here because they confuse newcomers equally: *ink-band* is the repo's own name for its pixel-row figure-segmentation heuristic (`figures.go`, method tag `ink-band-v1`); *context bleed* is the May tickets' name for the defect where neighboring page images leaked content into a target page's OCR; *hard-cut* is geppetto's own name for its deliberately narrowed JS API (their test files use the term). When a codebase already names a thing, I keep its name.
+*What I was thinking:* The owner asked what a credits-based product would need, and I was re-reading the runtime-hardening list I had written hours earlier through that new lens. Lease expiry causing duplicate execution had been filed as hygiene — annoying, mitigated by idempotent writes. Under metering, a duplicated model call is a duplicated charge: either the user pays twice or the margin eats it. I needed to express that the *bug was unchanged but its category moved*, and a category needs a name. "Billing bug" was the first candidate; I rejected it as too narrow (it suggests defects in invoicing code, not in the scheduler). "Money bug" is blunter and covers both directions of the loss. The "X bug" template (heisenbug, security bug) made it instantly parseable.
+
+*First written use* (chat, credits-MVP analysis; the vault article later echoes it as "change category if the product ever meters usage"):
+
+> Two items from WORKFLOW-RUNTIME-HARDENING-001 get promoted from "hygiene" to **money bugs**: 1. **Lease heartbeats** — a slow page step getting re-leased means duplicate model calls. Today that's your `/tmp` dir and your API key; in a credits product it's double-billing users or eating margin.
+
+**structure-blind** — The text-layer strategy's specific incapacity: perfect prose reproduction, zero perception of layout.
+
+*What I was thinking:* I was staring at the structure-sample comparison — the textlayer column showing `paragraph(466), paragraph(346)…` on a page whose VLM column showed headings, a code block, a figure. The finding wasn't "the text layer is worse"; on prose it had just tied the model byte-for-byte. The deficit was *dimensional*: one capability missing, everything else intact. "Color-blind" is the everyday word for exactly that shape of deficit, so the template transferred directly. I wanted the word to protect the strategy from being dismissed ("it's bad at structure" reads as general weakness; "structure-blind" reads as a known scope).
+
+*First written use* (pilot design doc 01, structure-sample addendum):
+
+> The textlayer variant emitted paragraphs on all three pages — structure-blind exactly as W4 predicted, confirming the routing story: prose pages to the free strategy, structure pages to vision.
+
+**decline-to-builtin** — The `response.parse` fallback semantics: a plugin answers `E_DECLINED` and the built-in parser takes over.
+
+*What I was thinking:* Designing the parse seam, I kept hitting the same wording problem: every verb I reached for ("fails over", "rejects", "errors out") implied malfunction, but the whole point of `E_DECLINED` is that declining is a *successful* outcome — the plugin correctly recognized a format as not-its-business. When P2 shipped and I was compressing it into the task list, I needed the mechanism as a modifier and built the hyphenated compound on the "fail-open/fail-closed" pattern: direction-of-fallback encoded in the term.
+
+*First written use* (BOOK-OCR-PRODUCT-001 tasks.md, P2 completion entry):
+
+> Plugin track P2: response.parse (decline-to-builtin), validate.page/book (tagged, additive), page.classify with per-page strategy routing, plugin retryable-hint classification
+
+**routing economics** — The cost consequence of per-page strategy routing: routing pages between free and paid strategies is a spending decision.
+
+*What I was thinking:* Writing the structure-sample chat summary, I was connecting two results produced hours apart: the credits analysis (cost per page is the metering unit) and the fresh evidence that the free strategy ties the paid one on prose. The connection *is* the product feature — classify-then-route decides where money goes — and I wanted the reader to see the economics and the routing as one object, not two observations. The doc version says "routing story"; "economics" is the variant the money-focused summary kept, and it is the better word because "story" claims narrative while "economics" claims arithmetic.
+
+*First written use* (chat, structure-sample report; the doc's parallel sentence is quoted under structure-blind above):
+
+> The text-layer variant emitted plain paragraphs on all three pages — structure-blind exactly as predicted, which confirms the routing economics: prose pages to the free strategy, structure pages to vision.
+
+**driver / LLM driver** — The agent operating the product: reading outputs, acting on errors, writing extension code.
+
+*What I was thinking:* Writing the agent-first doc's opening, I had just *been* the thing I was naming — I had spent the pilot parsing zerolog lines, hand-writing a wrapper script and a comparison harness. "User" was wrong (implies a human at a terminal); "agent" was already taken twice over (the product's own plugins, and geppetto's `agent()` API). The verb was already in my draft sentence — "operated end to end by an LLM agent *driving* the CLI" — and nominalizing a verb I had already committed to felt more honest than importing a new noun. The device-driver resonance (a component operating another through a defined interface) was noticed after the fact and kept because it was apt, not because it was the source.
+
+*First written use* (pilot design doc 02, Executive Summary):
+
+> The Wilensky pilot was operated end to end by an LLM agent driving the CLI — which makes it a field study of exactly the product mode this document designs for. Every friction the operator hit is a friction any driver, human or agent, will hit…
+
+**agent-first** — A product whose primary operator is an LLM driver, humans second. **Not my coinage** — it is the repository owner's term, from the request that started the design: "imagine we are going to make this product 'agent-first' as well, so that most of the interactions with it will actually happen through an LLM."
+
+*What I was thinking on adoption:* The term slotted into the established "-first" template (mobile-first, API-first, offline-first), which carries a precise meaning — not "supports X" but "designs for X first and lets the other audiences inherit" — and that was exactly the claim the document needed to defend, so I kept the owner's word rather than translating it.
+
+*First written use by me* (pilot design doc 02, frontmatter Summary):
+
+> …followed by the agent-first product design — machine-readable surfaces, a run manifest, a plugin authoring loop for LLM drivers, and the sandboxing/provenance model for executing agent-written plugins.
+
+**free (as in "free strategy", "free validation oracle")** — Zero *marginal model cost*, not zero effort.
+
+*What I was thinking:* Writing finding W1 I caught myself about to overclaim. "Free" is rhetorically powerful and therefore suspect — the text layer costs ingest time, cleanup code, and its own defects (the backslash broke the PDF build). What is genuinely zero is inference tokens, which happens to be the exact resource a credits product meters. So I kept the strong word but spent the sentence scoping it, and flagged it in this glossary because a reader who catches an unscoped "free" is right to distrust the surrounding argument.
+
+*First written use in this scoped sense* (pilot design doc 01, finding W1):
+
+> **W1 — The text layer is a competitive free strategy for prose.** For prose-dominant scanned books with IA-quality text layers, `ocr.page=textlayer` produces model-equivalent body text at zero cost.
+
+**DAG-determinism ("staged by DAG determinism")** — Shorthand: a hook's readable context is fixed by its workflow-graph position such that every read is order-independent.
+
+*What I was thinking:* Commit messages force the harshest compression in the whole workflow — the full argument was two paragraphs in the doc, and the commit subject-body format wanted it in one clause that a future `git log` reader could act on. "Staged" carries the DAG-position half; "determinism" carries the why. This is the same summary-mints-compounds behavior as "three-scope": the term exists because a *pointer* to the argument was needed, and it should always be read as a pointer, never as the argument.
+
+*First written use* (commit 19f96b6):
+
+> The script context is staged by DAG determinism: source-derived book context (profile, manifest, any page's text layer) is safe in every hook because it precedes the run; run-derived cross-page output is readable only in post-assembly hooks, keeping page steps and targeted reruns order-independent.
+
+**ink-band, context bleed, hard-cut** — Inherited, not coined by me: *ink-band* is the repo's May name for its pixel-row figure segmentation (`ink-band-v1`, `ocrquality/figures.go`); *context bleed* is the May tickets' name for neighbor-page images leaking content into a target page's OCR; *hard-cut* is geppetto's own name for its deliberately narrowed JS API (`module_hardcut_test.go`). When a codebase already names a thing, I keep its name — renaming inherited concepts costs every future reader a translation table.
 
 ## Part III — Writing patterns (the compressed constructions)
 
-These are rhetorical habits, not technical terms. Each entry shows the pattern, what it compresses, and why I reach for it.
+Same three parts per entry: what the pattern compresses, what I was thinking when it first did its work, and the sentence itself.
 
-**"a new seam falls out"** — "Falls out" is a mathematics idiom: a result that arrives as a corollary, without additional machinery, once the right structure is in place. The sentence compresses: *we did not set out to design `postProcessBook`; once the run scope existed for validators, the post-pass seam required no further invention*. I use "falls out" specifically to mark design elements that are consequences rather than decisions — the distinction matters for review, because you argue with decisions differently than with corollaries.
+**"a new seam falls out"** — Mathematics idiom: a result arriving as a corollary, without additional machinery, once the right structure exists. I use it to mark design elements that are *consequences* rather than *decisions*, because reviewers argue with those differently.
 
-**"the DAG — not caution — dictates" / the "X, not Y" contrast** — A pre-emptive strike against the most likely objection. When a design looks conservative (scripts can't read neighbor OCR output), a reader's first hypothesis is timidity. The construction names the actual constraint (parallel execution order, rerun reproducibility) and explicitly displaces the assumed one. I use it whenever the *reason class* for a restriction is likely to be misattributed. The em-dash interruption is deliberate: it makes the displacement impossible to skim past.
+*What I was thinking:* `postProcessBook` genuinely was not premeditated. I was filling in the hook-versus-scope table for the doc-03 amendment and noticed the `run` row had validators as consumers but no *producer-of-output* seam — and simultaneously remembered that "second-pass cleanup workflow" had been sitting in the repo's future-work lists since the May HQ-001 ticket. The seam wasn't designed; it was the intersection of a scope that now existed and a need that had always existed. "Falls out" was chosen to report exactly that: I wanted credit assigned to the structure, not to me, because a reviewer should probe the structure (is the `run` scope sound?) rather than the seam (which follows if it is).
 
-**"survives intact and gets sharper"** — Compresses two separate claims about the single-image invariant under the new context model: (1) *intact* — no part of the old rule is weakened; (2) *sharper* — the rule's boundary is now more precisely drawn (it was always about images, and the design now makes text context an explicit, visible decision instead of an undifferentiated prohibition). The pairing exists because refactors are usually suspected of eroding old guarantees; the sentence asserts the opposite in both directions at once.
+*First written use* (chat, answering "can we do better than a page context?"; the doc states it as "the `run` scope motivates a seam the plugin design never had"):
 
-**"two consequences are worth naming" / "worth a comment" / "worth naming"** — A discourse marker announcing deliberate selection: out of everything that follows from the preceding design, these are the non-obvious items a reviewer would want surfaced. It comes from code-review culture ("this deserves a comment") and from mathematical writing ("we remark that…"). The function is honesty about curation — signaling that the list is chosen, not exhaustive, and inviting the reader to trust that omitted consequences were judged routine.
+> **The payoff: a new seam falls out.** Giving post-stages the `run` scope makes `postProcessBook` the natural home for the second-pass cleanup that's been sitting in future-work since HQ-001…
 
-**"too thin" (the host contract is too thin)** — Thin/fat as a measure of how much a boundary specifies or does: a *thin* contract names categories but not shapes; a *thin wrapper* adds no behavior. Standard software vernacular (thin client, thin wrapper), applied to the appended prompt contract whose thinness caused the W3 schema drift. The fix is correspondingly to "fatten" it — same axis, opposite direction.
+**"the DAG — not caution — dictates" / the "X, not Y" contrast** — Names the actual constraint while explicitly displacing the one the reader was about to assume.
 
-**"the honest X" ("the honest division", "the honest gap", "honest quality assessment")** — A marker that the following statement includes the unflattering part deliberately: goja's missing memory cap, the pilot's undersampling, the division of labor where plugins keep real advantages. The habit exists because design documents drift toward advocacy; tagging the counter-inventory as "honest" holds a slot for it that advocacy cannot quietly delete.
+*What I was thinking:* The owner's question ("can we do better than a page context?") carried a gentle implication that the page-only design had been unambitious. The honest answer was "yes, much better — except for one restriction that will look like the same unambition unless I get ahead of it." Restricting page-stage hooks from run-derived data *looks* like safety-culture reflex; it is actually forced by parallel execution and rerun reproducibility. The em-dash interruption exists so the displacement physically interrupts the sentence — a subordinate clause ("which is not merely caution") can be skimmed; a dash pair cannot.
 
-**"named, not solved"** — The explicit admission that a risk has been identified and characterized but no mitigation is being claimed. Used for the memory-cap gap. It protects against the most common design-doc failure: a risks section whose entries all secretly end "…but it's fine".
+*First written use* (design doc 03, opening the context-model section):
 
-**"load-bearing"** — From structural engineering via programming slang (a "load-bearing comment" is one whose removal breaks something surprisingly). A fact or dependency is load-bearing when other parts of the argument rest on it: "the dependency direction is load-bearing" means several later guarantees silently assume it. I use it to warn future editors what not to casually change.
+> A page-only context undersells what the host knows. The system holds context at three scopes, and the workflow DAG — not caution — dictates which scope each hook may see:
 
-**"sharp edge"** — A property of a tool that injures users who merely brush against it — e.g. `--dry-run` silently defaulting to fake output on a user's first real run. Usability vernacular (common in developer-experience writing). Distinct from a bug: the behavior is intended, the injury is not.
+**"survives intact and gets sharper"** — Two claims about a constraint under a new design: nothing weakened, boundary more precisely drawn.
 
-**"the engine room is healthy" / "fossil record" / "pressure valve"** — Residual metaphors (ship's engine room = the internal machinery as opposed to the packaging; fossil record = the code's shape preserving its history of failures; pressure valve = a mechanism that relieves demand on a contended resource). The textbook style used for the vault article bans analogies, and these three predate or escaped that rule in ticket prose. They are decoration, not argument; nothing depends on them, and this glossary is their apology.
+*What I was thinking:* While writing the `book.textLayer(n)` design I had an actual moment of doubt: does letting an OCR script read *any* page's text violate the single-image invariant — the empirically-justified rule the whole May redesign rests on? I went back through it: the rule, and the vlm-separation benchmark behind it, concerned neighbor *images*; text context was a separate benchmark scenario that behaved. So the new design didn't erode the invariant — it revealed the invariant's true boundary (images, not context in general) and made the text-context decision explicit instead of incidental. "Survives intact" answers the doubt I actually had; "gets sharper" reports the bonus. The pairing exists because I wanted the reader to traverse the same doubt-then-resolution in six words.
 
-**Findings and letters (F1–F9, W1–W8, D1–D4, S1–S8, G1–G4, P1–P3)** — Not vocabulary but the habit that generates the most cross-references: numbering findings, decisions, seams, and phases so any later sentence can cite one in two characters. The letters are mnemonic initials (F=finding, W=Wilensky, D=decision, S=seam, G=goja, P=plugin-phase). The practice is borrowed from requirements engineering and RFC style; its value is that traceability ("Phase 2 fixes F2–F4") becomes checkable.
+*First written use* (design doc 03, same section):
+
+> First, the May invariant survives intact and gets sharper: the single-image rule concerned neighbor *images*, whose bleed the vlm-separation benchmark measured; neighbor *text layers* are source material, benchmarked separately (the `target-plus-text-context` scenario), and their use in a prompt is now an explicit, profile-visible script decision rather than a hidden host behavior.
+
+**"two consequences are worth naming" / "worth naming"** — A curation marker: of everything downstream of the design, these are the non-obvious items a reviewer would want surfaced; the list is chosen, not exhaustive.
+
+*What I was thinking:* The context-model section had many consequences (module API shape, rerun behavior, profile visibility, the new seam…), and enumerating all of them would bury the two that could change a reviewer's verdict: the invariant question and the accidental seam. "Worth naming" is my standing signal that a selection judgment happened — it comes from code-review habit ("this deserves a comment") and it deliberately leaves a hook for the reader to ask "what did you judge *not* worth naming?", which is the right challenge to invite.
+
+*First written use* (design doc 03):
+
+> Two consequences are worth naming. First, the May invariant survives intact and gets sharper… Second, the `run` scope motivates a seam the plugin design never had…
+
+**"too thin" (the host contract is too thin)** — Thin/fat as how much a boundary specifies; standard vernacular (thin client, thin wrapper).
+
+*What I was thinking:* Diagnosing the hybrid's empty title page, I had two artifacts open side by side: the raw response with its invented `"lines"` field, and the two prompts — the built-in one, sixty lines of field-by-field instruction with a worked example, versus the appended contract, six lines naming block *types* only. The word arrived from that literal visual comparison: one prompt was physically thick with specification, the other thin. The fix verb ("fatten the contract") was chosen the same second, because a spatial metaphor you commit to should conjugate.
+
+*First written use* (pilot design doc 01, after the chat diagnosis "a `prompt.render` plugin replaces the *detailed* block contract and the host only appends the compact one"):
+
+> **W3 — The host contract is too thin for prompt.render experiments.**
+
+**"the honest X"** — A marker that the statement includes the unflattering part deliberately.
+
+*What I was thinking:* Writing the first assessment, I was aware of the structural pressure on the document: it was going to recommend investing in this codebase, and assessments that end in "invest" tend to retro-fit their evidence. The section admitting the May sprint's own acceptance criteria were unfinished needed protection from later editing-for-advocacy — labeling it "honest" makes deleting it feel like the lie it would be. The word recurs wherever I hand the reader ammunition against my own recommendation (the goja memory gap, the plugin surface's remaining advantages).
+
+*First written use* (design doc 01, section heading):
+
+> ### Honest quality assessment
+
+**"named, not solved"** — Risk identified and characterized; no mitigation claimed.
+
+*What I was thinking:* The goja memory-cap gap had no fix I could offer — goja simply lacks a heap limit, and every "mitigation" I listed (watchdogs, cgroups) was containment, not solution. The design-doc failure mode I was steering away from is the risks section where every entry quietly ends "…but it's fine". Three words that refuse the reassurance felt more trustworthy than a paragraph of hedged mitigation — and they create an honest TODO: this risk is *open*, and anyone re-reading the doc later should still treat it as open.
+
+*First written use* (design doc 03, risks):
+
+> **No memory cap** is the structural weakness; scripts are bounded in time but not heap. Local single-user mode accepts it (same trust as running the CLI); hosted agent-first mode either wraps the whole worker in cgroup limits or routes fully-untrusted strategies to the plugin surface. Named, not solved.
+
+**"load-bearing"** — A fact others silently rest on, whose removal collapses things; structural engineering via programming slang ("load-bearing comment").
+
+*What I was thinking:* Writing the architecture overview for an intern, I wanted one sentence to carry a warning: the dependency direction (book-ocr imports the runtime, never the reverse) is not a stylistic preference — the externalization sprint, the productization plan, and the publish-versus-vendor decision all assume it. An intern refactoring casually could invert it locally and compile fine. "Load-bearing" says: this wall looks like the others, and it is not.
+
+*First written use* (design doc 01):
+
+> The dependency direction is strict and load-bearing: `book-ocr` imports `scraper/pkg/workflow`; scraper contains zero OCR knowledge.
+
+**"sharp edge"** — Intended behavior, unintended injury; distinct from a bug.
+
+*What I was thinking:* Categorizing `--dry-run` defaulting to true: not a bug (deliberate, documented, useful during development), yet guaranteed to hurt the first real user, whose maiden live run would silently produce fake output. I needed a word for "correct but wounding", and the tool-safety vocabulary supplies it — a sharp edge is a manufacturing choice that the user's hand discovers.
+
+*First written use* (design doc 01, the review-loop section; then Phase 1: "Fix F6's sharp edge."):
+
+> The manual validation workflow in `README.md:337-363` is the actual product core and survives unchanged — the phases just automate its sharp edges.
+
+**Residual metaphors: "fossil record", "engine room", "pressure valve"** — Three metaphors that escaped the no-analogies discipline; decoration, not argument.
+
+*What I was thinking, honestly:* Each was reached for at a moment of narrative rather than analysis — introducing the repo's history (fossil record: layers preserving the failure that caused each), summarizing test results in a diary (engine room: internals versus packaging), and selling a sequencing choice in chat (pressure valve: prompt experiments relieving demand on the Go refactor). They came from the general metaphor stock, not from anywhere specific, and none survives scrutiny as an argument — which is why they are confessed here rather than defended. First uses:
+
+> The repository's shape is the fossil record of one week of iteration, preserved in `ttmp/`. *(design doc 01)*
+
+> The repo's engine room is healthy; the productization gaps are packaging and configuration, not correctness. *(diary step 3)*
+
+> `prompt.render` plugins give you a pressure valve: you can run prompt experiments per book type *while* the Go-side generalization is still in flight, instead of the two competing for the same files. *(chat, the work-ordering answer)*
+
+**Findings and letters (F1–F9, W1–W8, D1–D4, S1–S8, G1–G4, P1–P3)** — Numbering findings, decisions, seams, and phases so any sentence can cite one in two characters; RFC/requirements-engineering style.
+
+*What I was thinking:* F1 was assigned in the diary minutes after the first build failure — *before* the design document existed. That ordering was deliberate: I knew the eventual report would need to say things like "Phase 1 fixes this" about discoveries that hadn't finished happening, so the findings needed stable names from the moment of discovery. The letters are nothing deeper than mnemonic initials; the practice is the point, not the alphabet.
+
+*First written use* (diary step 2, the session's first failed experiment):
+
+> This is finding F1 of the productization report: the repo has an unpublished, path-coupled dependency on the workflow runtime and does not build from a clean clone.
 
 ## Terms from the original query that do not appear in this project's writing
 
