@@ -22,7 +22,6 @@ import (
 	"github.com/go-go-golems/book-ocr/internal/ocrpipeline"
 	"github.com/go-go-golems/book-ocr/internal/ocrquality"
 	"github.com/go-go-golems/book-ocr/internal/plugin"
-	"github.com/go-go-golems/book-ocr/internal/vlmseparation"
 	devctlruntime "github.com/go-go-golems/devctl/pkg/runtime"
 	"github.com/go-go-golems/scraper/pkg/engine/model"
 	"github.com/go-go-golems/scraper/pkg/workflow"
@@ -131,83 +130,22 @@ func setupPluginSeams(ctx context.Context, specs []plugin.Spec, workDir string, 
 }
 
 func main() {
-	if err := run(os.Args[1:]); err != nil {
+	args := os.Args[1:]
+	// Backwards-compatible shorthand: bare flags mean the legacy run command.
+	if len(args) > 0 && strings.HasPrefix(args[0], "-") && args[0] != "-h" && args[0] != "--help" {
+		args = append([]string{"run"}, args...)
+	}
+	root, err := newRootCommand()
+	if err == nil {
+		root.SetArgs(args)
+		err = root.Execute()
+	}
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func run(args []string) error {
-	if len(args) == 0 || strings.HasPrefix(args[0], "-") {
-		return runWorkflow(args)
-	}
-	subcommand := args[0]
-	subArgs := args[1:]
-	switch subcommand {
-	case "run":
-		return runWorkflow(subArgs)
-	case "retry":
-		return retryStep(subArgs)
-	case "resume":
-		return resumeRun(subArgs)
-	case "cancel":
-		return cancelRun(subArgs)
-	case "status":
-		return showStatus(subArgs)
-	case "pages":
-		return listPages(subArgs)
-	case "structured-pages":
-		return listStructuredPages(subArgs)
-	case "quality-pass":
-		return runQualityPass(subArgs)
-	case "structured-page":
-		return runStructuredPage(subArgs)
-	case "structured-run":
-		return runStructuredRun(subArgs)
-	case "structured-rerun-pages":
-		return structuredRerunPages(subArgs)
-	case "ingest":
-		return runIngest(subArgs)
-	case "init":
-		return runInit(subArgs)
-	case "report":
-		return runReport(subArgs)
-	case "vlm-separation":
-		return vlmseparation.ExecuteRoot(context.Background(), subArgs)
-	case "help", "-h", "--help":
-		printUsage()
-		return nil
-	default:
-		printUsage()
-		return fmt.Errorf("unknown subcommand %q", subcommand)
-	}
-}
-
-func printUsage() {
-	fmt.Fprintf(os.Stderr, `Usage:
-  book-ocr run [flags]
-  book-ocr [run flags]              # backwards-compatible shorthand for run
-  book-ocr status --work-dir DIR --run-id RUN_ID
-  book-ocr retry --work-dir DIR --run-id RUN_ID --step-id STEP_ID
-  book-ocr resume --work-dir DIR --run-id RUN_ID
-  book-ocr cancel --work-dir DIR --run-id RUN_ID
-  book-ocr pages --work-dir DIR --book-id BOOK_ID [--status STATUS]
-  book-ocr structured-pages --work-dir DIR --book-id BOOK_ID [--status STATUS]
-  book-ocr quality-pass --markdown PATH --output-dir DIR [--expected-pages N]
-  book-ocr structured-page --book-id BOOK --page N --image PATH --work-dir DIR [--dry-run]
-  book-ocr structured-run --book-id BOOK --image-dir DIR --start-page N --end-page M --work-dir DIR [--dry-run]
-  book-ocr structured-rerun-pages --work-dir DIR --run-id RUN --pages 20,30,31 --render-pdf
-  book-ocr ingest --pdf BOOK.pdf --out-dir DIR [--dpi 300] [--grayscale]
-  book-ocr init --book-id BOOK (--pdf BOOK.pdf | --image-dir DIR) [--out-dir DIR]
-  book-ocr report --work-dir DIR [--book-id BOOK]
-  book-ocr vlm-separation benchmark [flags]
-
-Structured commands run live model inference by default and require --profile;
-pass --dry-run for the deterministic offline mode.
-
-Run flags include --book-id, --image-dir, --work-dir, --profile, --profile-registries, --prompt-version, --context-window, --log-level, --dry-run, and --max-workers.
-`)
-}
 
 // requireProfileForLiveRun guards the live-by-default structured commands: a
 // live run without an explicit profile would silently resolve to whatever the
