@@ -166,6 +166,10 @@ func run(args []string) error {
 		return runStructuredRun(subArgs)
 	case "structured-rerun-pages":
 		return structuredRerunPages(subArgs)
+	case "ingest":
+		return runIngest(subArgs)
+	case "report":
+		return runReport(subArgs)
 	case "vlm-separation":
 		return vlmseparation.ExecuteRoot(context.Background(), subArgs)
 	case "help", "-h", "--help":
@@ -191,6 +195,8 @@ func printUsage() {
   book-ocr structured-page --book-id BOOK --page N --image PATH --work-dir DIR [--dry-run]
   book-ocr structured-run --book-id BOOK --image-dir DIR --start-page N --end-page M --work-dir DIR [--dry-run]
   book-ocr structured-rerun-pages --work-dir DIR --run-id RUN --pages 20,30,31 --render-pdf
+  book-ocr ingest --pdf BOOK.pdf --out-dir DIR [--dpi 300] [--grayscale]
+  book-ocr report --work-dir DIR [--book-id BOOK]
   book-ocr vlm-separation benchmark [flags]
 
 Structured commands run live model inference by default and require --profile;

@@ -19,5 +19,11 @@ jobs:
           go-version-file: go.mod
           cache: true
       -
+        name: Build all packages
+        run: go build ./...
+      -
+        name: Vet
+        run: go vet ./...
+      -
         name: Run unit tests
-        run: go test ./...
+        run: go test ./... -count=1
