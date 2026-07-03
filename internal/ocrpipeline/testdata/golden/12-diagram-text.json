@@ -1,0 +1,6 @@
+{
+  "schema_version": "structured-ocr/v1", "book_id": "golden", "page_number": 12, "page_type": "figure",
+  "blocks": [
+    {"id": "p012-b001", "type": "figure", "caption": "Figure 12-1: Diagram With Text", "description": "Boxes and arrows.", "diagram_text": ["User", "  |", "  v", "Application Data Base"]}
+  ]
+}

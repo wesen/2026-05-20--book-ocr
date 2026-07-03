@@ -1,0 +1,7 @@
+{
+  "schema_version": "structured-ocr/v1", "book_id": "golden", "page_number": 6, "page_type": "figure",
+  "blocks": [
+    {"id": "p006-b001", "type": "figure", "caption": "Figure 6-1: A Resolved Figure", "description": "Screenshot of the display."},
+    {"id": "p006-b002", "type": "figure", "description": "A second figure with no map entry keeps the [FIGURE:] marker."}
+  ]
+}

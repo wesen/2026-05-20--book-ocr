@@ -1,0 +1,10 @@
+{
+  "schema_version": "structured-ocr/v1", "book_id": "golden", "page_number": 1, "page_type": "body",
+  "blocks": [
+    {"id": "p001-b001", "type": "heading", "level": 0, "text": "Clamped To H1"},
+    {"id": "p001-b002", "type": "heading", "level": 2, "text": "A Section"},
+    {"id": "p001-b003", "type": "heading", "level": 9, "text": "Clamped To H6"},
+    {"id": "p001-b004", "type": "paragraph", "text": "This paragraph is deliberately long enough to exercise the deterministic word wrapping logic at the default width of eighty-eight columns so that any change to the wrap width or algorithm shows up as a golden diff."},
+    {"id": "p001-b005", "type": "mystery", "text": "Unknown block types fall back to wrapped paragraph rendering."}
+  ]
+}

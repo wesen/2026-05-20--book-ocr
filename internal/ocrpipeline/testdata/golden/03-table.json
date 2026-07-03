@@ -1,0 +1,7 @@
+{
+  "schema_version": "structured-ocr/v1", "book_id": "golden", "page_number": 3, "page_type": "table",
+  "blocks": [
+    {"id": "p003-b001", "type": "table", "table": {"headers": ["", "A", "B"], "rows": [["1", "100", "20"], ["2", "75", "5"]]}},
+    {"id": "p003-b002", "type": "table", "table": {"rows": [["ragged"], ["row", "with", "three"]]}}
+  ]
+}

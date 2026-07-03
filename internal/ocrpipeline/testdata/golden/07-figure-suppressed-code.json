@@ -1,0 +1,7 @@
+{
+  "schema_version": "structured-ocr/v1", "book_id": "golden", "page_number": 7, "page_type": "body",
+  "blocks": [
+    {"id": "p007-b001", "type": "figure", "caption": "Figure 7-1: A Code Listing", "description": "Boxed example containing items ALPHA, BETA and GAMMA."},
+    {"id": "p007-b002", "type": "code", "text": "(define-presentation alpha)"}
+  ]
+}

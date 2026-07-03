@@ -1,0 +1,9 @@
+{
+  "schema_version": "structured-ocr/v1", "book_id": "golden", "page_number": 2, "page_type": "table_of_contents",
+  "blocks": [
+    {"id": "p002-b001", "type": "list", "items": [
+      {"text": "Chapter 1 ... 5", "children": [{"text": "Section 1.1 ... 6"}, {"text": "Section 1.2 ... 9", "children": [{"text": "Deep item"}]}]},
+      "Bare string items are accepted by the tolerant list decoder"
+    ]}
+  ]
+}

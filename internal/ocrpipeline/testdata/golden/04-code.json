@@ -1,0 +1,8 @@
+{
+  "schema_version": "structured-ocr/v1", "book_id": "golden", "page_number": 4, "page_type": "body",
+  "blocks": [
+    {"id": "p004-b001", "type": "code", "text": "(defmethod present ((self box) stream)\n  (draw-border self stream))"},
+    {"id": "p004-b002", "type": "code", "text": "   "},
+    {"id": "p004-b003", "type": "paragraph", "text": "Empty code blocks are skipped entirely."}
+  ]
+}

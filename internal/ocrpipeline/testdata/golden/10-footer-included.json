@@ -1,0 +1,7 @@
+{
+  "schema_version": "structured-ocr/v1", "book_id": "golden", "page_number": 10, "page_type": "body",
+  "blocks": [
+    {"id": "p010-b001", "type": "paragraph", "text": "Same page rendered with IncludeFooters."},
+    {"id": "p010-b002", "type": "page_footer", "text": "10"}
+  ]
+}

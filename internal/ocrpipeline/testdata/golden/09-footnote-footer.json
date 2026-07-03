@@ -1,0 +1,8 @@
+{
+  "schema_version": "structured-ocr/v1", "book_id": "golden", "page_number": 9, "page_type": "body",
+  "blocks": [
+    {"id": "p009-b001", "type": "paragraph", "text": "Body text with a footnote reference."},
+    {"id": "p009-b002", "type": "footnote", "text": "The footnote body."},
+    {"id": "p009-b003", "type": "page_footer", "text": "9"}
+  ]
+}

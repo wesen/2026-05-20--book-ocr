@@ -1,0 +1,7 @@
+{
+  "schema_version": "structured-ocr/v1", "book_id": "golden", "page_number": 8, "page_type": "table",
+  "blocks": [
+    {"id": "p008-b001", "type": "figure", "caption": "Figure 8-1: Spreadsheet Value Display", "description": "Spreadsheet grid with columns A B C."},
+    {"id": "p008-b002", "type": "table", "table": {"headers": ["", "A", "B", "C"], "rows": [["1", "100", "20", "A1*B1"]]}}
+  ]
+}

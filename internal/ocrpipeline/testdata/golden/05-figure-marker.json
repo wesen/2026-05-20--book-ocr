@@ -1,0 +1,6 @@
+{
+  "schema_version": "structured-ocr/v1", "book_id": "golden", "page_number": 5, "page_type": "figure",
+  "blocks": [
+    {"id": "p005-b001", "type": "figure", "caption": "Figure 5-1: An Unresolved Figure", "description": "Diagram of a window hierarchy with three panes."}
+  ]
+}
