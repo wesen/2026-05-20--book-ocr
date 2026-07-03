@@ -69,3 +69,8 @@ Added design doc 03: goja scripting as the in-process extension surface. Key fin
 
 Design doc 03 amended: layered script context (page / book / run) staged by DAG determinism — source-derived book context (any page's text layer) available everywhere; run-derived cross-page output only in post-assembly hooks; new postProcessBook seam as the long-deferred second-pass cleanup home (hyphenation, running headers via frequency stats, figure-number continuity).
 
+
+## 2026-07-03
+
+Added glossary reference doc: borrowed terms with source literatures (seam/Feathers, oracle/testing theory, capability security, fencing/DDIA, policy-mechanism), project coinages with reasoning (source-derived vs run-derived, money bug, structure-blind, decline-to-builtin, driver, agent-first), and the compressed writing patterns unpacked (falls out, X-not-Y contrast, survives-intact-and-gets-sharper, worth naming, named-not-solved).
+
