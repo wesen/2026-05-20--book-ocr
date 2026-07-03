@@ -3,6 +3,7 @@ module github.com/go-go-golems/book-ocr
 go 1.26.4
 
 require (
+	github.com/go-go-golems/devctl v0.0.7
 	github.com/go-go-golems/geppetto v0.11.28
 	github.com/go-go-golems/glazed v1.3.6
 	github.com/go-go-golems/pinocchio v0.10.26
@@ -41,7 +42,6 @@ require (
 	github.com/dop251/goja v0.0.0-20260311135729-065cd970411c // indirect
 	github.com/dop251/goja_nodejs v0.0.0-20260212111938-1f56ff5bcf14 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
-	github.com/go-go-golems/devctl v0.0.7 // indirect
 	github.com/go-go-golems/go-go-goja v0.8.3 // indirect
 	github.com/go-go-golems/logcopter v0.1.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.4 // indirect

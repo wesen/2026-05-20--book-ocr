@@ -39,7 +39,7 @@ builds:
 checksum:
   name_template: 'checksums.txt'
 snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+  version_template: "{{ incpatch .Version }}-next"
 changelog:
   sort: asc
   filters:
@@ -47,30 +47,18 @@ changelog:
       - '^docs:'
       - '^test:'
 
-signs:
-  - artifacts: checksum
-    # setup for github actions according to https://goreleaser.com/ci/actions/
-    args: [ "--batch", "-u", "{{ .Env.GPG_FINGERPRINT }}", "--output", "${signature}", "--detach-sign", "${artifact}" ]
-
-brews:
-  - name: book-ocr
-    description: "book-ocr is a tool"
-    homepage: "https://github.com/go-go-golems/book-ocr"
-    repository:
-      owner: go-go-golems
-      name: homebrew-go-go-go
-      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
-
 nfpms:
   -
     id: packages
 
     vendor: GO GO GOLEMS
-    homepage: https://github.com/go-go-golems/
+    homepage: https://github.com/wesen/2026-05-20--book-ocr
     maintainer: Manuel Odendahl <wesen@ruinwesen.com>
 
     description: |-
-      book-ocr is a tool
+      Workflow-backed structured OCR for scanned technical books:
+      per-page structured JSON, deterministic Markdown, figure crops,
+      validation reports, and review PDFs.
 
     license: MIT
 
@@ -95,15 +83,6 @@ nfpms:
       lintian_overrides:
         - statically-linked-binary
         - changelog-file-missing-in-native-package
-
-publishers:
-  - name: fury.io
-    # by specifying `packages` id here goreleaser will only use this publisher
-    # with artifacts identified by this id
-    ids:
-      - packages
-    dir: "{{ dir .ArtifactPath }}"
-    cmd: curl -F package=@{{ .ArtifactName }} https://{{ .Env.FURY_TOKEN }}@push.fury.io/go-go-golems/
 
 # modelines, feel free to remove those if you don't want/use them:
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
