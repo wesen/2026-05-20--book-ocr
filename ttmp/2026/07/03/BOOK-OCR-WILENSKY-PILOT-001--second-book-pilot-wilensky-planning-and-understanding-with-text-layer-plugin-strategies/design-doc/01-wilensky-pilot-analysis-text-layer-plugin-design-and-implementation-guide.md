@@ -230,6 +230,28 @@ Extending to the full book is a page-range change in the script (`--pages . 1-20
 - pdftotext page numbering assumes the ingested subset maps 1:1 to text-layer pages; books where ingest skips or reorders pages need the plugin to consult the ingest manifest instead.
 - Cost accounting remains count-based (24 turns), not token-based — the known gap from the credits analysis; this pilot would have been the first consumer of per-page token numbers.
 
+## Addendum — The Structure Sample (pages the first range missed)
+
+The owner pointed at three structure-rich locations the 1-24 range never sampled: the task-network diagram at book p.35, the "Simple PANDORA Example" code at book p.37, and the explanation-process diagram at book p.46. The text layer locates them at PDF pages 55, 59, and 68 (front-matter offset ~20-22). `scripts/03-structure-sample.sh` runs a 10-page subset (PDF 54-60 + 67-69) through variants A (textlayer) and B (VLM with `--embed-figures`); both completed 10/10.
+
+**What the VLM did with each target:**
+
+| Page (subset / book) | Content | VLM result |
+|---|---|---|
+| 2 / p.35 | task-network diagram | transcribed as a **code block** (the box diagram as monospace text); "Figure 4.1" emitted as a *heading*; consequently **no figure crop** for this page |
+| 6 / p.37 | PANDORA example | **ideal**: section heading + code block with the full CD-notation trace and its comments preserved |
+| 9 / p.46 | explanation flowchart | **ideal shape**: heading + figure block ("Figure 5.1", 15 `diagram_text` lines) → ink-band crop (1534×2646, the diagram fills the page) → embedded image link in `embedded-figures.md` |
+
+The textlayer variant emitted paragraphs on all three pages — structure-blind exactly as W4 predicted, confirming the routing story: prose pages to the free strategy, structure pages to vision.
+
+**New findings:**
+
+**W6 — Diagram-versus-code ambiguity loses images.** The task-network diagram became a code block: searchable, but the visual is gone and its caption degraded to a heading. The generic prompt's "monospaced/listing-like" code rule captured a box-and-arrow diagram. Fix direction: a profile prompt note for this book ("task-network diagrams are figures with diagram_text"), plus a cheap audit rule — a heading matching `Figure N.M` with no adjacent figure block is a misclassification detector (feeds the F7 audit command).
+
+**W7 — Running headers leak as headings.** Subset page 9 emitted the running header `PLANNING AND UNDERSTANDING` as a level-1 heading. The prompt handles footers (`page_footer`) but never mentions running headers. Fix: a prompt rule mirroring the footer rule, and a validation rule flagging identical heading text recurring across many pages.
+
+**W8 — The positive result.** With a generic policy on a foreign book, the VLM produced correct headings, a faithful code block, and a complete figure→crop→embed chain with zero Go changes and zero validation warnings that were *wrong* this time. One cosmetic caveat: with no profile, the code fence defaulted to `common-lisp` (the deliberate no-profile compatibility default) — harmless here since PANDORA notation is Lisp-like, but it is the concrete argument for making a generic profile the recommended baseline in the docs.
+
 ## References
 
 - Source: `~/Downloads/Planning and understanding … (Wilensky, Robert …).pdf` (200 pages, IA/LuraDocument 2012); subset at `/tmp/wilensky-pilot/wilensky-p1-24.pdf` (sha256 in `/tmp/wilensky-pilot/pages/ingest-manifest.json`).

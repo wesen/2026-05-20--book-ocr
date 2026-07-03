@@ -84,3 +84,22 @@ The hybrid collapse traced to schema drift: the model emitted heading blocks wit
 
 ### Code review instructions
 - scripts/textlayer_plugin.py (cleanup rules), scripts/01-run-pilot.sh, scripts/02-compare-variants.sh; reproduce with variant A (free) and read /tmp/wilensky-pilot/run-hybrid/pages/page_002/03-raw-response.json for the W3 evidence.
+
+## Step 5: The structure sample (book pp. 35, 37, 46)
+
+The owner pointed at the diagram and code pages the first range missed. Located them via the text layer (PDF 55/59/68), ran a 10-page subset through textlayer and VLM+figures (scripts/03-structure-sample.sh), both 10/10.
+
+### What I did
+- Mapped book→PDF pages by grepping pdftotext output; built the qpdf subset; ran both variants; inspected 04-structured.json for the three targets and the figures/ crops.
+
+### What worked
+- PANDORA code page: ideal (heading + code block, comments preserved). Explanation flowchart: ideal chain — figure block with 15 diagram_text lines → 1534×2646 ink-band crop → embedded image link.
+
+### What didn't work
+- Task-network diagram transcribed as a code block; "Figure 4.1" became a heading; no crop produced for that page (finding W6). Running header leaked as a heading on subset page 9 (W7).
+
+### What I learned
+- The figure/code boundary is the next prompt-policy frontier, and it is per-book policy (profile note), not host code. The `Figure N.M` heading-without-figure pattern is a free misclassification detector.
+
+### Code review instructions
+- scripts/03-structure-sample.sh; inspect /tmp/wilensky-pilot/run-structure-vlm/pages/page_{002,006,009}/04-structured.json and figures/.
