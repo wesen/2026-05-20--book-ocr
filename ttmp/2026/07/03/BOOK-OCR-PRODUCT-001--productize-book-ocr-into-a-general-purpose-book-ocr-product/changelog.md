@@ -64,3 +64,8 @@ Released v0.1.0 (OSS goreleaser, linux amd64+arm64 deb/rpm/tar.gz) after convert
 
 Added design doc 03: goja scripting as the in-process extension surface. Key findings: capability-allowlist sandbox by construction (xgoja app posture); geppetto JS module (in the already-pinned v0.11.28) provides LLM/VLM calls with user credentials + turn-store parity; goja-text supplies the parse/validate toolkit; interrupt watchdog must be host-built; no memory cap (honest gap). Scripts mirror the plugin seams one-to-one; plugins remain for polyglot/CV and memory-isolated hosted execution. Plan G1-G4.
 
+
+## 2026-07-03
+
+Design doc 03 amended: layered script context (page / book / run) staged by DAG determinism — source-derived book context (any page's text layer) available everywhere; run-derived cross-page output only in post-assembly hooks; new postProcessBook seam as the long-deferred second-pass cleanup home (hyphenation, running headers via frequency stats, figure-number continuity).
+

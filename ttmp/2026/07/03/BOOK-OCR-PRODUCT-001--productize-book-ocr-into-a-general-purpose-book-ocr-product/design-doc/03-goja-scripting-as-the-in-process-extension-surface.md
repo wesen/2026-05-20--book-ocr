@@ -158,11 +158,43 @@ The host detects hooks after evaluating the script once per runtime (`Owner.Call
 |---|---|---|
 | `geppetto` | geppetto pkg/js, host-wired | inference under the user's credentials; turn store = the run's `turns.db`; default settings = the run's `--profile` |
 | `extract`, `sanitize`, `markdown`, `template` | goja-text | pure text tooling |
-| `bookocr` | new, ~200 lines | page context: `imagePath`, `readImage()` (bytes), `textLayer()` (pdftotext of the source page when the ingest manifest records a PDF), read-only profile view, `warn(code, msg)` |
+| `bookocr` | new, ~300 lines | the layered context object — `page`, `book`, and (in post stages) `run` — detailed in the next section |
 | `yaml`, `crypto`, `path`, `time` | go-go-goja safe set | data plumbing |
 | — excluded — | `fs`, `exec`, `os`, `database`, `process` | no ambient filesystem/process/network capability; anything a strategy legitimately needs arrives through `bookocr` scoped accessors |
 
-The `bookocr` module follows the minitrace loader-closure pattern: the page executor constructs the loader with the current page's context captured; nothing global, nothing cross-page.
+The `bookocr` module follows the minitrace loader-closure pattern: the executor constructs the loader with the current work item's context captured.
+
+### The context model: page, book, run
+
+A page-only context undersells what the host knows. The system holds context at three scopes, and the workflow DAG — not caution — dictates which scope each hook may see:
+
+- **`page`** — the current work item: `number`, `imagePath`, `readImage()`, `typeHint`, `warn(code, msg)`.
+- **`book`** — *source-derived* context, immutable from the moment discovery completes and therefore safe everywhere: the compiled profile view (lexicon, policies), the ingest manifest (source hash, DPI, page count), and crucially `book.textLayer(n)` / `book.imageInfo(n)` for **any** page — the text layer comes from the source PDF, not from the run, so reading page 41's text layer while OCRing page 42 is deterministic regardless of execution order.
+- **`run`** — *run-derived* context: other pages' structured JSON, rendered Markdown, quality signals, and warnings. This scope exists only in post-assembly hooks.
+
+The determinism argument is the heart of it. Page steps are parallel siblings in the DAG; during `ocrPage(42)`, page 41 may be running, done, or not started, and a targeted rerun of page 42 months later sees a *different* neighborhood than the first run did. If page-stage hooks could read run-derived neighbor output, results would depend on execution order and rerun history — precisely what the artifact model promises they do not. So the capability grant is staged by seam:
+
+| Hook (seam) | `page` | `book` (source) | `run` (other pages' output) |
+|---|---|---|---|
+| `classifyPage`, `renderPrompt`, `ocrPage`, `parseResponse` | yes | yes | **no** |
+| `validatePage` | yes | yes | no |
+| `validateBook`, `transformMarkdown` (assemble stage) | — | yes | **yes, read-only** |
+| `postProcessBook` (new seam, below) | — | yes | yes, read-only |
+
+Two consequences are worth naming. First, the May invariant survives intact and gets sharper: the single-image rule concerned neighbor *images*, whose bleed the vlm-separation benchmark measured; neighbor *text layers* are source material, benchmarked separately (the `target-plus-text-context` scenario), and their use in a prompt is now an explicit, profile-visible script decision rather than a hidden host behavior. A script that enriches page 42's prompt with the tail of page 41's text layer is running the continuity experiment the May redesign deferred — deterministically, because text layers precede the run.
+
+Second, the `run` scope motivates a seam the plugin design never had: **`postProcessBook`**, a book-stage hook running after assembly with the full run context. This is the natural home for the second-pass cleanup work that has sat in future-work since the HQ-001 ticket: cross-page hyphenation repair, running-header removal informed by page-frequency statistics (the W7 detector — a heading recurring on many pages is a header), figure-numbering continuity checks, and glossary-consistency sweeps. Every one of those is a cross-page computation over run-derived text, which is exactly what the goja surface handles well (goja-text's markdown AST + the `run` scope) and what the per-page plugin protocol handles awkwardly (it would need the host to serialize the whole book across stdio).
+
+```js
+exports.postProcessBook = ({ book, run }) => {
+  const headingCounts = {};
+  for (const p of run.pages()) {
+    for (const h of md.headings(p.markdown())) headingCounts[h] = (headingCounts[h] || 0) + 1;
+  }
+  const headers = Object.keys(headingCounts).filter(h => headingCounts[h] > run.pageCount() / 3);
+  return run.pages().map(p => ({ page: p.number, markdown: stripHeadings(p.markdown(), headers) }));
+};
+```
 
 ### Execution model and limits
 
@@ -267,7 +299,7 @@ The honest division: **scripts become the default surface for logic, prompting, 
 - **Same-process fate sharing:** panic recovery covers Go panics, but a bug in a native module can still corrupt the host in ways a subprocess cannot. The allowlist keeps the native surface small.
 - **Version drift:** the geppetto JS module exists at the pinned v0.11.28, but the hard-cut API stabilized across later versions; bumping geppetto needs the module's parity tests re-run against book-ocr's usage. Validation step in G2.
 - **Budget enforcement** for LLM calls is time-bounded, not count-bounded, until an upstream hook exists.
-- Open: should `classifyPage` scripts be able to consult the text layer *before* ingest completes (streaming classify during discover), or is per-page-at-fanout enough? (Leaning: fanout is enough; discover already runs after ingest.)
+- Open: `postProcessBook` output semantics — replace pages' rendered Markdown (making assembly two-phase) or emit a separate cleaned artifact beside `assembled.md`? (Leaning: separate artifact first — non-destructive, diffable against the per-page renders — with in-place replacement as a profile opt-in later.)
 - Open: expose `runAsync`/Promises to strategy scripts, or keep hooks synchronous for v1? (Leaning: synchronous; the host parallelizes across pages already, and sync hooks keep the interrupt story simple.)
 
 ## References
