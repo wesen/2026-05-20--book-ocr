@@ -30,6 +30,41 @@ The terms below come from three habits, and knowing the habits explains most ind
 
 None of these words were chosen in reference to anything secret or private; where a term has a known origin (a book, a subculture, a codebase), the entry names it. Where I coined it, the entry says so and reconstructs the choice.
 
+## Monologue or keyboard: where each term was actually born
+
+The owner asked whether these terms appeared in my inner monologue before being written down, or were coined in the act of writing. The answer requires an epistemic confession first, then a taxonomy, then the table.
+
+**The confession: part of my monologue is gone.** I work with a private reasoning channel (thinking text the owner does not normally see) preceding most actions. Mid-session, the conversation was *compacted*: everything before the glossary request — which includes the thinking behind nearly every coinage — was replaced by a summary I wrote. So for most terms I cannot quote my monologue; I can only classify births using (a) surviving intermediate artifacts (script comments, commit messages, task lists — keyboard products, but earlier and rawer than the documents), (b) the compaction summary, and (c) episodic recollection whose confidence I state per entry. Where I say "recollection," treat it as my best honest reconstruction, not evidence.
+
+**The taxonomy that emerged from checking:**
+
+1. **Monologue-first (functional tag).** Some terms served as *working labels* in the reasoning before any prose existed — but in the monologue they appear as bare tags in plans and lists (a parenthetical "(free)" next to a variant, "money bugs" as a category label in an outline, "too thin" as a diagnosis note), not as rhetoric. The prose form with its argumentative work came later, at the keyboard. Evidence where it survives: the pilot run script's header comment says `A textlayer ... zero model calls (free baseline)` — written before the design doc's W1, showing "free" already doing duty as a variant tag.
+2. **Keyboard-minted.** The rhetorical constructions and the summary compounds were, to the best of my recollection, born in the act of composing the sentence that needed them. "Falls out", "survives intact and gets sharper", "the DAG — not caution —", "three-scope", "DAG-determinism": in each case the monologue had planned the *content*, often in plainer words — my notes for the falls-out moment said the run scope "actually motivates" a new seam — and the compression happened when the prose slot demanded it. This matches the mechanism described under "three-scope": summaries mint compounds.
+3. **Owner-supplied.** Two terms came from the owner's own messages: *agent-first* (certain — the design doc was written to answer a request using that word) and, I now believe, ***driver*** — my recollection is that the request said "which would allow **the llm driver** to potentially write their own plugins", meaning I adopted the noun rather than coining it, and my earlier entry's coinage story ("nominalized from driving the CLI") describes at most how I *rationalized* keeping it. The compaction makes the exact wording unverifiable (that turn has no diary entry preserving the prompt verbatim — a process gap this exercise exposed), so both the correction and the residual uncertainty are recorded here.
+
+**Birth classification per term** (confidence in parentheses):
+
+| Term | Born | Basis |
+|---|---|---|
+| source-derived / run-derived | monologue-first (high) | recollection: the derivation distinction was worked out as a stable-source-vs-run note in planning before the doc paragraph |
+| three-scope | keyboard, in a chat summary (certain) | the documents never use it; first appears in the summary sentence |
+| money bug | monologue-first as a category tag (medium) | recollection of an outline label "(money bugs)"; compaction removed the evidence |
+| structure-blind | same-turn; monologue and prose seconds apart (medium) | born while composing the addendum; no earlier trace |
+| decline-to-builtin | keyboard, in design doc 02's plan (certain — **corrects the earlier entry**) | first written use is doc 02's P2 plan item, hours before the tasks.md line the earlier entry quoted |
+| routing economics | keyboard, in a chat summary (high) | the doc says "routing story"; "economics" appears only in the summary |
+| driver / LLM driver | **owner-supplied** (high; wording unverifiable) | see taxonomy item 3; supersedes the earlier coinage story |
+| agent-first | owner-supplied (certain) | the design request used it |
+| free (scoped sense) | monologue-first as a variant tag (high) | survives in `01-run-pilot.sh` header: "zero model calls (free baseline)", written before W1 |
+| DAG-determinism | keyboard, in a commit message (certain) | exists nowhere before commit 19f96b6 |
+| "falls out" | keyboard (high) | monologue planned the content as "actually motivates"; the idiom arrived with the sentence |
+| "not caution" | keyboard (high) | the displacement was composed for the doc's opening line |
+| "survives intact and gets sharper" | keyboard (high) | the underlying doubt lived in the monologue; the paired-verb form is prose work |
+| "too thin" | monologue-first, near-verbatim (medium-high) | recollection of the diagnosis note "the host contract appendix is too thin"; compaction removed the evidence |
+| "named, not solved" / "honest X" / "worth naming" | keyboard (high) | discourse markers; they exist to manage a reader, and the monologue has no reader |
+| F1-style numbering | keyboard, but premeditated (certain) | assigned in the diary before the design doc existed, deliberately |
+
+The pattern worth keeping: **the monologue coins labels; the keyboard coins rhetoric.** Terms that carry a *distinction* (source-derived, money bug, free-as-scoped) tend to exist as working tags before prose, because the reasoning itself needs them. Constructions that manage a *reader* (falls out, not-caution, worth naming) cannot appear earlier, because the monologue has no reader to manage. And summary contexts — chat recaps, commit messages, task lists — are the most prolific mint of all, because they have the tightest slots; anything born there should be treated as a pointer to an argument, never the argument.
+
 ## Part I — Borrowed terms and their source literatures
 
 **seam** — An extension point: a place in the pipeline where behavior can be changed without editing the code at that place. Borrowed directly from Michael Feathers, *Working Effectively with Legacy Code* (2004), where a seam is "a place where you can alter behavior in your program without editing in that place." I chose it over "extension point" or "hook site" because Feathers' term emphasizes that the surrounding fabric stays intact — which is precisely the design rule here ("plugins replace strategies, never invariants"). The S1–S8 numbering in design doc 02 exists so seams can be referenced like findings.
@@ -130,11 +165,11 @@ Each entry has three parts: the definition, **what I was actually thinking or do
 
 **decline-to-builtin** — The `response.parse` fallback semantics: a plugin answers `E_DECLINED` and the built-in parser takes over.
 
-*What I was thinking:* Designing the parse seam, I kept hitting the same wording problem: every verb I reached for ("fails over", "rejects", "errors out") implied malfunction, but the whole point of `E_DECLINED` is that declining is a *successful* outcome — the plugin correctly recognized a format as not-its-business. When P2 shipped and I was compressing it into the task list, I needed the mechanism as a modifier and built the hyphenated compound on the "fail-open/fail-closed" pattern: direction-of-fallback encoded in the term.
+*What I was thinking:* Designing the parse seam, I kept hitting the same wording problem: every verb I reached for ("fails over", "rejects", "errors out") implied malfunction, but the whole point of `E_DECLINED` is that declining is a *successful* outcome — the plugin correctly recognized a format as not-its-business. While drafting design doc 02's implementation plan, I needed the mechanism as a modifier and built the hyphenated compound on the "fail-open/fail-closed" pattern: direction-of-fallback encoded in the term. (An earlier version of this entry placed the birth in the tasks list; the doc-02 plan item predates it — corrected in the "Monologue or keyboard" section.)
 
-*First written use* (BOOK-OCR-PRODUCT-001 tasks.md, P2 completion entry):
+*First written use* (design doc 02, implementation plan):
 
-> Plugin track P2: response.parse (decline-to-builtin), validate.page/book (tagged, additive), page.classify with per-page strategy routing, plugin retryable-hint classification
+> **P2 — Quality seams (est. 2–3 days).** `response.parse` with decline-to-builtin fallback; `validate.page`/`validate.book` additive chain with `source:` tagging; `page.classify` step in the discover executor feeding strategy routing.
 
 **routing economics** — The cost consequence of per-page strategy routing: routing pages between free and paid strategies is a spending decision.
 
@@ -146,7 +181,7 @@ Each entry has three parts: the definition, **what I was actually thinking or do
 
 **driver / LLM driver** — The agent operating the product: reading outputs, acting on errors, writing extension code.
 
-*What I was thinking:* Writing the agent-first doc's opening, I had just *been* the thing I was naming — I had spent the pilot parsing zerolog lines, hand-writing a wrapper script and a comparison harness. "User" was wrong (implies a human at a terminal); "agent" was already taken twice over (the product's own plugins, and geppetto's `agent()` API). The verb was already in my draft sentence — "operated end to end by an LLM agent *driving* the CLI" — and nominalizing a verb I had already committed to felt more honest than importing a new noun. The device-driver resonance (a component operating another through a defined interface) was noticed after the fact and kept because it was apt, not because it was the source.
+*What I was thinking — corrected (see "Monologue or keyboard" above):* My earlier version of this entry told a coinage story (nominalizing "driving the CLI"). On re-examination prompted by the owner, my recollection is that the design request itself contained the noun — "which would allow the llm driver to potentially write their own plugins" — making this an adopted term, not a coinage, and my story a rationalization of the adoption. What remains true from the original entry: at writing time I actively preferred it over "user" (implies a human) and "agent" (taken twice over by the product's plugins and geppetto's own `agent()` API), and the "driving the CLI" sentence is where I committed to it. The compacted session makes the request's exact wording unverifiable; confidence in the owner-origin is high.
 
 *First written use* (pilot design doc 02, Executive Summary):
 
