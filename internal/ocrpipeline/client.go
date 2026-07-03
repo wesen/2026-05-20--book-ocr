@@ -22,6 +22,12 @@ type StructuredOCRInput struct {
 	Profile           string
 	ProfileRegistries []string
 	DryRun            bool
+	// Prompt overrides the default (Report-794) prompt policy when non-nil;
+	// populated from the book profile.
+	Prompt *PromptSpec
+	// Render overrides the default rendering options when non-nil; populated
+	// from the book profile.
+	Render *RenderOptions
 }
 
 type StructuredOCRResult struct {

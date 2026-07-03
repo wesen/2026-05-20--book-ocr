@@ -31,6 +31,11 @@ type StructuredRunInput struct {
 	RenderPDF         bool     `json:"render_pdf,omitempty"`
 	PDFPath           string   `json:"pdf_path,omitempty"`
 	PandocPath        string   `json:"pandoc_path,omitempty"`
+	// BookProfile is an optional path to a book profile YAML. The discover
+	// step resolves it and stamps the compiled prompt/render policy into
+	// every page input, so the policy is persisted with the run and reruns
+	// keep behaving identically.
+	BookProfile string `json:"book_profile,omitempty"`
 }
 
 type StructuredPageWorkflowInput struct {
@@ -44,6 +49,10 @@ type StructuredPageWorkflowInput struct {
 	Profile           string   `json:"profile,omitempty"`
 	ProfileRegistries []string `json:"profile_registries,omitempty"`
 	DryRun            bool     `json:"dry_run,omitempty"`
+	// Prompt and Render carry the compiled book-profile policy; nil means
+	// the built-in (Report-794) defaults.
+	Prompt *PromptSpec    `json:"prompt,omitempty"`
+	Render *RenderOptions `json:"render,omitempty"`
 }
 
 type StructuredPageSpec struct {

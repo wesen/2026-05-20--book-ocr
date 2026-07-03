@@ -10,10 +10,32 @@ type RenderOptions struct {
 	IncludeDiagramText bool
 	IncludeFooters     bool
 	WrapWidth          int
+	// CodeLanguage is the fence language for code blocks; empty renders a
+	// plain ``` fence.
+	CodeLanguage string
+	// SuppressTextualFigureCues: a figure whose caption/description contains
+	// one of these is really textual content already transcribed elsewhere,
+	// so its image/marker is suppressed (the caption is kept).
+	SuppressTextualFigureCues []string
+	// SuppressTableFigureCues: same, but only when the figure is immediately
+	// followed by a table block that carries the content.
+	SuppressTableFigureCues []string
+	// EnableBoxedSetFallback turns "items A, B and C" figure descriptions
+	// into a rendered {A, B, C} code block when the image is suppressed — a
+	// Report-794-specific transform, off for generic books.
+	EnableBoxedSetFallback bool
 }
 
+// DefaultRenderOptions is the Report-794 rendering policy the pipeline was
+// built on; profile-driven runs override it (see RenderOptionsFromProfile).
 func DefaultRenderOptions() RenderOptions {
-	return RenderOptions{WrapWidth: 88}
+	return RenderOptions{
+		WrapWidth:                 88,
+		CodeLanguage:              "common-lisp",
+		SuppressTextualFigureCues: []string{"code listing", "code sample", "code block", "lisp-like definition", "boxed example", "boxed presentation"},
+		SuppressTableFigureCues:   []string{"ppscalc", "spreadsheet", "formula display", "value display", "formula moved", "preparing to copy formula", "grid", "table"},
+		EnableBoxedSetFallback:    true,
+	}
 }
 
 func RenderPageMarkdown(page StructuredPageOCR, figures FigureResolver, opts RenderOptions) string {
@@ -29,9 +51,9 @@ func RenderPageMarkdown(page StructuredPageOCR, figures FigureResolver, opts Ren
 	for i, block := range page.Blocks {
 		suppressFigureImage := false
 		if block.Type == BlockFigure {
-			suppressFigureImage = shouldSuppressTextualFigureImage(block)
+			suppressFigureImage = figureMatchesCues(block, opts.SuppressTextualFigureCues)
 			if !suppressFigureImage && i+1 < len(page.Blocks) && page.Blocks[i+1].Type == BlockTable {
-				suppressFigureImage = shouldSuppressFigureImageForFollowingTable(block)
+				suppressFigureImage = figureMatchesCues(block, opts.SuppressTableFigureCues)
 			}
 		}
 		renderBlock(&out, page.PageNumber, block, figures, opts, suppressFigureImage)
@@ -60,7 +82,7 @@ func renderBlock(out *strings.Builder, pageNumber int, block OCRBlock, figures F
 		renderTable(out, block.Table)
 		out.WriteString("\n")
 	case BlockCode:
-		renderCode(out, block.Text)
+		renderCode(out, block.Text, opts.CodeLanguage)
 	case BlockFigure:
 		renderFigure(out, pageNumber, block, figures, opts, suppressFigureImage)
 	case BlockFootnote:
@@ -79,20 +101,10 @@ func renderBlock(out *strings.Builder, pageNumber int, block OCRBlock, figures F
 	}
 }
 
-func shouldSuppressTextualFigureImage(block OCRBlock) bool {
+func figureMatchesCues(block OCRBlock, cues []string) bool {
 	text := strings.ToLower(strings.Join([]string{block.Caption, block.Description}, " "))
-	for _, cue := range []string{"code listing", "code sample", "code block", "lisp-like definition", "boxed example", "boxed presentation"} {
-		if strings.Contains(text, cue) {
-			return true
-		}
-	}
-	return false
-}
-
-func shouldSuppressFigureImageForFollowingTable(block OCRBlock) bool {
-	text := strings.ToLower(strings.Join([]string{block.Caption, block.Description}, " "))
-	for _, cue := range []string{"ppscalc", "spreadsheet", "formula display", "value display", "formula moved", "preparing to copy formula", "grid", "table"} {
-		if strings.Contains(text, cue) {
+	for _, cue := range cues {
+		if cue != "" && strings.Contains(text, strings.ToLower(cue)) {
 			return true
 		}
 	}
@@ -113,12 +125,14 @@ func textualFigureFallback(block OCRBlock) string {
 	return ""
 }
 
-func renderCode(out *strings.Builder, text string) {
+func renderCode(out *strings.Builder, text string, language string) {
 	text = strings.TrimRight(text, "\n")
 	if strings.TrimSpace(text) == "" {
 		return
 	}
-	out.WriteString("```common-lisp\n")
+	out.WriteString("```")
+	out.WriteString(language)
+	out.WriteString("\n")
 	out.WriteString(text)
 	out.WriteString("\n```\n\n")
 }
@@ -133,8 +147,10 @@ func renderFigure(out *strings.Builder, pageNumber int, block OCRBlock, figures 
 		// A neighboring block, or a simple textual fallback below, carries the readable
 		// content of this figure. Keep the caption but avoid emitting a marker/image
 		// that would duplicate searchable text/code/table content in review PDFs.
-		if fallback := textualFigureFallback(block); fallback != "" {
-			renderCode(out, fallback)
+		if opts.EnableBoxedSetFallback {
+			if fallback := textualFigureFallback(block); fallback != "" {
+				renderCode(out, fallback, opts.CodeLanguage)
+			}
 		}
 	} else if figures != nil {
 		if ref, ok := figures.RefFor(pageNumber, block.ID); ok {

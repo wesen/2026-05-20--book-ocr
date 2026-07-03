@@ -42,7 +42,9 @@ for line in sys.stdin:
                 "page_number": page,
                 "page_type": "body",
                 "blocks": [{"id": "p%03d-b001" % page, "type": "paragraph",
-                            "text": "Plugin OCR output for page %d." % page}],
+                            "text": "Plugin OCR output for page %d." % page},
+                           {"id": "p%03d-b002" % page, "type": "code",
+                            "text": "print('page %d')" % page}],
             },
             "engine": {"name": "test-plugin", "version": "test-1"},
         }})

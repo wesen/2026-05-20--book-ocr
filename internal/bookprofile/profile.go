@@ -49,7 +49,34 @@ type Profile struct {
 	Normalize   NormalizePolicy  `yaml:"normalize,omitempty" json:"normalize,omitempty"`
 	Figures     FigurePolicy     `yaml:"figures,omitempty" json:"figures,omitempty"`
 	Context     ContextPolicy    `yaml:"context,omitempty" json:"context,omitempty"`
+	Code        CodePolicy       `yaml:"code,omitempty" json:"code,omitempty"`
+	Render      RenderPolicy     `yaml:"render,omitempty" json:"render,omitempty"`
 	Plugins     []PluginRef      `yaml:"plugins,omitempty" json:"plugins,omitempty"`
+}
+
+// CodePolicy describes the book's code listings.
+type CodePolicy struct {
+	// DefaultLanguage is the Markdown fence language for code blocks;
+	// empty renders plain fences.
+	DefaultLanguage string `yaml:"default_language,omitempty" json:"default_language,omitempty"`
+	// PromptNote is a one-line prompt instruction about the book's code
+	// (e.g. "Code listings in this book are Common Lisp ...").
+	PromptNote string `yaml:"prompt_note,omitempty" json:"prompt_note,omitempty"`
+}
+
+// RenderPolicy configures the deterministic Markdown renderer.
+type RenderPolicy struct {
+	WrapWidth int `yaml:"wrap_width,omitempty" json:"wrap_width,omitempty"`
+	// SuppressTextualFigureCues: figures whose caption/description matches a
+	// cue are treated as already-transcribed textual content (image dropped,
+	// caption kept).
+	SuppressTextualFigureCues []string `yaml:"suppress_textual_figure_cues,omitempty" json:"suppress_textual_figure_cues,omitempty"`
+	// SuppressTableFigureCues: same, but only when a table block follows.
+	SuppressTableFigureCues []string `yaml:"suppress_table_figure_cues,omitempty" json:"suppress_table_figure_cues,omitempty"`
+	// EnableBoxedSetFallback enables the Report-794 "items A, B and C" →
+	// {A, B, C} transform for suppressed figures.
+	EnableBoxedSetFallback bool `yaml:"enable_boxed_set_fallback,omitempty" json:"enable_boxed_set_fallback,omitempty"`
+	IncludeFooters         bool `yaml:"include_footers,omitempty" json:"include_footers,omitempty"`
 }
 
 // PluginRef binds an NDJSON-stdio plugin executable to one or more pipeline
@@ -75,6 +102,12 @@ type PromptPolicy struct {
 	FigureMarkerContract  bool                `yaml:"figure_marker_contract,omitempty" json:"figure_marker_contract,omitempty"`
 	PageTypeInstructions  map[PageType]string `yaml:"page_type_instructions,omitempty" json:"page_type_instructions,omitempty"`
 	PreserveLineBreaksFor []PageType          `yaml:"preserve_line_breaks_for,omitempty" json:"preserve_line_breaks_for,omitempty"`
+	// PreserveTerms are rendered into the structured OCR prompt as terms
+	// the model must transcribe exactly.
+	PreserveTerms []string `yaml:"preserve_terms,omitempty" json:"preserve_terms,omitempty"`
+	// Example is an optional worked example block (including its heading
+	// line) appended to the structured OCR prompt.
+	Example string `yaml:"example,omitempty" json:"example,omitempty"`
 }
 
 type VocabularyPolicy struct {
@@ -165,7 +198,20 @@ func Report794() Profile {
 			Glob:            "page_*.png",
 			PageNumberRegex: `page_(\d+)\.png`,
 		},
-		Prompt: PromptPolicy{BaseTemplate: "technical-report-v1", FigureMarkerContract: true},
+		Prompt: PromptPolicy{
+			BaseTemplate:         "technical-report-v1",
+			FigureMarkerContract: true,
+			PreserveTerms:        []string{"data base", "PSBase", "PPSCalc", "Dired", "Steamer", "Zmacs", "Xerox Star"},
+			Example: `Example table block for a spreadsheet figure:
+{
+  "id": "p032-t001",
+  "type": "table",
+  "table": {
+    "headers": ["", "A", "B", "C"],
+    "rows": [["1", "100", "20", "A1*B1"], ["2", "75", "5", "A2*B2"], ["3", "", "", "C1+C2"]]
+  }
+}`,
+		},
 		Vocabulary: VocabularyPolicy{
 			ProtectedTerms:      []string{"Presentation Based User Interfaces", "Eugene C. Ciccarelli IV", "Eugene Charles Ciccarelli IV", "PSBase", "PPS", "PPSCalc", "Dired", "Steamer", "Zmacs", "Xerox Star"},
 			HistoricalSpellings: []string{"data base"},
@@ -184,6 +230,16 @@ func Report794() Profile {
 		Normalize: NormalizePolicy{ListPages: []int{6, 7, 8, 9}, DotLeaders: true},
 		Figures:   FigurePolicy{Enabled: true, MarkerSyntax: "[FIGURE: ...]", SynthesizeMissingMarkers: true, SegmentationStrategy: "ink-band-v1"},
 		Context:   ContextPolicy{DefaultWindow: 0, MaxWindow: 2, EnableFor: []PageType{PageTOC, PageFigureList, PageBody, PageDiagram}},
+		Code: CodePolicy{
+			DefaultLanguage: "common-lisp",
+			PromptNote:      "Code listings in this book are Common Lisp / Lisp Machine Lisp; preserve Lisp parentheses, keywords, quotes, comments, line breaks, and indentation.",
+		},
+		Render: RenderPolicy{
+			WrapWidth:                 88,
+			SuppressTextualFigureCues: []string{"code listing", "code sample", "code block", "lisp-like definition", "boxed example", "boxed presentation"},
+			SuppressTableFigureCues:   []string{"ppscalc", "spreadsheet", "formula display", "value display", "formula moved", "preparing to copy formula", "grid", "table"},
+			EnableBoxedSetFallback:    true,
+		},
 	}
 }
 

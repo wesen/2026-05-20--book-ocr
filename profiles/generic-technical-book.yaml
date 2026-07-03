@@ -1,0 +1,12 @@
+# A starting-point profile for scanned technical books with no book-specific
+# policy: plain code fences, no prompt lexicon, no figure-suppression cues.
+# Copy this next to your book workspace and fill in what you learn:
+#   book-ocr structured-run --book-profile ./my-book.yaml ...
+id: generic-technical-book
+display_name: Generic technical book
+family: technical-report
+page_images:
+    glob: page_*.png
+    page_number_regex: page_(\d+)\.png
+render:
+    wrap_width: 88

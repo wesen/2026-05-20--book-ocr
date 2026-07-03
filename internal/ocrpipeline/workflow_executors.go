@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/go-go-golems/book-ocr/internal/bookprofile"
 	"github.com/go-go-golems/book-ocr/internal/ocrmvp"
 	"github.com/go-go-golems/book-ocr/internal/ocrquality"
 	"github.com/go-go-golems/book-ocr/internal/ocrvalidation"
@@ -34,11 +35,23 @@ func StructuredDiscoverExecutor(projectionName string) workflow.Executor {
 		if err != nil {
 			return workflow.Permanent("structured_discover_pages_failed", err)
 		}
+		// Compile the book profile once and stamp its policy into every page
+		// input: the policy persists in engine.db with each op, so resumes
+		// and targeted reruns behave identically to the original run.
+		var promptSpec *PromptSpec
+		var renderOpts *RenderOptions
+		if strings.TrimSpace(input.BookProfile) != "" {
+			profile, err := bookprofile.Load(input.BookProfile)
+			if err != nil {
+				return workflow.Permanent("structured_book_profile_invalid", err)
+			}
+			promptSpec, renderOpts = PolicyFromProfile(profile)
+		}
 		pageHandles := make([]workflow.StepHandle, 0, len(pages))
 		pageStepIDs := make([]string, 0, len(pages))
 		pageSpecs := make([]StructuredPageSpec, 0, len(pages))
 		for _, page := range pages {
-			pageInput := StructuredPageWorkflowInput{BookID: input.BookID, RunID: firstNonEmpty(input.RunID, string(step.Workflow().ID)), PageNumber: page.PageNumber, ImagePath: page.ImagePath, WorkDir: input.WorkDir, TurnsDB: filepath.Join(input.WorkDir, "turns.db"), Profile: input.Profile, ProfileRegistries: append([]string(nil), input.ProfileRegistries...), DryRun: input.DryRun}
+			pageInput := StructuredPageWorkflowInput{BookID: input.BookID, RunID: firstNonEmpty(input.RunID, string(step.Workflow().ID)), PageNumber: page.PageNumber, ImagePath: page.ImagePath, WorkDir: input.WorkDir, TurnsDB: filepath.Join(input.WorkDir, "turns.db"), Profile: input.Profile, ProfileRegistries: append([]string(nil), input.ProfileRegistries...), DryRun: input.DryRun, Prompt: promptSpec, Render: renderOpts}
 			stepID := structuredPageStepID(page.PageNumber)
 			if err := seedStructuredPage(ctx, projection, pageInput, stepID); err != nil {
 				return workflow.Retryable("structured_projection_page_seed_failed", err)
@@ -78,7 +91,7 @@ func StructuredPageExecutor(projectionName string, client StructuredOCRClient) w
 		if err := markStructuredPageRunning(ctx, projection, input); err != nil {
 			return workflow.Retryable("structured_projection_update_failed", err)
 		}
-		pageResult, err := RunStructuredPage(ctx, StructuredOCRInput{BookID: input.BookID, RunID: input.RunID, PageNumber: input.PageNumber, ImagePath: input.ImagePath, WorkDir: input.WorkDir, TurnsDB: input.TurnsDB, TurnsDSN: input.TurnsDSN, Profile: input.Profile, ProfileRegistries: input.ProfileRegistries, DryRun: input.DryRun}, client)
+		pageResult, err := RunStructuredPage(ctx, StructuredOCRInput{BookID: input.BookID, RunID: input.RunID, PageNumber: input.PageNumber, ImagePath: input.ImagePath, WorkDir: input.WorkDir, TurnsDB: input.TurnsDB, TurnsDSN: input.TurnsDSN, Profile: input.Profile, ProfileRegistries: input.ProfileRegistries, DryRun: input.DryRun, Prompt: input.Prompt, Render: input.Render}, client)
 		if err != nil {
 			code := classifyStructuredPageErrorCode(err)
 			_ = markStructuredPageError(ctx, projection, input, code, err)

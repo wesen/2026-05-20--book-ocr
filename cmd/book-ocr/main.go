@@ -17,6 +17,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/rs/zerolog"
 
+	"github.com/go-go-golems/book-ocr/internal/bookprofile"
 	"github.com/go-go-golems/book-ocr/internal/ocrmvp"
 	"github.com/go-go-golems/book-ocr/internal/ocrpipeline"
 	"github.com/go-go-golems/book-ocr/internal/ocrquality"
@@ -70,6 +71,35 @@ func buildPluginSpecs(values []string) ([]plugin.Spec, bool, error) {
 			}
 		}
 		specs = append(specs, spec)
+	}
+	return specs, hasOCRPage, nil
+}
+
+// pluginSpecsFromProfile loads a book profile's plugins: section. Plugin
+// paths resolve relative to the profile file so a book workspace (profile +
+// plugin scripts) is self-contained and relocatable.
+func pluginSpecsFromProfile(profilePath string) ([]plugin.Spec, bool, error) {
+	if strings.TrimSpace(profilePath) == "" {
+		return nil, false, nil
+	}
+	profile, err := bookprofile.Load(profilePath)
+	if err != nil {
+		return nil, false, fmt.Errorf("load book profile %s: %w", profilePath, err)
+	}
+	baseDir := filepath.Dir(profilePath)
+	var specs []plugin.Spec
+	hasOCRPage := false
+	for _, ref := range profile.Plugins {
+		path := ref.Path
+		if !filepath.IsAbs(path) {
+			path = filepath.Join(baseDir, path)
+		}
+		for _, seam := range ref.Seams {
+			if seam == plugin.OpOCRPage {
+				hasOCRPage = true
+			}
+		}
+		specs = append(specs, plugin.Spec{ID: ref.ID, Path: path, Args: append([]string(nil), ref.Args...), Env: ref.Env, Seams: append([]string(nil), ref.Seams...)})
 	}
 	return specs, hasOCRPage, nil
 }
@@ -384,6 +414,7 @@ func runStructuredRun(args []string) error {
 	renderPDF := fs.Bool("render-pdf", false, "Render assembled Markdown to PDF with pandoc during assembly")
 	pdfPath := fs.String("pdf-path", "", "Optional PDF output path; defaults to <work-dir>/book.pdf when --render-pdf is set")
 	pandocPath := fs.String("pandoc-path", "", "Optional pandoc executable path; defaults to pandoc")
+	bookProfile := fs.String("book-profile", "", "Optional book profile YAML; drives prompt lexicon, code language, render policy, and plugin bindings")
 	fs.Var(&registries, "profile-registries", "Pinocchio profile registry source (repeatable or comma-separated)")
 	var pluginBindings pluginBindingFlags
 	fs.Var(&pluginBindings, "plugin", "Bind an NDJSON-stdio plugin to a seam as seam=path (repeatable; seams: ocr.page, prompt.render, figures.segment)")
@@ -399,10 +430,25 @@ func runStructuredRun(args []string) error {
 	if strings.TrimSpace(*imageDir) == "" {
 		return fmt.Errorf("--image-dir is required")
 	}
+	if strings.TrimSpace(*bookProfile) != "" {
+		abs, err := filepath.Abs(*bookProfile)
+		if err != nil {
+			return err
+		}
+		*bookProfile = abs
+	}
 	pluginSpecs, hasOCRPagePlugin, err := buildPluginSpecs(pluginBindings)
 	if err != nil {
 		return err
 	}
+	profilePluginSpecs, profileHasOCRPage, err := pluginSpecsFromProfile(*bookProfile)
+	if err != nil {
+		return err
+	}
+	// CLI --plugin bindings take precedence over profile bindings
+	// (first-wins per seam in the manager).
+	pluginSpecs = append(pluginSpecs, profilePluginSpecs...)
+	hasOCRPagePlugin = hasOCRPagePlugin || profileHasOCRPage
 	if !hasOCRPagePlugin {
 		if err := requireProfileForLiveRun(*dryRun, *profile); err != nil {
 			return err
@@ -439,7 +485,7 @@ func runStructuredRun(args []string) error {
 	if strings.TrimSpace(*runID) != "" {
 		runOpts = append(runOpts, workflow.WithRunID(*runID))
 	}
-	handle, err := rt.StartRun(ctx, ocrpipeline.StructuredPackageName, ocrpipeline.StructuredRunInput{BookID: *bookID, ImageDir: absImageDir, PageGlob: *pageGlob, StartPage: *startPage, EndPage: *endPage, WorkDir: paths.root, RunID: string(*runID), Profile: *profile, ProfileRegistries: append([]string(nil), registries...), DryRun: *dryRun, ExpectedPages: *expectedPages, MinRenderedBytes: *minRenderedBytes, EmbedFigures: *embedFigures, FiguresDir: *figuresDir, RenderPDF: *renderPDF, PDFPath: *pdfPath, PandocPath: *pandocPath}, runOpts...)
+	handle, err := rt.StartRun(ctx, ocrpipeline.StructuredPackageName, ocrpipeline.StructuredRunInput{BookID: *bookID, ImageDir: absImageDir, PageGlob: *pageGlob, StartPage: *startPage, EndPage: *endPage, WorkDir: paths.root, RunID: string(*runID), Profile: *profile, ProfileRegistries: append([]string(nil), registries...), DryRun: *dryRun, ExpectedPages: *expectedPages, MinRenderedBytes: *minRenderedBytes, EmbedFigures: *embedFigures, FiguresDir: *figuresDir, RenderPDF: *renderPDF, PDFPath: *pdfPath, PandocPath: *pandocPath, BookProfile: *bookProfile}, runOpts...)
 	if err != nil {
 		return err
 	}

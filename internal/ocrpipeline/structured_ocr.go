@@ -275,7 +275,11 @@ func RunStructuredPage(ctx context.Context, input StructuredOCRInput, client Str
 		_ = os.WriteFile(paths["error"], []byte(err.Error()+"\n"), 0o644)
 		return StructuredPageRunResult{PageNumber: input.PageNumber, PageDir: pageDir, RawResponse: paths["raw"], StructuredJSON: paths["structured"], TurnsDSN: turnStore.DSN()}, err
 	}
-	rendered := RenderPageMarkdown(parsed, nil, DefaultRenderOptions())
+	renderOpts := DefaultRenderOptions()
+	if input.Render != nil {
+		renderOpts = *input.Render
+	}
+	rendered := RenderPageMarkdown(parsed, nil, renderOpts)
 	validation := ValidateStructuredPage(parsed, rendered)
 	structuredJSON, err := json.MarshalIndent(parsed, "", "  ")
 	if err != nil {

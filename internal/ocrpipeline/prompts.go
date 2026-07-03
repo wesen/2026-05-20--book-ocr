@@ -1,11 +1,50 @@
 package ocrpipeline
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 const StructuredOCRSchemaVersion = "structured-ocr/v1"
 
 const StructuredOCRSystemPrompt = `You are a precise structured OCR engine for scanned technical books.
 Return strict JSON only. Do not return Markdown, commentary, or code fences.`
+
+// PromptSpec carries the book-specific parts of the structured OCR prompt.
+// Everything else — the output contract, block contract, table/code/figure
+// rules — is generic and host-owned. The zero value produces a fully generic
+// prompt; DefaultPromptSpec returns the Report-794 policy that the prompt
+// was originally tuned on.
+type PromptSpec struct {
+	// PreserveTerms are book-specific terms the model must transcribe
+	// exactly (historical spellings, product names, proper nouns).
+	PreserveTerms []string `yaml:"preserve_terms,omitempty" json:"preserve_terms,omitempty"`
+	// LanguageNote is a one-line instruction about the book's code
+	// listings (e.g. that they are Common Lisp and how to preserve them).
+	LanguageNote string `yaml:"language_note,omitempty" json:"language_note,omitempty"`
+	// Example is an optional worked example block, including its own
+	// heading line, appended before the target metadata.
+	Example string `yaml:"example,omitempty" json:"example,omitempty"`
+}
+
+// DefaultPromptSpec is the Report-794 prompt policy. It remains the default
+// so runs without a book profile behave exactly as before; profile-driven
+// runs override it.
+func DefaultPromptSpec() PromptSpec {
+	return PromptSpec{
+		PreserveTerms: []string{"data base", "PSBase", "PPSCalc", "Dired", "Steamer", "Zmacs", "Xerox Star"},
+		LanguageNote:  "Code listings in this book are Common Lisp / Lisp Machine Lisp; preserve Lisp parentheses, keywords, quotes, comments, line breaks, and indentation.",
+		Example: `Example table block for a spreadsheet figure:
+{
+  "id": "p032-t001",
+  "type": "table",
+  "table": {
+    "headers": ["", "A", "B", "C"],
+    "rows": [["1", "100", "20", "A1*B1"], ["2", "75", "5", "A2*B2"], ["3", "", "", "C1+C2"]]
+  }
+}`,
+	}
+}
 
 // StructuredOCRSchemaContract is the non-negotiable tail of every structured
 // OCR user prompt: the JSON output contract and the target metadata. The host
@@ -25,8 +64,35 @@ page_number: %03d
 schema_version: %s`, StructuredOCRSchemaVersion, input.BookID, input.PageNumber, StructuredOCRSchemaVersion)
 }
 
+// preserveTermsLine renders the historical-terminology instruction from a
+// term list: `"a", "b", and "c"` (Oxford comma, matching the original
+// hand-written prompt).
+func preserveTermsLine(terms []string) string {
+	quoted := make([]string, 0, len(terms))
+	for _, term := range terms {
+		quoted = append(quoted, fmt.Sprintf("%q", term))
+	}
+	switch len(quoted) {
+	case 0:
+		return ""
+	case 1:
+		return fmt.Sprintf("- Preserve historical terminology exactly when visible, including %s.", quoted[0])
+	default:
+		return fmt.Sprintf("- Preserve historical terminology exactly when visible, including %s, and %s.", strings.Join(quoted[:len(quoted)-1], ", "), quoted[len(quoted)-1])
+	}
+}
+
 func RenderStructuredOCRPrompt(input StructuredOCRInput) string {
-	return fmt.Sprintf(`Transcribe exactly one target page image into structured OCR JSON.
+	spec := DefaultPromptSpec()
+	if input.Prompt != nil {
+		spec = *input.Prompt
+	}
+	return RenderStructuredOCRPromptSpec(spec, input)
+}
+
+func RenderStructuredOCRPromptSpec(spec PromptSpec, input StructuredOCRInput) string {
+	var out strings.Builder
+	fmt.Fprintf(&out, `Transcribe exactly one target page image into structured OCR JSON.
 
 Output contract:
 - Return only strict JSON matching schema_version %q.
@@ -34,9 +100,17 @@ Output contract:
 - Transcribe only visible content from the target page image.
 - Do not infer text from neighboring pages or from general knowledge.
 - Exclude standalone running page numbers, scanner borders, and footer folios unless they are semantically part of the page.
-- Preserve historical terminology exactly when visible, including "data base", "PSBase", "PPSCalc", "Dired", "Steamer", "Zmacs", and "Xerox Star".
-- Code listings in this book are Common Lisp / Lisp Machine Lisp; preserve Lisp parentheses, keywords, quotes, comments, line breaks, and indentation.
-
+`, StructuredOCRSchemaVersion)
+	if line := preserveTermsLine(spec.PreserveTerms); line != "" {
+		out.WriteString(line)
+		out.WriteByte('\n')
+	}
+	if note := strings.TrimSpace(spec.LanguageNote); note != "" {
+		out.WriteString("- ")
+		out.WriteString(note)
+		out.WriteByte('\n')
+	}
+	out.WriteString(`
 Block contract:
 - Use type "heading" for visible headings and set level from 1 to 6.
 - Use type "paragraph" for prose.
@@ -76,20 +150,17 @@ Figure rules:
 - A page containing a captioned screenshot may have both: a figure block for the screenshot/caption and separate paragraph/list/code/table blocks for readable text inside the screenshot.
 - If a screenshot contains a readable scrollable text window, transcribe the visible text as paragraph/list/code blocks. Do not replace the readable window with only a screenshot description.
 - If you cannot read small screenshot text reliably, include a warning on the figure block instead of inventing text.
-
-Example table block for a spreadsheet figure:
-{
-  "id": "p032-t001",
-  "type": "table",
-  "table": {
-    "headers": ["", "A", "B", "C"],
-    "rows": [["1", "100", "20", "A1*B1"], ["2", "75", "5", "A2*B2"], ["3", "", "", "C1+C2"]]
-  }
-}
-
+`)
+	if example := strings.TrimRight(spec.Example, "\n"); example != "" {
+		out.WriteByte('\n')
+		out.WriteString(example)
+		out.WriteByte('\n')
+	}
+	fmt.Fprintf(&out, `
 Target metadata:
 book_id: %s
 page_number: %03d
 schema_version: %s
-`, StructuredOCRSchemaVersion, input.BookID, input.PageNumber, StructuredOCRSchemaVersion)
+`, input.BookID, input.PageNumber, StructuredOCRSchemaVersion)
+	return out.String()
 }

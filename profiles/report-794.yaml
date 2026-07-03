@@ -1,0 +1,132 @@
+id: report-794
+display_name: MIT Technical Report 794 - Presentation Based User Interfaces
+family: technical-report
+page_images:
+    glob: page_*.png
+    page_number_regex: page_(\d+)\.png
+prompt:
+    base_template: technical-report-v1
+    figure_marker_contract: true
+    preserve_terms:
+        - data base
+        - PSBase
+        - PPSCalc
+        - Dired
+        - Steamer
+        - Zmacs
+        - Xerox Star
+    example: |-
+        Example table block for a spreadsheet figure:
+        {
+          "id": "p032-t001",
+          "type": "table",
+          "table": {
+            "headers": ["", "A", "B", "C"],
+            "rows": [["1", "100", "20", "A1*B1"], ["2", "75", "5", "A2*B2"], ["3", "", "", "C1+C2"]]
+          }
+        }
+vocabulary:
+    preferred_terms:
+        Ciccarrelli: Ciccarelli
+        DiRed: Dired
+        PPSBase: PSBase
+        Streamer: Steamer
+    protected_terms:
+        - Presentation Based User Interfaces
+        - Eugene C. Ciccarelli IV
+        - Eugene Charles Ciccarelli IV
+        - PSBase
+        - PPS
+        - PPSCalc
+        - Dired
+        - Steamer
+        - Zmacs
+        - Xerox Star
+    historical_spellings:
+        - data base
+    known_bad_terms:
+        - DiRed
+        - Streamer
+        - PPSBase
+        - Ciccarrelli
+        - '[IMAGE:'
+page_types:
+    known_pages:
+        1: title
+        6: table-of-contents
+        7: table-of-contents
+        8: table-of-figures
+        9: table-of-figures
+        13: diagram
+        15: diagram
+        17: diagram
+        21: diagram
+qa:
+    expected_pages: 30
+    known_bad_terms:
+        - DiRed
+        - Streamer
+        - PPSBase
+        - Ciccarrelli
+        - '[IMAGE:'
+    expected_strings:
+        - Presentation Based User Interfaces
+        - This blank page was inserted to preserve pagination.
+        - 'Figure 4-1: Dired Model'
+        - 'Figure 4-9: Sample Steamer Schematic'
+        - 'Figure 5-1: PSBase Support of PPS Components'
+        - Chapter Two
+        - The Primitive Presentation System (PPS) Model
+        - 2.1 PPSCalc
+    list_pages:
+        - 6
+        - 7
+        - 8
+        - 9
+    required_figure_captions:
+        - 'Figure 1-1: A Rudimentary User Interface'
+        - 'Figure 1-2: The Representation Shift Model'
+        - 'Figure 1-3: The Primitive Presentation System (PPS) Model'
+        - 'Figure 1-4: Structure of PSBase'
+    expected_figure_count: 4
+normalize:
+    list_pages:
+        - 6
+        - 7
+        - 8
+        - 9
+    dot_leaders: true
+figures:
+    enabled: true
+    marker_syntax: '[FIGURE: ...]'
+    synthesize_missing_markers: true
+    segmentation_strategy: ink-band-v1
+context:
+    max_window: 2
+    enable_for:
+        - table-of-contents
+        - table-of-figures
+        - body
+        - diagram
+code:
+    default_language: common-lisp
+    prompt_note: Code listings in this book are Common Lisp / Lisp Machine Lisp; preserve Lisp parentheses, keywords, quotes, comments, line breaks, and indentation.
+render:
+    wrap_width: 88
+    suppress_textual_figure_cues:
+        - code listing
+        - code sample
+        - code block
+        - lisp-like definition
+        - boxed example
+        - boxed presentation
+    suppress_table_figure_cues:
+        - ppscalc
+        - spreadsheet
+        - formula display
+        - value display
+        - formula moved
+        - preparing to copy formula
+        - grid
+        - table
+    enable_boxed_set_fallback: true
