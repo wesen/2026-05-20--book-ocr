@@ -20,7 +20,9 @@ import (
 	"github.com/go-go-golems/book-ocr/internal/ocrmvp"
 	"github.com/go-go-golems/book-ocr/internal/ocrpipeline"
 	"github.com/go-go-golems/book-ocr/internal/ocrquality"
+	"github.com/go-go-golems/book-ocr/internal/plugin"
 	"github.com/go-go-golems/book-ocr/internal/vlmseparation"
+	devctlruntime "github.com/go-go-golems/devctl/pkg/runtime"
 	"github.com/go-go-golems/scraper/pkg/engine/model"
 	"github.com/go-go-golems/scraper/pkg/workflow"
 )
@@ -37,6 +39,65 @@ func (f *registryFlags) Set(value string) error {
 		}
 	}
 	return nil
+}
+
+// pluginBindingFlags collects repeated --plugin seam=path values verbatim
+// (no comma splitting: paths may contain commas).
+type pluginBindingFlags []string
+
+func (f *pluginBindingFlags) String() string { return strings.Join(*f, " ") }
+func (f *pluginBindingFlags) Set(value string) error {
+	if trimmed := strings.TrimSpace(value); trimmed != "" {
+		*f = append(*f, trimmed)
+	}
+	return nil
+}
+
+// buildPluginSpecs parses --plugin bindings and reports whether an ocr.page
+// binding is present (which lifts the --profile requirement for live runs:
+// the plugin owns model access, not Geppetto).
+func buildPluginSpecs(values []string) ([]plugin.Spec, bool, error) {
+	var specs []plugin.Spec
+	hasOCRPage := false
+	for _, value := range values {
+		spec, err := plugin.ParseSeamBinding(value)
+		if err != nil {
+			return nil, false, err
+		}
+		for _, seam := range spec.Seams {
+			if seam == plugin.OpOCRPage {
+				hasOCRPage = true
+			}
+		}
+		specs = append(specs, spec)
+	}
+	return specs, hasOCRPage, nil
+}
+
+// setupPluginSeams starts the plugin manager (nil when no bindings) and
+// composes the OCR client and figure segmenter for the structured workflow.
+func setupPluginSeams(ctx context.Context, specs []plugin.Spec, workDir string, dryRun bool, baseClient ocrpipeline.StructuredOCRClient) (*plugin.Manager, ocrpipeline.StructuredOCRClient, ocrquality.FigureSegmenter, error) {
+	mgr, err := plugin.NewManager(ctx, specs, devctlruntime.RequestMeta{RepoRoot: workDir, DryRun: dryRun})
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	client := baseClient
+	if mgr.Has(plugin.OpPromptRender) {
+		if geppetto, ok := client.(*ocrpipeline.GeppettoStructuredOCRClient); ok {
+			geppetto.Prompts = plugin.NewPromptRenderer(mgr)
+		}
+	}
+	if mgr.Has(plugin.OpOCRPage) {
+		client = plugin.NewStructuredOCRClient(mgr, baseClient)
+	}
+	var segmenter ocrquality.FigureSegmenter
+	if mgr.Has(plugin.OpFiguresSegment) {
+		segmenter = plugin.NewFigureSegmenter(mgr)
+	}
+	for _, prov := range mgr.Provenance() {
+		fmt.Printf("plugin %s (%s) ops=%v\n", prov.ID, prov.Name, prov.Ops)
+	}
+	return mgr, client, segmenter, nil
 }
 
 func main() {
@@ -324,6 +385,8 @@ func runStructuredRun(args []string) error {
 	pdfPath := fs.String("pdf-path", "", "Optional PDF output path; defaults to <work-dir>/book.pdf when --render-pdf is set")
 	pandocPath := fs.String("pandoc-path", "", "Optional pandoc executable path; defaults to pandoc")
 	fs.Var(&registries, "profile-registries", "Pinocchio profile registry source (repeatable or comma-separated)")
+	var pluginBindings pluginBindingFlags
+	fs.Var(&pluginBindings, "plugin", "Bind an NDJSON-stdio plugin to a seam as seam=path (repeatable; seams: ocr.page, prompt.render, figures.segment)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -336,8 +399,14 @@ func runStructuredRun(args []string) error {
 	if strings.TrimSpace(*imageDir) == "" {
 		return fmt.Errorf("--image-dir is required")
 	}
-	if err := requireProfileForLiveRun(*dryRun, *profile); err != nil {
+	pluginSpecs, hasOCRPagePlugin, err := buildPluginSpecs(pluginBindings)
+	if err != nil {
 		return err
+	}
+	if !hasOCRPagePlugin {
+		if err := requireProfileForLiveRun(*dryRun, *profile); err != nil {
+			return err
+		}
 	}
 	absImageDir, err := filepath.Abs(*imageDir)
 	if err != nil {
@@ -353,12 +422,17 @@ func runStructuredRun(args []string) error {
 	if *dryRun {
 		client = ocrpipeline.DryRunStructuredOCRClient{}
 	}
+	mgr, client, segmenter, err := setupPluginSeams(ctx, pluginSpecs, paths.root, *dryRun, client)
+	if err != nil {
+		return err
+	}
+	defer mgr.Close(context.Background())
 	rt, err := newRuntime(ctx, paths, *maxWorkers, *pollInterval)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = rt.Close() }()
-	if err := ocrpipeline.RegisterStructuredWorkflow(rt, ocrpipeline.StructuredWorkflowConfig{Client: client}); err != nil {
+	if err := ocrpipeline.RegisterStructuredWorkflow(rt, ocrpipeline.StructuredWorkflowConfig{Client: client, Segmenter: segmenter}); err != nil {
 		return err
 	}
 	runOpts := []workflow.RunOption{workflow.WithRunName("Structured OCR: " + *bookID)}
@@ -372,6 +446,8 @@ func runStructuredRun(args []string) error {
 	mode := "LIVE (model calls will be billed)"
 	if *dryRun {
 		mode = "dry-run (deterministic fake OCR, no model calls)"
+	} else if hasOCRPagePlugin {
+		mode = fmt.Sprintf("plugin (ocr.page via %s)", mgr.PluginIDFor(plugin.OpOCRPage))
 	}
 	fmt.Printf("mode=%s profile=%q pages=%d-%d max-workers=%d\n", mode, *profile, *startPage, *endPage, *maxWorkers)
 	fmt.Printf("started structured run %s in %s\n", handle.ID, paths.root)
@@ -528,6 +604,8 @@ func structuredRerunPages(args []string) error {
 	logLevel := fs.String("log-level", "info", "zerolog level: trace, debug, info, warn, error, disabled")
 	maxWorkers := fs.Int("max-workers", 2, "Maximum concurrent workflow workers")
 	pollInterval := fs.Duration("poll-interval", 250*time.Millisecond, "Worker polling interval")
+	var pluginBindings pluginBindingFlags
+	fs.Var(&pluginBindings, "plugin", "Bind an NDJSON-stdio plugin to a seam as seam=path (repeatable; seams: ocr.page, prompt.render, figures.segment)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -538,6 +616,10 @@ func structuredRerunPages(args []string) error {
 		return fmt.Errorf("--run-id is required")
 	}
 	pages, err := parsePageList(*pagesArg)
+	if err != nil {
+		return err
+	}
+	pluginSpecs, _, err := buildPluginSpecs(pluginBindings)
 	if err != nil {
 		return err
 	}
@@ -552,12 +634,17 @@ func structuredRerunPages(args []string) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	structuredClient := ocrpipeline.StructuredOCRClient(ocrpipeline.NewGeppettoStructuredOCRClient())
+	mgr, structuredClient, segmenter, err := setupPluginSeams(ctx, pluginSpecs, paths.root, false, structuredClient)
+	if err != nil {
+		return err
+	}
+	defer mgr.Close(context.Background())
 	rt, err := newRuntime(ctx, paths, *maxWorkers, *pollInterval)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = rt.Close() }()
-	if err := ocrpipeline.RegisterStructuredWorkflow(rt, ocrpipeline.StructuredWorkflowConfig{Client: structuredClient}); err != nil {
+	if err := ocrpipeline.RegisterStructuredWorkflow(rt, ocrpipeline.StructuredWorkflowConfig{Client: structuredClient, Segmenter: segmenter}); err != nil {
 		return err
 	}
 	for {

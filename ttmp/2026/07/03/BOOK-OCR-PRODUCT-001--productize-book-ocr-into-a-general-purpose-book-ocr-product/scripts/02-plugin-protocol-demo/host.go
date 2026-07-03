@@ -100,20 +100,22 @@ func main() {
 			"image_path": imagePath}})
 	resp = awaitResponse(scanner, "r-002")
 
-	var page struct {
-		SchemaVersion string `json:"schema_version"`
-		PageNumber    int    `json:"page_number"`
-		Blocks        []struct {
-			Type string `json:"type"`
-			Text string `json:"text"`
-		} `json:"blocks"`
+	var out struct {
+		Page struct {
+			SchemaVersion string `json:"schema_version"`
+			PageNumber    int    `json:"page_number"`
+			Blocks        []struct {
+				Type string `json:"type"`
+				Text string `json:"text"`
+			} `json:"blocks"`
+		} `json:"page"`
 	}
-	must(json.Unmarshal(resp.Output, &page))
-	if page.SchemaVersion != "structured-ocr/v1" || len(page.Blocks) == 0 {
+	must(json.Unmarshal(resp.Output, &out))
+	if out.Page.SchemaVersion != "structured-ocr/v1" || len(out.Page.Blocks) == 0 {
 		fatal("plugin output failed host-side contract check: %s", compact(resp.Output))
 	}
 	fmt.Printf("ocr.page ok: page=%d blocks=%d text=%q\n",
-		page.PageNumber, len(page.Blocks), page.Blocks[0].Text)
+		out.Page.PageNumber, len(out.Page.Blocks), out.Page.Blocks[0].Text)
 
 	// 5. Unsupported op must produce E_UNSUPPORTED, not a hang.
 	send(request{Type: "request", RequestID: "r-003", Op: "figures.segment",

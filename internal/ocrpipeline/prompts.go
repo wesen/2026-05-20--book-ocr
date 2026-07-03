@@ -7,6 +7,24 @@ const StructuredOCRSchemaVersion = "structured-ocr/v1"
 const StructuredOCRSystemPrompt = `You are a precise structured OCR engine for scanned technical books.
 Return strict JSON only. Do not return Markdown, commentary, or code fences.`
 
+// StructuredOCRSchemaContract is the non-negotiable tail of every structured
+// OCR user prompt: the JSON output contract and the target metadata. The host
+// appends it to plugin-rendered prompts (prompt.render seam) so a prompt
+// experiment cannot accidentally drop the JSON-only instruction or the page
+// identity the parser gates on.
+func StructuredOCRSchemaContract(input StructuredOCRInput) string {
+	return fmt.Sprintf(`Output contract (non-negotiable):
+- Return only strict JSON matching schema_version %q. No Markdown, commentary, or code fences.
+- The root object must include schema_version, book_id, page_number, page_type, and blocks.
+- Valid block types: heading, paragraph, list, table, code, figure, footnote, page_footer, blank.
+- Transcribe only visible content from the single target page image.
+
+Target metadata:
+book_id: %s
+page_number: %03d
+schema_version: %s`, StructuredOCRSchemaVersion, input.BookID, input.PageNumber, StructuredOCRSchemaVersion)
+}
+
 func RenderStructuredOCRPrompt(input StructuredOCRInput) string {
 	return fmt.Sprintf(`Transcribe exactly one target page image into structured OCR JSON.
 

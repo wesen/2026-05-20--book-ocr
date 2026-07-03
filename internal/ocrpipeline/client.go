@@ -35,14 +35,33 @@ type StructuredOCRClient interface {
 	OCRPage(ctx context.Context, input StructuredOCRInput, imageBytes []byte) (StructuredOCRResult, error)
 }
 
-type GeppettoStructuredOCRClient struct{}
+// PromptRenderer produces the system and user prompt for a structured page
+// OCR call. The built-in implementation is the versioned prompt in
+// prompts.go; a plugin-backed implementation lets prompt experiments run per
+// book type without recompiling.
+type PromptRenderer interface {
+	RenderPrompts(input StructuredOCRInput) (system string, user string, err error)
+}
+
+type GeppettoStructuredOCRClient struct {
+	// Prompts overrides the built-in prompt when non-nil.
+	Prompts PromptRenderer
+}
 
 func NewGeppettoStructuredOCRClient() *GeppettoStructuredOCRClient {
 	return &GeppettoStructuredOCRClient{}
 }
 
 func (c *GeppettoStructuredOCRClient) OCRPage(ctx context.Context, input StructuredOCRInput, imageBytes []byte) (StructuredOCRResult, error) {
-	inputTurn, err := BuildStructuredOCRInputTurn(input, imageBytes)
+	system, user := StructuredOCRSystemPrompt, RenderStructuredOCRPrompt(input)
+	if c.Prompts != nil {
+		var err error
+		system, user, err = c.Prompts.RenderPrompts(input)
+		if err != nil {
+			return StructuredOCRResult{}, fmt.Errorf("render structured OCR prompts: %w", err)
+		}
+	}
+	inputTurn, err := BuildStructuredOCRInputTurnWithPrompts(input, imageBytes, system, user)
 	if err != nil {
 		return StructuredOCRResult{}, err
 	}
@@ -76,6 +95,10 @@ func (c *GeppettoStructuredOCRClient) OCRPage(ctx context.Context, input Structu
 }
 
 func BuildStructuredOCRInputTurn(input StructuredOCRInput, imageBytes []byte) (*turns.Turn, error) {
+	return BuildStructuredOCRInputTurnWithPrompts(input, imageBytes, StructuredOCRSystemPrompt, RenderStructuredOCRPrompt(input))
+}
+
+func BuildStructuredOCRInputTurnWithPrompts(input StructuredOCRInput, imageBytes []byte, systemPrompt string, userPrompt string) (*turns.Turn, error) {
 	if strings.TrimSpace(input.BookID) == "" {
 		return nil, fmt.Errorf("bookID is required")
 	}
@@ -90,7 +113,7 @@ func BuildStructuredOCRInputTurn(input StructuredOCRInput, imageBytes []byte) (*
 	}
 	turnID := PageTurnID(input.PageNumber, 1, "structured-ocr")
 	turn := &turns.Turn{ID: turnID}
-	turns.AppendBlock(turn, turns.NewSystemTextBlock(StructuredOCRSystemPrompt))
+	turns.AppendBlock(turn, turns.NewSystemTextBlock(systemPrompt))
 	images := []map[string]any{{
 		"media_type": mediaTypeFromImagePath(input.ImagePath),
 		"content":    append([]byte(nil), imageBytes...),
@@ -98,7 +121,7 @@ func BuildStructuredOCRInputTurn(input StructuredOCRInput, imageBytes []byte) (*
 		"role":       "target",
 		"page":       input.PageNumber,
 	}}
-	turns.AppendBlock(turn, turns.NewUserMultimodalBlock(RenderStructuredOCRPrompt(input), images))
+	turns.AppendBlock(turn, turns.NewUserMultimodalBlock(userPrompt, images))
 	return turn, nil
 }
 

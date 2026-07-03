@@ -74,16 +74,19 @@ for line in sys.stdin:
         emit({
             "type": "response", "request_id": rid, "ok": True,
             "output": {
-                "schema_version": "structured-ocr/v1",
-                "book_id": inp.get("book_id", "unknown"),
-                "page_number": page,
-                "page_type": "body",
-                "blocks": [
-                    {"id": f"p{page:03d}-b001", "type": "paragraph",
-                     "text": f"Demo plugin transcription of page {page} "
-                             f"(source image: {size} bytes)."},
-                ],
-                "warnings": [],
+                # op schema ocr.page/v1: the page object nests under "page"
+                "page": {
+                    "schema_version": "structured-ocr/v1",
+                    "book_id": inp.get("book_id", "unknown"),
+                    "page_number": page,
+                    "page_type": "body",
+                    "blocks": [
+                        {"id": f"p{page:03d}-b001", "type": "paragraph",
+                         "text": f"Demo plugin transcription of page {page} "
+                                 f"(source image: {size} bytes)."},
+                    ],
+                    "warnings": [],
+                },
                 "engine": {"name": "demo-ocr-strategy", "version": "0.0.1"},
             },
         })

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-go-golems/book-ocr/internal/ocrquality"
 	"github.com/go-go-golems/scraper/pkg/engine/model"
 	"github.com/go-go-golems/scraper/pkg/workflow"
 )
@@ -13,6 +14,9 @@ import (
 type StructuredWorkflowConfig struct {
 	Client         StructuredOCRClient
 	ProjectionName string
+	// Segmenter computes figure crops during assembly; nil selects the
+	// built-in ink-band heuristic.
+	Segmenter ocrquality.FigureSegmenter
 }
 
 func RegisterStructuredWorkflow(rt *workflow.Runtime, cfg StructuredWorkflowConfig) error {
@@ -31,7 +35,7 @@ func RegisterStructuredWorkflow(rt *workflow.Runtime, cfg StructuredWorkflowConf
 	for _, executor := range []workflow.Executor{
 		StructuredDiscoverExecutor(cfg.ProjectionName),
 		StructuredPageExecutor(cfg.ProjectionName, cfg.Client),
-		StructuredAssembleExecutor(cfg.ProjectionName),
+		StructuredAssembleExecutor(cfg.ProjectionName, cfg.Segmenter),
 		StructuredValidateExecutor(cfg.ProjectionName),
 	} {
 		if err := rt.RegisterExecutor(executor); err != nil {

@@ -21,6 +21,9 @@ type FigureExtractionOptions struct {
 	ImageDir  string
 	OutputDir string
 	Margin    int
+	// Segmenter computes figure crop rectangles; nil selects the built-in
+	// InkBandSegmenter.
+	Segmenter FigureSegmenter
 }
 
 type FigureExtraction struct {
@@ -219,7 +222,19 @@ func extractPageFigure(pageNumber, figureIndex int, desc string, opts FigureExtr
 	if err != nil {
 		return FigureExtraction{}, err
 	}
-	crop, rect := cropNonWhite(img, opts.Margin)
+	segmenter := opts.Segmenter
+	if segmenter == nil {
+		segmenter = InkBandSegmenter{}
+	}
+	rect, method, err := segmenter.SegmentFigure(SegmentRequest{Image: img, ImagePath: pagePath, PageNumber: pageNumber, FigureIndex: figureIndex, Description: desc, Margin: opts.Margin})
+	if err != nil {
+		return FigureExtraction{}, fmt.Errorf("segment figure %d on page %03d: %w", figureIndex, pageNumber, err)
+	}
+	rect = rect.Intersect(img.Bounds())
+	if rect.Empty() {
+		rect = img.Bounds()
+	}
+	crop := cropImage(img, rect)
 	outPath := filepath.Join(opts.OutputDir, fmt.Sprintf("page_%03d_figure_%02d.png", pageNumber, figureIndex))
 	outFile, err := os.Create(outPath)
 	if err != nil {
@@ -229,7 +244,7 @@ func extractPageFigure(pageNumber, figureIndex int, desc string, opts FigureExtr
 	if err := png.Encode(outFile, crop); err != nil {
 		return FigureExtraction{}, err
 	}
-	figure := FigureExtraction{PageNumber: pageNumber, FigureIndex: figureIndex, Description: desc, ImagePath: outPath, CropRect: cropRectFromImageRect(rect), Method: "ink-band-v1", Warnings: figureCropWarnings(img.Bounds(), rect)}
+	figure := FigureExtraction{PageNumber: pageNumber, FigureIndex: figureIndex, Description: desc, ImagePath: outPath, CropRect: cropRectFromImageRect(rect), Method: method, Warnings: figureCropWarnings(img.Bounds(), rect)}
 	if err := writeFigureSidecars(img, &figure, opts.OutputDir); err != nil {
 		return FigureExtraction{}, err
 	}

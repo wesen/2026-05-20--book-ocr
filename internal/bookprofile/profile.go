@@ -49,6 +49,20 @@ type Profile struct {
 	Normalize   NormalizePolicy  `yaml:"normalize,omitempty" json:"normalize,omitempty"`
 	Figures     FigurePolicy     `yaml:"figures,omitempty" json:"figures,omitempty"`
 	Context     ContextPolicy    `yaml:"context,omitempty" json:"context,omitempty"`
+	Plugins     []PluginRef      `yaml:"plugins,omitempty" json:"plugins,omitempty"`
+}
+
+// PluginRef binds an NDJSON-stdio plugin executable to one or more pipeline
+// seams (e.g. ocr.page, prompt.render, figures.segment). Paths are resolved
+// relative to the profile file when not absolute. Mirrors
+// internal/plugin.Spec so the profile package stays free of the plugin
+// runtime dependency.
+type PluginRef struct {
+	ID    string            `yaml:"id" json:"id"`
+	Path  string            `yaml:"path" json:"path"`
+	Args  []string          `yaml:"args,omitempty" json:"args,omitempty"`
+	Env   map[string]string `yaml:"env,omitempty" json:"env,omitempty"`
+	Seams []string          `yaml:"seams" json:"seams"`
 }
 
 type PageImagePolicy struct {

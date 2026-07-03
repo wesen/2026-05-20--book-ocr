@@ -122,7 +122,7 @@ func StructuredPageExecutor(projectionName string, client StructuredOCRClient) w
 	})
 }
 
-func StructuredAssembleExecutor(projectionName string) workflow.Executor {
+func StructuredAssembleExecutor(projectionName string, segmenter ocrquality.FigureSegmenter) workflow.Executor {
 	return workflow.NewTypedExecutor(KindStructuredAssemble, func(ctx context.Context, step *workflow.StepContext, input StructuredAssembleInput) error {
 		deps := step.Step().DependsOn
 		pages := make([]StructuredPageWorkflowResult, 0, len(deps))
@@ -164,7 +164,7 @@ func StructuredAssembleExecutor(projectionName string) workflow.Executor {
 			if figuresDir == "" {
 				figuresDir = filepath.Join(input.WorkDir, "figures")
 			}
-			embedded, figures, err := ocrquality.EmbedExtractedFigures(string(assembledBytes), ocrquality.FigureExtractionOptions{ImageDir: input.ImageDir, OutputDir: figuresDir})
+			embedded, figures, err := ocrquality.EmbedExtractedFigures(string(assembledBytes), ocrquality.FigureExtractionOptions{ImageDir: input.ImageDir, OutputDir: figuresDir, Segmenter: segmenter})
 			if err != nil {
 				return workflow.Permanent("structured_embed_figures_failed", err)
 			}
