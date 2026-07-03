@@ -29,10 +29,17 @@
 
 ## Productization roadmap (from the design doc — future work)
 
-- [x] Phase 1 (except goreleaser tag): scraper v0.0.4 published dep (F1), CI green from clean clone (F9), --dry-run default flipped + usage fixed (F6); TODO: goreleaser v0.1.0 tag
+- [x] Phase 1 (complete; v0.1.0 tagged locally, push pending): scraper v0.0.4 published dep (F1), CI green from clean clone (F9), --dry-run default flipped + usage fixed (F6); TODO: goreleaser v0.1.0 tag
 - [x] Phase 2 (core): profile-driven prompts+renderer via PolicyFromProfile, profiles/report-794.yaml + generic-technical-book.yaml, golden equivalence proofs (leftovers: ocrquality QA/page-naming F4, Cobra/Glazed CLI, generic dry-run fixtures)
-- [ ] Phase 3: book-ocr ingest (pdftoppm) + init (profile bootstrap via discovery) + report (tokens/cost) + user docs (F8)
+- [x] Phase 3 (core+init): ingest + init (drafted profile, review checklist, next-command) + report (leftovers: cost table, user docs)
 - [ ] Phase 4: first-class RequeueSteps rerun API (F5), audit command (F7), review-PDF mode, lease heartbeat/cancellation upstream requests, optional local review UI
 - [x] Plugin track P1: internal/plugin manager (import devctl pkg/runtime), ocr.page + prompt.render + figures.segment seams, profile plugins: section, reference plugins
-- [ ] Plugin track P2: response.parse, validate.page/book chain, page.classify routing
+- [x] Plugin track P2: response.parse (decline-to-builtin), validate.page/book (tagged, additive), page.classify with per-page strategy routing, plugin retryable-hint classification
 - [ ] Plugin track P3: markdown.transform, ingest.pages hook, plugin cookbook doc
+
+## Addressed 2026-07-03 (second implementation session)
+
+- [x] F4: page-image resolution by number (figures, vlmseparation, marker regex) — ingest layout no longer breaks figure extraction
+- [x] book-ocr init: PDF -> workspace + drafted profile + checklist
+- [x] goreleaser trimmed to secret-free release; v0.1.0 tagged locally (push to trigger release workflow)
+- [x] Cobra CLI migration (flags unchanged via DisableFlagParsing; vlm-separation mounted natively)

@@ -43,3 +43,14 @@ Implementation session: golden renderer+prompt harness; Phase-1 wins (live-by-de
 - /home/manuel/code/wesen/2026-05-20--book-ocr/internal/ocrpipeline/policy.go — Profile-to-policy compiler
 - /home/manuel/code/wesen/2026-05-20--book-ocr/internal/plugin/manager.go — Plugin host core
 
+
+## 2026-07-03
+
+Second implementation session: F4 page-naming fix (glob-based image resolution + wide markers), book-ocr init (PDF to drafted profile workspace), releasable goreleaser + local v0.1.0 tag, cobra CLI tree (flags unchanged), plugin track P2 (response.parse with decline-to-builtin, tagged validate.page/book, page.classify with per-page strategy routing, plugin retryable-hint classification). Five code commits; E2E smoke: profile-declared plugin set routed page 2 to an alternate OCR strategy with book-validator warning in the report.
+
+### Related Files
+
+- /home/manuel/code/wesen/2026-05-20--book-ocr/cmd/book-ocr/root.go — Cobra command tree
+- /home/manuel/code/wesen/2026-05-20--book-ocr/internal/ocrpipeline/hooks.go — Seam interfaces incl. RetryHinter
+- /home/manuel/code/wesen/2026-05-20--book-ocr/internal/plugin/adapters_p2.go — P2 seam adapters
+

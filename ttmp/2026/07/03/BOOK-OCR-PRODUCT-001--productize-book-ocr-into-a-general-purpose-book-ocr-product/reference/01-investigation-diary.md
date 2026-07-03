@@ -553,3 +553,98 @@ The onboarding gap closed: `book-ocr ingest` turns a PDF into the pipeline's `pa
 
 ### Technical details
 - Manifest: `{source, source_sha256, dpi, grayscale, page_count, page_prefix, created_at, tool}`.
+
+## Step 12: F4 fix, book-ocr init, releasable goreleaser + v0.1.0 tag, cobra CLI
+
+Four leftovers cleared in sequence, one commit each. The F4 page-naming fix removed the last silent trap between ingest and figure extraction; init closed the onboarding loop; the release config was trimmed to what the repo can actually ship; and the CLI became a cobra tree without changing a single flag.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, address all the points up to plugin P2 (included). COmmit at appropriate intervals, keep a diary (see skill) as you go."
+
+**Assistant interpretation:** Execute, in order: F4 page-naming hardcodes, profile bootstrap (init), goreleaser v0.1.0, cobra migration, plugin track P2.
+
+**Inferred user intent:** Clear the remaining product debt below the P2 line.
+
+**Commits (code):** "Resolve page images by number instead of hardcoded 3-digit names (F4)"; "Add book-ocr init: bootstrap a new book workspace from a PDF"; "Make the release config actually releasable; prepare v0.1.0"; "Migrate the CLI to a cobra command tree"
+
+### What I did
+- F4: `ocrquality` figure extraction and `vlmseparation` now resolve page images by globbing `page_*.png` and matching the last digit run (legacy `page_%03d.png` construction kept as fallback); the ocrquality page-marker regex accepts any digit width. Regression tests include the exact ingest-layout case that used to fail (4-digit `page_0001.png`).
+- init: ingest (refactored into `ingestPDF`) → discover → drafted `<book-id>.profile.yaml` (glob/regex/expected_pages filled) → review checklist → printed next command. Verified the full loop: generated PDF → init → suggested dry-run passes 2/2.
+- goreleaser: config was already pointed at cmd/book-ocr — the template was fine; F1 was what had blocked releases. Trimmed GPG signing, the go-go-golems brew tap, and the fury.io publisher (all need secrets this repo lacks), fixed the deprecated snapshot template, verified `goreleaser check` clean plus a runnable snapshot binary, tagged v0.1.0 locally (NOT pushed — pushing triggers the release workflow; owner's call).
+- cobra: root command tree with per-command Short help and the vlm-separation cobra tree mounted natively; subcommands keep their stdlib FlagSets via DisableFlagParsing so all flags/behavior are unchanged; bare-flags shorthand preserved by argv rewriting; deleted printUsage and the switch.
+
+### Why
+- F4 first because it silently bites (ingest + --embed-figures); init before goreleaser so the release includes the onboarding story; cobra last of the four because it's behavior-neutral.
+
+### What worked
+- Everything on first or second run; the `%03d` formats that only *format* (dirs, artifact names) needed no change since Go pads to minimum width.
+
+### What didn't work
+- `goreleaser check` initially failed on two deprecations (brews, snapshot.name_template) — both resolved by the trim.
+
+### What I learned
+- The release story was never a config problem: the template was correct and unpassable CI (F1) was the real blocker. Worth checking assumptions against the actual failure before "fixing" configs.
+
+### What was tricky to build
+- Preserving the bare-flags `book-ocr --book-id ...` shorthand under cobra: solved by rewriting argv before Execute rather than fighting cobra's root-flag parsing.
+
+### What warrants a second pair of eyes
+- The trimmed goreleaser drops the homebrew tap — restore it deliberately if the tap is wanted, with the token secret configured.
+- Pushing the v0.1.0 tag (and this branch) is left to the owner.
+
+### What should be done in the future
+- `book-ocr init` could sample-classify pages via a cheap dry pass to prefill page_types (BuildPatch machinery exists).
+
+### Code review instructions
+- `internal/ocrquality/pageimages.go` + `pageimages_test.go`; `cmd/book-ocr/phase3.go` (runInit); `.goreleaser.yaml` diff; `cmd/book-ocr/root.go`. Smoke: `book-ocr --help`, `book-ocr init --book-id x --pdf y.pdf`.
+
+### Technical details
+- Tag: `v0.1.0` (annotated, local). Snapshot build artifact verified under dist/ then removed.
+
+## Step 13: Plugin track P2 — response.parse, validate.page/book, page.classify, retry hints
+
+The P2 seams landed with per-page strategy routing as the headline: a page.classify plugin can now send individual pages to different ocr.page plugin bindings, persisted in the op input so reruns route identically.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 12)
+
+**Assistant interpretation:** Complete P2 per design doc 02, including the retryable-hint mapping flagged in Step 9's review notes.
+
+**Inferred user intent:** The full experimentation surface: parse, validate, and route without recompiling.
+
+**Commit (code):** "Add plugin track P2: response.parse, validate.page/book, page.classify"
+
+### What I did
+- `internal/ocrpipeline/hooks.go`: ResponseParser (handled=false defers to builtin), PageValidator/BookValidator (additive), PageClassifier, RetryHinter interfaces; threaded through StructuredWorkflowConfig → executors → RunStructuredPage; StructuredValidateResult gains plugin_warnings; classifyStructuredPageError honors RetryHinter verdicts in both directions.
+- `internal/plugin/adapters_p2.go`: the four adapters, E_DECLINED handling, `[plugin/<id>]` warning tagging, strategy validation at classify time; Manager gains byID/HasPlugin/CallPlugin for routing; ocr.page input gains page_type_hint; wrapCallError maps error.details.retryable and E_TIMEOUT/E_CANCELED onto hinted errors.
+- Test plugins extended (custom @@page|text parse format, TYPO detector, book_checked, classify: page 1 title / page 2 → strategy alt-ocr) plus a second alt-ocr plugin; 7 new tests incl. decline-to-builtin through RunStructuredPage, routing E2E, and hint classification.
+
+### Why
+- Additive validators and decline-to-builtin parsing keep the invariant rule from design doc 02: plugins extend, never weaken, the built-in guarantees.
+
+### What worked
+- Whole test suite green on the first full run; the profile-driven E2E smoke showed classify-routing, plain generic fences, and the tagged book warning in one run.
+
+### What didn't work
+- CLI `--plugin` flags derive IDs from seam:path, so strategy routing (which names plugin IDs) needs profile-declared plugins with explicit ids — discovered while designing the smoke; documented rather than changed (profiles are the reproducible form anyway).
+
+### What I learned
+- Persisting page_type_hint/strategy in the op input_json (like the Phase-2 policy stamping) means rerun/resume replay routing decisions without re-running the classifier.
+
+### What was tricky to build
+- Keeping the parse-error classification intact across three parse paths (builtin, plugin-handled, plugin-declined→builtin): the "parse structured ocr json" marker string had to appear on the plugin path too, and plugin errors needed the Permanent classification unless explicitly hinted retryable.
+
+### What warrants a second pair of eyes
+- Classify failures abort the run (Retryable) rather than falling back to defaults — deliberate fail-fast, but debatable for flaky classifiers.
+- validate.page sends full structured JSON + markdown per page over stdio; fine for local plugins, worth revisiting if pages get huge.
+
+### What should be done in the future
+- P3: markdown.transform, ingest.pages hook, plugin cookbook; per-seam plugin chains for validators beyond one.
+
+### Code review instructions
+- `internal/ocrpipeline/hooks.go`, `internal/plugin/adapters_p2.go`, the RunStructuredPage parse/validate changes; `go test ./internal/plugin ./internal/ocrpipeline -count=1`; the smoke profile pattern is in this step's Technical details.
+
+### Technical details
+- Smoke: profile with plugins [main: ocr.page+page.classify+validate.page+validate.book, alt-ocr: ocr.page]; assembled.md shows "ALT strategy output for page 2" between default-binding pages 1 and 3; validation-report.json plugin_warnings: [{code: book_checked, message: "[plugin/main] checked 3 pages"}].
